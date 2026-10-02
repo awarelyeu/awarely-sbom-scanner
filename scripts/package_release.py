@@ -48,7 +48,7 @@ for arch in ["amd64", "arm64"]:
             "compositions": [{"aggregate": "incomplete"}]}
     members = {"awarely-scan": content, "binary-sbom.cdx.json": (json.dumps(sbom, indent=2) + "\n").encode(),
                "SHA256SUMS": (digest + "  awarely-scan\n").encode(), **notices}
-    for name in ["LICENSE", "NOTICE", "README.md", "SECURITY.md", "CONTRIBUTING.md", "THIRD_PARTY_NOTICES.md", "docs/coverage.md", "docs/releases.md", "docs/roadmap.md"]:
+    for name in ["LICENSE", "NOTICE", "README.md", "SECURITY.md", "CONTRIBUTING.md", "THIRD_PARTY_NOTICES.md", "docs/coverage.md", "docs/api.md", "docs/releases.md", "docs/roadmap.md"]:
         members[name] = (source / name).read_bytes()
     archive = dest / f"awarely-scan_{version}_linux_{arch}.tar.gz"
     with archive.open("wb") as raw, gzip.GzipFile(fileobj=raw, mode="wb", filename="", mtime=0) as compressed, tarfile.open(fileobj=compressed, mode="w") as tar:
