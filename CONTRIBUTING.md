@@ -21,3 +21,5 @@ New collectors require a documented scope, bounded parsing, privacy fixtures and
 Keep generated inventories in `scan-output/`; outputs and build artifacts are ignored by Git. Do not commit customer data, tokens, local configuration or sibling repositories. Test fixtures must be synthetic. Awarely Monitor is a separate project and deploy process.
 
 Changes to the API contract, dependency scope, collector authority or release workflow require security review. Release jobs run only from protected maintainer tags; untrusted pull requests must never receive signing credentials or production access.
+
+Public documentation and commit messages should explain the CLI and its user-facing contract concisely. Keep service infrastructure, cloud account/resource identifiers, internal endpoints, access policies, deployment procedures and operational test evidence in the separate private project. Never copy internal runbooks or real account data into this repository, issues or releases.

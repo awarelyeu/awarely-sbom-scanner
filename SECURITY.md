@@ -24,7 +24,7 @@ Names are validated and JSON is encoded structurally. No raw project error line,
 
 Unit and race tests exercise traversal, special files, malformed/duplicate JSON, package identity, partial coverage, version precision and no-overwrite output. Fuzz targets cover JSON, npm locks, requirements and dpkg. CI rejects external runtime modules, subprocess/plugin/cgo dependencies, and networking dependencies in the local collector. It traces Linux local-mode system calls on synthetic fixtures. Remote client tests cover certificate verification, redirect rejection, response bounds, consistency and retry identity.
 
-Only test data is used in tests. CI must not upload inventory to production. Real API E2E uses a separate guarded staging stack and synthetic identities; native Linux amd64 and arm64 binaries exercise local → check → sync → Monitor readback there. Runtime dependency checks and tests are evidence for the exercised paths, not a guarantee that no vulnerability exists.
+Automated tests use synthetic data and isolated environments. CI must not upload inventory to production. Linux amd64 and arm64 are tested. Test results cover the exercised paths and do not guarantee that no vulnerability exists.
 
 Release archives have checksums, GitHub build provenance and a component inventory for the binary. Verify both the digest and the expected signing repository/workflow. A digest alone does not establish who produced a file.
 
@@ -38,8 +38,8 @@ The credential file must be owned by the current user with no group/other permis
 
 Requests project only supported package identities, versions and evidence from a CycloneDX file. Raw SBOM metadata, URLs, filenames and project contents are not uploaded. Requests, responses, deadlines and JSON complexity are bounded. Credentials and remote response bodies are not printed in errors. Reports and receipts use the same private no-overwrite publication as local outputs.
 
-The API separates check and sync workers and IAM roles. Credentials are random, hashed at rest, expiring (maximum 90 days), revocable, and scoped to an organization/application/source and explicit actions. Current issuer membership, owner identity and Pro entitlement are rechecked; sync checks those conditions again in its atomic commit. Creation and revocation use the browser's MFA gate, outside onboarding grace. Check cannot read/write saved inventory or send alerts. Sync cannot alter alert channels, billing or another source.
+Create scoped, expiring credentials in your Awarely account with MFA enabled. Prefer check-only access when updates are unnecessary, and revoke credentials when their work is finished. Check does not save inventory or send alerts. Sync updates only its assigned inventory source.
 
 Sync requires a complete selected-input snapshot, revision and idempotency key. Server quotas and size limits fail closed rather than truncate. The signature, evidence labels and completeness claim are not proof of a client's honesty: a principal with inventory-write permission can intentionally replace its own source. Do not grant that credential to untrusted jobs or pull requests.
 
-No distribution-advisory solver is included. Distro packages cannot receive a confirmed upstream-semver match. A successful response is not a security certification. Account deletion disables machine access before cleanup so in-flight requests cannot recreate deleted inventory.
+No distribution-advisory solver is included. Distro packages cannot receive a confirmed upstream-semver match. A successful response is not a security certification.
