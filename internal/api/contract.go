@@ -22,6 +22,8 @@ type Component struct {
 	Distribution        string `json:"distribution,omitempty"`
 	DistributionVersion string `json:"distributionVersion,omitempty"`
 	Architecture        string `json:"architecture,omitempty"`
+	SourcePackage       string `json:"sourcePackage,omitempty"`
+	SourceVersion       string `json:"sourceVersion,omitempty"`
 }
 type Snapshot struct {
 	SchemaVersion    int         `json:"schemaVersion"`
@@ -119,12 +121,32 @@ func ReadSnapshot(ctx context.Context, path string) (Snapshot, error) {
 		if c.Name != out.Name || c.Version != version {
 			return Snapshot{}, errors.New("SBOM name/version disagrees with package URL")
 		}
+		sourceSeen := map[string]bool{}
 		for _, p := range c.Properties {
+			if p.Name == "awarely:source-package" || p.Name == "awarely:source-version" {
+				if ecosystem != "deb" || sourceSeen[p.Name] || p.Value == "" {
+					return Snapshot{}, errors.New("invalid source package metadata")
+				}
+				sourceSeen[p.Name] = true
+				if p.Name == "awarely:source-package" {
+					out.SourcePackage = p.Value
+				} else {
+					out.SourceVersion = p.Value
+				}
+			}
 			if p.Name == "awarely:evidence" {
 				if out.Evidence != "" {
 					return Snapshot{}, errors.New("ambiguous component evidence")
 				}
 				out.Evidence = p.Value
+			}
+		}
+		if out.SourcePackage != "" || out.SourceVersion != "" {
+			if out.SourcePackage == "" || out.SourceVersion == "" {
+				return Snapshot{}, errors.New("incomplete source package metadata")
+			}
+			if _, err := inventory.NewComponent("deb", out.SourcePackage, out.SourceVersion, "installed-dpkg", nil); err != nil {
+				return Snapshot{}, err
 			}
 		}
 		if out.Evidence != "resolved-lockfile" && out.Evidence != "declared-manifest" && out.Evidence != "declared-requirements" && out.Evidence != "installed-dpkg" {

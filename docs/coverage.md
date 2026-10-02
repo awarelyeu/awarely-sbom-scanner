@@ -47,3 +47,9 @@ Distro/release, architecture and full version epoch/revision are kept in package
 Over-limit and invalid input fail without a new final report. A supported but incomplete scope can produce a report with exit 3. No component list is silently truncated. Existing output is preserved even if publication fails.
 
 `awarely:coverage=complete-for-selected-inputs` means the supported selected inputs were processed without known omissions. It never means that a host is fully inventoried or free of vulnerabilities. CycloneDX composition remains `incomplete` to avoid asserting more.
+
+## Distribution vulnerability checks
+
+`host` preserves the dpkg `Source` field. If it omits the source version, the binary version applies; if the field is absent, the package name and version apply. This preserves the original source version for binary-only rebuilds. These values are included as `awarely:source-package` and `awarely:source-version` properties.
+
+`check` evaluates supported Debian/Ubuntu releases using their official advisory data and Debian version ordering. It includes older advisories still applicable to installed packages. A fix supplied through Ubuntu Pro may require a subscription to obtain; the report does not infer subscription status. See the support and uncertainty boundaries in the [README](../README.md).

@@ -20,7 +20,9 @@ const DefaultSelection = "nginx*,apache2*,openssl,openssh-server,nodejs,python3,
 var distroValue = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{0,63}$`)
 var archValue = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,31}$`)
 
-type debPackage struct{ Name, Version, Arch, Depends, Provides string }
+type debPackage struct{ Name, Version, Arch, Depends, Provides, SourceName, SourceVersion string }
+
+var sourceField = regexp.MustCompile(`^([a-z0-9][a-z0-9+.-]*)(?: \(([A-Za-z0-9][A-Za-z0-9.!+:~_-]*)\))?$`)
 
 func Host(ctx context.Context, path, selection string, all bool) (Result, error) {
 	r := Result{Scope: "selected installed DEB packages and Depends/Pre-Depends closure"}
@@ -131,6 +133,7 @@ func Host(ctx context.Context, path, selection string, all bool) (Result, error)
 		if err != nil {
 			return r, err
 		}
+		c.Properties = append(c.Properties, Property{"awarely:source-package", p.SourceName}, Property{"awarely:source-version", p.SourceVersion})
 		if err = r.Add(c); err != nil {
 			return r, err
 		}
@@ -200,7 +203,17 @@ func parseDPKG(ctx context.Context, b []byte) (map[string]debPackage, error) {
 			return errors.New("too many dpkg records")
 		}
 		if fields["Status"] == "install ok installed" || fields["Status"] == "hold ok installed" {
-			p := debPackage{fields["Package"], fields["Version"], fields["Architecture"], fields["Depends"] + "," + fields["Pre-Depends"], fields["Provides"]}
+			p := debPackage{fields["Package"], fields["Version"], fields["Architecture"], fields["Depends"] + "," + fields["Pre-Depends"], fields["Provides"], fields["Package"], fields["Version"]}
+			if raw, present := fields["Source"]; present {
+				m := sourceField.FindStringSubmatch(raw)
+				if m == nil || !ValidText(m[1], 200) || (m[2] != "" && !ValidText(m[2], 100)) {
+					return errors.New("invalid installed source package identity")
+				}
+				p.SourceName = m[1]
+				if m[2] != "" {
+					p.SourceVersion = m[2]
+				}
+			}
 			if !debName.MatchString(p.Name) || !ValidText(p.Name, 200) || !versionText.MatchString(p.Version) || !ValidText(p.Version, 100) || !archValue.MatchString(p.Arch) {
 				return errors.New("invalid installed package identity")
 			}
@@ -242,7 +255,7 @@ func parseDPKG(ctx context.Context, b []byte) (map[string]debPackage, error) {
 		}
 		last = ""
 		switch k {
-		case "Package", "Version", "Architecture", "Status", "Depends", "Pre-Depends", "Provides":
+		case "Package", "Version", "Architecture", "Status", "Depends", "Pre-Depends", "Provides", "Source":
 			if _, dup := fields[k]; dup {
 				return nil, errors.New("duplicate dpkg field")
 			}
