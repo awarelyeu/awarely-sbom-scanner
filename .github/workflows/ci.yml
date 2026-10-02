@@ -39,7 +39,7 @@ jobs:
           python3 scripts/check_runtime.py
       - name: Bounded parser fuzzing
         run: |
-          for target in FuzzJSON FuzzLock FuzzRequirements FuzzDPKG FuzzRPMDatabase FuzzRPMHeader FuzzRPMWAL; do
+          for target in FuzzJSON FuzzLock FuzzRequirements FuzzDPKG FuzzRPMDatabase FuzzRPMHeader FuzzRPMWAL FuzzRPMDependency; do
             go test ./internal/inventory -run '^$' -fuzz "^${target}$" -fuzztime 5s -parallel 2
           done
       - name: Built binary privacy and network checks

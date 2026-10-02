@@ -22,7 +22,7 @@ Names are validated and JSON is encoded structurally. No raw project error line,
 
 ## Testing and release policy
 
-Unit and race tests exercise traversal, special files, malformed/duplicate JSON, package identity, partial coverage, version precision and no-overwrite output. Fuzz targets cover JSON, npm locks, requirements and dpkg. CI rejects external runtime modules, subprocess/plugin/cgo dependencies, and networking dependencies in the local collector. It traces Linux local-mode system calls on synthetic fixtures. Remote client tests cover certificate verification, redirect rejection, response bounds, consistency and retry identity.
+Unit and race tests exercise traversal, special files, malformed/duplicate JSON, package identity, partial coverage, version precision and no-overwrite output. Fuzz targets cover JSON, npm locks, requirements, dpkg, RPM databases, headers, WAL and dependency expressions. CI rejects external runtime modules, subprocess/plugin/cgo dependencies, and networking dependencies in the local collector. It traces Linux local-mode system calls on synthetic fixtures. Remote client tests cover certificate verification, redirect rejection, response bounds, consistency and retry identity.
 
 Automated tests use synthetic data and isolated environments. CI must not upload inventory to production. Linux amd64 and arm64 are tested. Test results cover the exercised paths and do not guarantee that no vulnerability exists.
 

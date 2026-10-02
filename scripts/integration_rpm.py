@@ -46,4 +46,6 @@ with tempfile.TemporaryDirectory(prefix="awarely-rpm-test-") as tmp:
     focused=json.loads(result.stdout[result.stdout.index('{'):])
     assert any(c['name']=='bash' for c in focused['components'])
     assert len(focused['components'])<len(bom['components'])
+    result = subprocess.run(base + ["/awarely-scan", "host", "--output", "/tmp/default.json", "--name", "rpm-test"], text=True, capture_output=True, timeout=60)
+    assert result.returncode == 0, result.stderr
     print(f"PASS {image}: {len(actual)} exact RPM identities; focused closure {len(focused['components'])}; offline, non-root, read-only root")

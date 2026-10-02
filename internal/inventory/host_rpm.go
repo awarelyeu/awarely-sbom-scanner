@@ -16,7 +16,7 @@ import (
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/safeio"
 )
 
-const defaultRPMSelection = "nginx*,httpd*,openssl,openssh-server,nodejs*,python3*,php*,java-*-openjdk*,postgresql*,mysql-server*,mariadb-server*,redis*,docker-ce,containerd.io,runc,podman"
+const defaultRPMSelection = "nginx*,httpd*,openssl,openssh-server,nodejs*,python3*,php*,java-*,postgresql*,mysql-server*,mariadb-server*,redis*,docker-ce,containerd.io,runc,podman"
 
 var rpmName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9+._-]{0,199}$`)
 var rpmPart = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9.+_~^]{0,99}$`)
@@ -52,6 +52,19 @@ func parseRPMHeader(b []byte) (rpmPackage, error) {
 		count := int(binary.BigEndian.Uint32(e[12:]))
 		wanted := tag == 1000 || tag == 1001 || tag == 1002 || tag == 1003 || tag == 1011 || tag == 1022 || tag == 1044 || tag == 1047 || tag == 1049 || tag == 5096 || tag == 1116 || tag == 1117 || tag == 1118
 		if !wanted {
+			continue
+		}
+		if seen[tag] && tag == 1044 {
+			// RPM 4.19 may repeat SOURCERPM in the installed header's
+			// mutable region. Accept an identical scalar only; conflicting
+			// identities still fail closed instead of picking an arbitrary one.
+			if typ != 6 || count != 1 || off >= len(data) {
+				return p, errRPMDB
+			}
+			end := bytes.IndexByte(data[off:], 0)
+			if end < 0 || end > 4096 || len(fields[tag]) != 1 || string(data[off:off+end]) != fields[tag][0] {
+				return p, errRPMDB
+			}
 			continue
 		}
 		if seen[tag] || off < 0 || off >= len(data) || count < 1 || count > 262144 {
@@ -271,22 +284,23 @@ func hostRPM(ctx context.Context, root *os.Root, distro, release, selection stri
 		}
 		p := pkgs[queue[i]]
 		for _, cap := range p.Requires {
-			if strings.HasPrefix(cap, "rpmlib(") {
-				continue
-			}
-			found := false
-			for _, id := range providers[cap] {
-				candidate := pkgs[id]
-				if candidate.Arch != p.Arch && candidate.Arch != "noarch" && p.Arch != "noarch" {
-					continue
+			resolved := rpmDependency(cap, func(name string) []string {
+				var ids []string
+				for _, id := range providers[name] {
+					candidate := pkgs[id]
+					if candidate.Arch == p.Arch || candidate.Arch == "noarch" || p.Arch == "noarch" {
+						ids = append(ids, id)
+					}
 				}
-				found = true
+				return ids
+			})
+			for id := range resolved.ids {
 				if !selected[id] {
 					selected[id] = true
 					queue = append(queue, id)
 				}
 			}
-			if !found {
+			if !resolved.covered {
 				r.Warn("DEPENDENCY_PROVIDER_NOT_FOUND")
 			}
 		}
