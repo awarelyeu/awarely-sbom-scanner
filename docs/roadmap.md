@@ -5,8 +5,8 @@
 - Local CycloneDX 1.6 collection for documented npm/Python/DEB inputs.
 - Explicit HTTPS checks with complete component-level JSON and coverage.
 - Source-scoped, atomic inventory sync with revisions and idempotency.
-- Scoped expiring credentials, MFA management, quotas and separate worker IAM.
-- Synthetic E2E against an isolated AWS stack using Linux amd64 and arm64.
+- Scoped expiring credentials and MFA management.
+- Synthetic end-to-end tests on Linux amd64 and arm64.
 
 ## Next: Jenkins plugin
 
