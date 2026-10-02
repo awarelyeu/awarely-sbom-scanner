@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: '1.27.1'
+          cache: false
+      - name: Formatting, tests and static checks
+        run: |
+          test -z "$(gofmt -l cmd internal)"
+          go vet ./...
+          go test -race -cover ./...
+          python3 scripts/check_runtime.py
+      - name: Bounded parser fuzzing
+        run: |
+          for target in FuzzJSON FuzzLock FuzzRequirements FuzzDPKG; do
+            go test ./internal/inventory -run '^$' -fuzz "^${target}$" -fuzztime 5s -parallel 2
+          done
+      - name: Built binary privacy and network checks
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y strace
+          CGO_ENABLED=0 go build -trimpath -o dist/awarely-scan ./cmd/awarely-scan
+          python3 scripts/integration.py dist/awarely-scan
+      - name: Go vulnerability analysis
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
+  secrets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
+        env:
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

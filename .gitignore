@@ -1,0 +1,11 @@
+/dist/
+/scan-output/
+/coverage.out
+*.cdx.json
+*.inventory.json
+*.test
+*.prof
+.env
+.env.*
+!.env.example
+.DS_Store

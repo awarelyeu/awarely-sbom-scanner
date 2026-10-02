@@ -1,0 +1,7 @@
+Awarely Scan
+Copyright 2026 Awarely contributors
+
+Source: https://github.com/awarelyeu/awarely-sbom-scanner
+Licensed under the Apache License, Version 2.0.
+
+Go runtime and standard-library notices accompany the binary distribution.
