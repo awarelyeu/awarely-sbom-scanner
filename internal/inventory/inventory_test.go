@@ -256,3 +256,27 @@ func FuzzDPKG(f *testing.F) {
 		parseDPKG(context.Background(), b)
 	})
 }
+
+func TestDPKGSourceIdentity(t *testing.T) {
+	for _, tc := range []struct{ field, name, version string }{
+		{"", "libssl3", "3.0.13-1+b1"},
+		{"Source: openssl\n", "openssl", "3.0.13-1+b1"},
+		{"Source: openssl (3.0.13-1)\n", "openssl", "3.0.13-1"},
+	} {
+		input := "Package: libssl3\nStatus: install ok installed\nVersion: 3.0.13-1+b1\nArchitecture: amd64\n" + tc.field
+		pkgs, err := parseDPKG(context.Background(), []byte(input))
+		if err != nil {
+			t.Fatal(err)
+		}
+		p := pkgs["libssl3:amd64"]
+		if p.SourceName != tc.name || p.SourceVersion != tc.version {
+			t.Fatalf("source mismatch: %+v", p)
+		}
+	}
+	for _, source := range []string{"openssl ()", "openssl (1.0) trailing", "../openssl", "openssl\nSource: fake"} {
+		input := "Package: libssl3\nStatus: install ok installed\nVersion: 3.0.13-1\nArchitecture: amd64\nSource: " + source + "\n"
+		if _, err := parseDPKG(context.Background(), []byte(input)); err == nil {
+			t.Fatal("invalid source accepted")
+		}
+	}
+}

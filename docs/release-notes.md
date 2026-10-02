@@ -1,7 +1,5 @@
-API preview: local CycloneDX inventory, explicit HTTPS checks and source-scoped inventory sync on Linux amd64 and arm64.
+# Distribution advisory checks
 
-Machine credentials are scoped, expiring and revocable; manage them with MFA in Monitor Settings → Assets. Check returns complete component evidence without saving or emailing. Sync uses optimistic concurrency and idempotency, preserves other sources and manual inventories, and refuses partial or unconfirmed empty snapshots.
+Host inventories now preserve source-package names and versions, including binary-only rebuilds. API checks evaluate supported Debian/Ubuntu packages against official distribution advisories and report fixed versions, advisory links and per-component evidence. Backported fixes use Debian version ordering. Unknown assessments and unsupported inputs remain explicit; unavailable or stale data cannot produce a clean result.
 
-Local commands still use no network, subprocesses or telemetry. There are no third-party Go runtime modules. Read `docs/api.md` and `SECURITY.md` before using remote operations. Distribution-specific CVE evaluation is not implemented: Debian/Ubuntu identities are retained, and unevaluated host components are explicit in check reports.
-
-Archives include SHA-256 checksums, binary component inventories and GitHub build provenance. Verify the expected repository/workflow before execution. Jenkins is not included.
+Local collection remains offline and rootless. Recollect host inventories created with earlier releases to include source-package metadata. Read the [coverage](coverage.md) and [API](api.md) documentation for supported releases and report semantics.

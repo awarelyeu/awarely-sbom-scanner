@@ -171,14 +171,31 @@ func (c *Client) Check(ctx context.Context, s Snapshot) ([]byte, error) {
 			Components []struct {
 				Index     int    `json:"componentIndex"`
 				Precision string `json:"precision"`
+				Evidence  []struct {
+					Source        string `json:"source"`
+					Distribution  string `json:"distribution"`
+					Release       string `json:"release"`
+					SourcePackage string `json:"sourcePackage"`
+					SourceVersion string `json:"sourceVersion"`
+					VersionScheme string `json:"versionScheme"`
+					Status        string `json:"status"`
+					Catalog       string `json:"catalogGeneratedAt"`
+				} `json:"distributionEvidence"`
 			} `json:"components"`
 		} `json:"matches"`
 		Coverage struct {
-			From        string `json:"from"`
-			To          string `json:"to"`
-			Catalog     string `json:"catalogGeneratedAt"`
-			Inventory   string `json:"inventoryCoverage"`
-			Submitted   int    `json:"componentsSubmitted"`
+			From      string `json:"from"`
+			To        string `json:"to"`
+			Catalog   string `json:"catalogGeneratedAt"`
+			Inventory string `json:"inventoryCoverage"`
+			Submitted int    `json:"componentsSubmitted"`
+			Evaluated []struct {
+				Index         int    `json:"componentIndex"`
+				Release       string `json:"release"`
+				Source        string `json:"source"`
+				VersionScheme string `json:"versionScheme"`
+				Catalog       string `json:"catalogGeneratedAt"`
+			} `json:"distributionEvaluated"`
 			Unevaluated []struct {
 				Index  int    `json:"componentIndex"`
 				Reason string `json:"reason"`
@@ -208,7 +225,26 @@ func (c *Client) Check(ctx context.Context, s Snapshot) ([]byte, error) {
 		seen[match.CVEID] = true
 		indices := map[int]bool{}
 		for _, c := range match.Components {
-			if c.Index < 0 || c.Index >= len(s.Components) || indices[c.Index] || (c.Precision != "version" && c.Precision != "product") || (s.Components[c.Index].Ecosystem == "deb" && c.Precision == "version") {
+			if c.Index < 0 || c.Index >= len(s.Components) || indices[c.Index] || (c.Precision != "version" && c.Precision != "product") {
+				return nil, invalid
+			}
+			if s.Components[c.Index].Ecosystem == "deb" {
+				submitted := s.Components[c.Index]
+				if len(c.Evidence) == 0 || len(c.Evidence) > 20 {
+					return nil, invalid
+				}
+				confirmed := false
+				for _, e := range c.Evidence {
+					stamp, err := time.Parse(time.RFC3339Nano, e.Catalog)
+					if e.Source != strings.ToUpper(submitted.Distribution) || e.Distribution != submitted.Distribution || e.Release != submitted.DistributionVersion || e.SourcePackage == "" || e.SourcePackage != submitted.SourcePackage || e.SourceVersion != submitted.SourceVersion || e.VersionScheme != "dpkg" || (e.Status != "affected" && e.Status != "under-investigation") || err != nil || to.Sub(stamp) > 48*time.Hour || stamp.Sub(to) > 5*time.Minute {
+						return nil, invalid
+					}
+					confirmed = confirmed || e.Status == "affected"
+				}
+				if c.Precision == "version" && !confirmed {
+					return nil, invalid
+				}
+			} else if len(c.Evidence) != 0 {
 				return nil, invalid
 			}
 			indices[c.Index] = true
@@ -225,8 +261,20 @@ func (c *Client) Check(ctx context.Context, s Snapshot) ([]byte, error) {
 		}
 		unevaluated[c.Index] = true
 	}
+	evaluated := map[int]bool{}
+	for _, e := range check.Coverage.Evaluated {
+		if e.Index < 0 || e.Index >= len(s.Components) || evaluated[e.Index] {
+			return nil, invalid
+		}
+		submitted := s.Components[e.Index]
+		stamp, err := time.Parse(time.RFC3339Nano, e.Catalog)
+		if submitted.Ecosystem != "deb" || submitted.SourcePackage == "" || submitted.SourceVersion == "" || e.Release != submitted.Distribution+"-"+submitted.DistributionVersion || e.Source != strings.ToUpper(submitted.Distribution) || e.VersionScheme != "dpkg" || err != nil || to.Sub(stamp) > 48*time.Hour || stamp.Sub(to) > 5*time.Minute {
+			return nil, invalid
+		}
+		evaluated[e.Index] = true
+	}
 	for i, c := range s.Components {
-		if (c.Ecosystem == "deb" || c.Version == "") && !unevaluated[i] {
+		if ((c.Ecosystem == "deb" && !evaluated[i]) || c.Version == "") && !unevaluated[i] {
 			return nil, invalid
 		}
 	}

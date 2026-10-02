@@ -63,4 +63,7 @@ with tempfile.TemporaryDirectory(prefix="awarely-scan-test-") as folder:
         assert result.returncode == 0, result.stderr
         host = json.loads(host_output.read_text())
         assert any(c["name"] == "bash" and "distro=ubuntu-" in c["purl"] for c in host["components"])
+        for component in host["components"]:
+            properties = {p["name"]: p["value"] for p in component["properties"]}
+            assert properties.get("awarely:source-package") and properties.get("awarely:source-version")
         print("PASS: native Ubuntu installed-package inventory and dependency closure")

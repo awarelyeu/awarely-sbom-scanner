@@ -76,7 +76,9 @@ Every report includes `awarely:coverage`, the selected scope, input filenames an
 
 Application SBOMs can be reviewed and uploaded in **Settings → Assets**. Saving an import changes the selected inventory and can affect its configured alerts. Collection itself has no interaction with your Awarely account.
 
-Host imports preserve distribution, release, architecture and full package versions. **Distribution-specific vulnerability evaluation is not implemented.** Host packages are explicitly listed as unevaluated in API check reports; possible product matches require review against Debian/Ubuntu advisories. Upstream version ranges cannot establish whether a backported distribution package is affected.
+Host checks use official Debian and Ubuntu advisories, the installed source-package identity and Debian version ordering (including epochs and backported revisions). Supported releases are Debian 12/13 and Ubuntu 22.04/24.04/26.04 LTS on amd64/arm64. The report includes the distribution, source version, fixed version when published, advisory link and assessment evidence. Recollect older host SBOMs to include source metadata.
+
+Unresolved Ubuntu assessments remain review candidates. Unsupported releases, missing source metadata and packages absent from the advisory catalog are explicitly unevaluated. Stale or unavailable advisory data makes the check fail. Host checks cover available distribution advisories without a twelve-month publication cutoff. They assume official distribution packages; PPAs, third-party rebuilds, Debian backports repositories, specialized kernels/FIPS and runtime livepatch state need separate assessment.
 
 ## Check or synchronize through the API
 
@@ -98,7 +100,7 @@ Use a new output path for each operation. Do not put tokens in command arguments
 
 `sync` refuses partial inventories and requires `--allow-empty` to deliberately clear a source. The server preserves other sources and manual imports, merges shared components, and checks revisions to prevent lost updates. It does not send retrospective emails; new CVEs follow the organization's saved alert configuration. Read [API modes, limits and retry behavior](docs/api.md) before automation.
 
-A successful `check` means the requested comparison finished, not that the application is secure. Inspect `matches`, component precision and `coverage.unevaluated`. An empty result does not cover unsupported inventories, distro advisories or vulnerabilities outside the reporting window.
+A successful `check` means the requested comparison finished, not that the application is secure. Inspect `matches`, component precision and `coverage.unevaluated`. An empty result does not cover unsupported inventories or vulnerabilities missing from the available advisory data. Application dependency checks retain their stated reporting window.
 
 ## Security and development
 
