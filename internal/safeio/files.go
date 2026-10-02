@@ -18,6 +18,12 @@ var ErrLimit = errors.New("input exceeds the supported size limit")
 // ReadRegular never opens a final symlink, FIFO or device for reading. Root
 // confines intermediate symlink resolution even if directories are renamed.
 func ReadRegular(ctx context.Context, root *os.Root, name string, limit int64) ([]byte, error) {
+	return readRegular(ctx, root, name, limit, false)
+}
+func ReadPrivateRegular(ctx context.Context, root *os.Root, name string, limit int64) ([]byte, error) {
+	return readRegular(ctx, root, name, limit, true)
+}
+func readRegular(ctx context.Context, root *os.Root, name string, limit int64, private bool) ([]byte, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -36,6 +42,12 @@ func ReadRegular(ctx context.Context, root *os.Root, name string, limit int64) (
 	info, err = f.Stat()
 	if err != nil || !singleRegularFile(info) {
 		return nil, errors.New("input changed or is not a regular file")
+	}
+	if private {
+		stat, ok := info.Sys().(*syscall.Stat_t)
+		if !ok || int(stat.Uid) != os.Geteuid() || info.Mode().Perm()&0077 != 0 {
+			return nil, errors.New("credential file must be owned by this user with mode 0600")
+		}
 	}
 	if info.Size() > limit {
 		return nil, ErrLimit

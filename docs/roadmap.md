@@ -1,21 +1,17 @@
 # Roadmap
 
-## Current: local collection preview
+## Current API preview
 
-- Local CycloneDX 1.6 export for documented application and DEB inputs.
-- Explicit evidence, coverage warnings and bounded filesystem/parser behavior.
-- Independent public source, tests and release provenance.
+- Local CycloneDX 1.6 collection for documented npm/Python/DEB inputs.
+- Explicit HTTPS checks with complete component-level JSON and coverage.
+- Source-scoped, atomic inventory sync with revisions and idempotency.
+- Scoped expiring credentials, MFA management, quotas and separate worker IAM.
+- Synthetic E2E against an isolated AWS stack using Linux amd64 and arm64.
 
-## Next: API check
+## Next: Jenkins plugin
 
-Versioned normalized payload and complete results, scoped/revocable machine credentials, per-tenant authorization, resource quotas and a worker without inventory/alert permissions. Check must leave saved inventory unchanged. Require a separate staging environment and tenant-isolation tests before production activation.
+Build a dedicated plugin using this same CLI after the CLI/API test gates pass. Offer local, check and sync modes, use Jenkins Credentials and publish results. Untrusted pull-request jobs must not receive inventory-write credentials.
 
-## Then: inventory sync
+## Future coverage
 
-Source-scoped atomic snapshots, idempotency, optimistic concurrency and shared-component memberships. Incomplete snapshots must not delete existing data. Preserve OS distro/package identity in the Monitor model before supporting OS matching. Existing browser MFA requirements and API read keys must not be weakened or silently expanded.
-
-## Jenkins
-
-A dedicated plugin will invoke the same CLI on a supported build agent, offer local/check/sync modes, use Jenkins Credentials and publish results. Untrusted pull-request jobs must not receive inventory-write credentials.
-
-These are planned capabilities, not current features or delivery-date promises.
+Distribution-specific advisory evaluation, additional package managers and container inventories require separate evidence and tests. They are not implied by this release's coverage.

@@ -10,19 +10,22 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/awarelyeu/awarely-sbom-scanner/internal/api"
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/inventory"
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/safeio"
 )
 
 var version = "dev"
 
-const help = `Awarely Scan — local SBOM generator
+const help = `Awarely Scan — SBOM inventory, API check and source sync
 
 Usage:
   awarely-scan app --path DIR --output FILE [--name NAME]
   awarely-scan host --output FILE [--select 'nginx*,openssl'] [--name NAME]
   awarely-scan host --all-packages --output FILE
   awarely-scan version
+  awarely-scan check --input FILE --credentials FILE --output REPORT.json
+  awarely-scan sync --input FILE --credentials FILE --output RECEIPT.json
 
 app: npm lockfile v2/v3, package.json, requirements.txt in the selected directory.
 host: Debian/Ubuntu installed package metadata; focused selection by default.
@@ -36,9 +39,13 @@ Options:
   --all-packages    Include all installed DEB packages (explicit opt-in)
 
 Exit codes: 0 selected inputs processed; 2 invalid input/error; 3 partial coverage;
-            4 output error; 5 interrupted/deadline; 6 API mode not available.
-No network, installation, project execution, credentials or telemetry.
-This preview exports inventory only. API check/sync and Jenkins are planned.
+            4 output error; 5 interrupted/deadline; 6 API operation failed.
+Local modes: no network, installation, project execution, credentials or telemetry.
+Local collection never uses network or credentials. API operations are explicit.
+check does not change saved inventory. sync replaces only the credential's source.
+Credentials: protected JSON file (chmod 600), or --credentials - for stdin.
+sync options: --expected-revision REV --idempotency-key KEY --allow-empty
+Remote operations return 6 on failure; a successful check is not an all-clear.
 `
 
 func main() {
@@ -57,8 +64,7 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 		return 0
 	}
 	if args[0] == "check" || args[0] == "sync" {
-		fmt.Fprintln(errOut, "API check/sync are not available in this local preview. Nothing was sent.")
-		return 6
+		return runRemote(parent, args, out, errOut)
 	}
 	mode := args[0]
 	if mode != "app" && mode != "host" {
@@ -152,5 +158,73 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 		return 3
 	}
 	fmt.Fprintln(errOut, "Coverage applies only to the selected inputs, not to the complete host or application. This is not a vulnerability check.")
+	return 0
+}
+
+func runRemote(parent context.Context, args []string, out, errOut io.Writer) int {
+	fs := flag.NewFlagSet(args[0], flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	input := fs.String("input", "", "SBOM")
+	credentials := fs.String("credentials", "", "protected credentials")
+	output := fs.String("output", "", "result")
+	revision := fs.String("expected-revision", "", "revision")
+	key := fs.String("idempotency-key", "", "retry key")
+	empty := fs.Bool("allow-empty", false, "confirm empty source")
+	if err := fs.Parse(args[1:]); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			fmt.Fprint(out, help)
+			return 0
+		}
+		fmt.Fprintln(errOut, "Invalid remote arguments. Run awarely-scan help.")
+		return 2
+	}
+	if fs.NArg() != 0 || *input == "" || *credentials == "" || *output == "" || *output == "-" {
+		fmt.Fprintln(errOut, "Remote commands require --input, --credentials and a new --output file.")
+		return 2
+	}
+	if args[0] == "check" && (*revision != "" || *key != "" || *empty) {
+		fmt.Fprintln(errOut, "Revision, idempotency and empty confirmation options apply only to sync.")
+		return 2
+	}
+	if _, err := os.Lstat(*output); !errors.Is(err, os.ErrNotExist) {
+		fmt.Fprintln(errOut, "Choose a new output file before contacting the API.")
+		return 4
+	}
+	ctx, cancel := context.WithTimeout(parent, 90*time.Second)
+	defer cancel()
+	snapshot, err := api.ReadSnapshot(ctx, *input)
+	if err != nil {
+		fmt.Fprintln(errOut, "Invalid local inventory:", err)
+		return 2
+	}
+	snapshot.CollectorVersion = version
+	c, err := api.ReadCredentials(ctx, *credentials, os.Stdin)
+	if err != nil {
+		fmt.Fprintln(errOut, "Credentials rejected:", err)
+		return 2
+	}
+	client := api.NewClient(c)
+	var result []byte
+	if args[0] == "check" {
+		result, err = client.Check(ctx, snapshot)
+	} else {
+		result, err = client.Sync(ctx, snapshot, *revision, *key, *empty)
+	}
+	if err != nil {
+		fmt.Fprintln(errOut, "Remote operation failed:", err)
+		if ctx.Err() != nil {
+			return 5
+		}
+		return 6
+	}
+	if err = safeio.WriteNew(*output, append(result, '\n')); err != nil {
+		fmt.Fprintln(errOut, "The API operation completed, but its result could not be saved. Check destination permissions; a sync may already be committed.")
+		return 4
+	}
+	if args[0] == "check" {
+		fmt.Fprintln(errOut, "Complete check report saved. Review matches and unevaluated components. Saved inventory was not changed.")
+	} else {
+		fmt.Fprintln(errOut, "Source inventory synchronized. Commit receipt saved. Other sources were preserved.")
+	}
 	return 0
 }

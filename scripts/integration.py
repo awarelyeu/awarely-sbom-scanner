@@ -42,7 +42,7 @@ with tempfile.TemporaryDirectory(prefix="awarely-scan-test-") as folder:
     result = subprocess.run([str(binary), "app", "--path", str(app), "--output", str(output)], capture_output=True, timeout=20)
     assert result.returncode == 4 and output.read_bytes() == before
     for mode in ["check", "sync"]:
-        assert subprocess.run([str(binary), mode], capture_output=True, timeout=5).returncode == 6
+        assert subprocess.run([str(binary), mode], capture_output=True, timeout=5).returncode == 2
     # Exercise the product limit without truncating or turning partial input into success.
     packages = {f"node_modules/pkg-{i}": {"version": "1.2.3"} for i in range(5000)}
     (app / "package-lock.json").write_text(json.dumps({"lockfileVersion": 3, "packages": packages}))
@@ -55,7 +55,7 @@ with tempfile.TemporaryDirectory(prefix="awarely-scan-test-") as folder:
     result = subprocess.run([str(binary), "app", "--path", str(app), "--output", str(over)], capture_output=True, timeout=15)
     assert result.returncode == 2 and not over.exists(), result.stderr
     print("PASS: 5,000 components exported; over-limit input rejected without publication")
-    print("PASS: local export, privacy, no script execution, no overwrite, unavailable API modes")
+    print("PASS: local export, privacy, no script execution, no overwrite, remote modes require explicit arguments")
     if trace.exists():
         print("PASS: Linux syscall trace contains zero network calls and zero child processes")
         host_output = root / "host.cdx.json"
