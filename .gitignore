@@ -9,3 +9,7 @@
 .env.*
 !.env.example
 .DS_Store
+
+*credentials*.json
+*receipt*.json
+*check-results*.json

@@ -17,7 +17,7 @@ func TestCLIContracts(t *testing.T) {
 		args []string
 		code int
 	}{
-		{nil, 0}, {[]string{"version"}, 0}, {[]string{"check"}, 6}, {[]string{"sync"}, 6},
+		{nil, 0}, {[]string{"version"}, 0}, {[]string{"check"}, 2}, {[]string{"sync"}, 2},
 		{[]string{"app"}, 2}, {[]string{"app", "--timeout", "0", "--output", dest}, 2},
 		{[]string{"host", "--all-packages", "--select", "nginx", "--output", dest}, 2},
 		{[]string{"app", "--path", dir, "--output", dest, "--name", "sample"}, 0},

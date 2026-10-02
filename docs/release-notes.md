@@ -1,5 +1,7 @@
-Local-only preview: generate CycloneDX 1.6 inventories from npm lockfiles, declared package manifests and focused Debian/Ubuntu installed-package metadata.
+API preview: local CycloneDX inventory, explicit HTTPS checks and source-scoped inventory sync on Linux amd64 and arm64.
 
-Linux amd64 and arm64 archives include the binary, its component inventory, checksums and license notices. Verify GitHub build provenance before execution; see `docs/releases.md`.
+Machine credentials are scoped, expiring and revocable; manage them with MFA in Monitor Settings → Assets. Check returns complete component evidence without saving or emailing. Sync uses optimistic concurrency and idempotency, preserves other sources and manual inventories, and refuses partial or unconfirmed empty snapshots.
 
-There is no CVE scanning, remote inventory synchronization or Jenkins plugin in this release. These are subsequent stages. Known coverage gaps are explicit in the report and exit code. Host SBOMs preserve distro metadata; do not use generic Monitor OS matching until the server inventory model supports those fields.
+Local commands still use no network, subprocesses or telemetry. There are no third-party Go runtime modules. Read `docs/api.md` and `SECURITY.md` before using remote operations. Distribution-specific CVE evaluation is not implemented: Debian/Ubuntu identities are retained, and unevaluated host components are explicit in check reports.
+
+Archives include SHA-256 checksums, binary component inventories and GitHub build provenance. Verify the expected repository/workflow before execution. Jenkins is not included.
