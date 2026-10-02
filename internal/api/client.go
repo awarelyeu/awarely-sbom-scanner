@@ -172,14 +172,16 @@ func (c *Client) Check(ctx context.Context, s Snapshot) ([]byte, error) {
 				Index     int    `json:"componentIndex"`
 				Precision string `json:"precision"`
 				Evidence  []struct {
-					Source        string `json:"source"`
-					Distribution  string `json:"distribution"`
-					Release       string `json:"release"`
-					SourcePackage string `json:"sourcePackage"`
-					SourceVersion string `json:"sourceVersion"`
-					VersionScheme string `json:"versionScheme"`
-					Status        string `json:"status"`
-					Catalog       string `json:"catalogGeneratedAt"`
+					Source           string `json:"source"`
+					Distribution     string `json:"distribution"`
+					Release          string `json:"release"`
+					SourcePackage    string `json:"sourcePackage"`
+					SourceVersion    string `json:"sourceVersion"`
+					PackageName      string `json:"packageName"`
+					InstalledVersion string `json:"installedVersion"`
+					VersionScheme    string `json:"versionScheme"`
+					Status           string `json:"status"`
+					Catalog          string `json:"catalogGeneratedAt"`
 				} `json:"distributionEvidence"`
 			} `json:"components"`
 		} `json:"matches"`
@@ -228,7 +230,7 @@ func (c *Client) Check(ctx context.Context, s Snapshot) ([]byte, error) {
 			if c.Index < 0 || c.Index >= len(s.Components) || indices[c.Index] || (c.Precision != "version" && c.Precision != "product") {
 				return nil, invalid
 			}
-			if s.Components[c.Index].Ecosystem == "deb" {
+			if s.Components[c.Index].Ecosystem == "deb" || s.Components[c.Index].Ecosystem == "rpm" {
 				submitted := s.Components[c.Index]
 				if len(c.Evidence) == 0 || len(c.Evidence) > 20 {
 					return nil, invalid
@@ -236,7 +238,10 @@ func (c *Client) Check(ctx context.Context, s Snapshot) ([]byte, error) {
 				confirmed := false
 				for _, e := range c.Evidence {
 					stamp, err := time.Parse(time.RFC3339Nano, e.Catalog)
-					if e.Source != strings.ToUpper(submitted.Distribution) || e.Distribution != submitted.Distribution || e.Release != submitted.DistributionVersion || e.SourcePackage == "" || e.SourcePackage != submitted.SourcePackage || e.SourceVersion != submitted.SourceVersion || e.VersionScheme != "dpkg" || (e.Status != "affected" && e.Status != "under-investigation") || err != nil || to.Sub(stamp) > 48*time.Hour || stamp.Sub(to) > 5*time.Minute {
+					if e.Source != strings.ToUpper(submitted.Distribution) || e.Distribution != submitted.Distribution || e.Release != submitted.DistributionVersion || e.SourcePackage != submitted.SourcePackage || e.SourceVersion != submitted.SourceVersion || e.VersionScheme != distributionScheme(submitted) || (e.Status != "affected" && e.Status != "under-investigation") || err != nil || to.Sub(stamp) > 48*time.Hour || stamp.Sub(to) > 5*time.Minute {
+						return nil, invalid
+					}
+					if submitted.Ecosystem == "rpm" && (e.PackageName != submitted.Name || e.InstalledVersion != submitted.Version) {
 						return nil, invalid
 					}
 					confirmed = confirmed || e.Status == "affected"
@@ -268,13 +273,13 @@ func (c *Client) Check(ctx context.Context, s Snapshot) ([]byte, error) {
 		}
 		submitted := s.Components[e.Index]
 		stamp, err := time.Parse(time.RFC3339Nano, e.Catalog)
-		if submitted.Ecosystem != "deb" || submitted.SourcePackage == "" || submitted.SourceVersion == "" || e.Release != submitted.Distribution+"-"+submitted.DistributionVersion || e.Source != strings.ToUpper(submitted.Distribution) || e.VersionScheme != "dpkg" || err != nil || to.Sub(stamp) > 48*time.Hour || stamp.Sub(to) > 5*time.Minute {
+		if (submitted.Ecosystem != "deb" && submitted.Ecosystem != "rpm") || (submitted.Ecosystem == "deb" && (submitted.SourcePackage == "" || submitted.SourceVersion == "")) || e.Release != distributionRelease(submitted) || e.Source != strings.ToUpper(submitted.Distribution) || e.VersionScheme != distributionScheme(submitted) || err != nil || to.Sub(stamp) > 48*time.Hour || stamp.Sub(to) > 5*time.Minute {
 			return nil, invalid
 		}
 		evaluated[e.Index] = true
 	}
 	for i, c := range s.Components {
-		if ((c.Ecosystem == "deb" && !evaluated[i]) || c.Version == "") && !unevaluated[i] {
+		if (((c.Ecosystem == "deb" || c.Ecosystem == "rpm") && !evaluated[i]) || c.Version == "") && !unevaluated[i] {
 			return nil, invalid
 		}
 	}
@@ -346,4 +351,18 @@ func (c *Client) Sync(ctx context.Context, s Snapshot, revision, key string, all
 		return nil, errors.New("API did not confirm this inventory commit")
 	}
 	return result, nil
+}
+
+func distributionScheme(c Component) string {
+	if c.Ecosystem == "rpm" {
+		return "rpm"
+	}
+	return "dpkg"
+}
+func distributionRelease(c Component) string {
+	v := c.DistributionVersion
+	if c.Ecosystem == "rpm" {
+		v = strings.SplitN(v, ".", 2)[0]
+	}
+	return c.Distribution + "-" + v
 }

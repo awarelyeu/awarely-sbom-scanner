@@ -11,11 +11,11 @@ npm lockfiles must use version 2 or 3. All represented non-link package entries 
 
 `package.json` and `requirements.txt` cannot establish the complete resolved dependency tree. They always yield partial coverage. Exact declarations are labeled declared, not installed. Version ranges do not become an exact version in the SBOM. Python environment markers are not evaluated and their declarations are included conservatively with a warning. Includes, direct references and continuations are not followed.
 
-This preview does not support RPM, Alpine, pnpm/yarn/poetry locks, language environments, arbitrary binaries, JAR/ZIP/OCI archives, containers or automatic monorepo discovery. Select individual application directories with supported files.
+This preview does not support Alpine, pnpm/yarn/poetry locks, language environments, arbitrary binaries, JAR/ZIP/OCI archives, containers or automatic monorepo discovery. Select individual application directories with supported files.
 
 ## Host profile
 
-Only Debian or Ubuntu with `ID` and `VERSION_ID` in regular `etc/os-release` or `usr/lib/os-release` files is supported. Installed-package metadata is read from `var/lib/dpkg/status`. The default profile selects:
+Debian, Ubuntu, Rocky Linux and AlmaLinux are auto-detected using `ID` and `VERSION_ID` in regular `etc/os-release` or `usr/lib/os-release` files. For Debian/Ubuntu, installed-package metadata is read from `var/lib/dpkg/status`. The default profile selects:
 
 ```text
 nginx*,apache2*,openssl,openssh-server,nodejs,python3,php*,openjdk-*,
@@ -24,9 +24,24 @@ postgresql*,mysql-server*,mariadb-server*,redis-server,docker.io,containerd,runc
 
 Installed dependencies reachable through `Depends` and `Pre-Depends` are included. For alternative dependencies/virtual providers, all matching installed providers are included conservatively. Architecture qualifiers/version predicates are not a dependency solver; the output reflects installed database records. Missing providers produce a warning. Suggested/recommended packages are outside this focused closure.
 
-Use `--select 'name,prefix*'` to override the selection, or `--all-packages` for every installed DEB record. An unmatched custom selector makes the report partial; absent members of the default optional server profile do not. Unmanaged software, running-process state, kernel live-patch state and deployment completeness are outside this profile. A missing selected package does not prove the corresponding software is absent outside dpkg.
+Use `--select 'name,prefix*'` to override the selection, or `--all-packages` for every installed package record. An unmatched custom selector makes the report partial; absent members of the default optional server profile do not. Unmanaged software, running-process state, kernel live-patch state and deployment completeness are outside this profile. A missing selected package does not prove the corresponding software is absent outside its package database.
 
 Distro/release, architecture and full version epoch/revision are kept in package URLs. No vulnerability matching is done locally.
+
+### Rocky Linux and AlmaLinux
+
+The same Linux amd64/arm64 binaries read RPM SQLite databases (including committed WAL frames) or Berkeley DB hash databases under the documented RPM database locations. No `rpm`, `dnf`, database engine, shell or package scripts are executed. Changed snapshots and active rollback journals fail with a retry instruction. The selected root is never modified.
+
+The RPM default profile is:
+
+```text
+nginx*,httpd*,openssl,openssh-server,nodejs*,python3*,php*,java-*-openjdk*,
+postgresql*,mysql-server*,mariadb-server*,redis*,docker-ce,containerd.io,runc,podman
+```
+
+Installed providers for required capabilities and file paths are included conservatively. Missing providers and unsupported rich dependency expressions make collection partial. This is an inventory of installed records, not a dependency solver. Unmanaged software and running kernel/livepatch state are outside scope. NDB and encrypted or custom database formats are not supported.
+
+RPM PURLs retain distribution release, architecture and full epoch/version/release. Source RPM name/version, installed vendor and module label are metadata properties. These values are claims from the package database, not cryptographic attestation. Advisory checks use the binary RPM EVR and the matching module stream, not the source RPM version or upstream SemVer.
 
 ## Bounds and failure behavior
 
@@ -34,6 +49,8 @@ Distro/release, architecture and full version epoch/revision are kept in package
 | --- | --- |
 | Manifest | 5 MiB each |
 | dpkg status | 64 MiB / 50,000 records |
+| RPM database / WAL / header | 128 MiB / 64 MiB / 32 MiB |
+| RPM records / retained header array | 50,000 / 262,144 entries |
 | os-release | 64 KiB |
 | JSON nesting | 16 |
 | JSON values | 150,000 |
@@ -53,3 +70,5 @@ Over-limit and invalid input fail without a new final report. A supported but in
 `host` preserves the dpkg `Source` field. If it omits the source version, the binary version applies; if the field is absent, the package name and version apply. This preserves the original source version for binary-only rebuilds. These values are included as `awarely:source-package` and `awarely:source-version` properties.
 
 `check` evaluates supported Debian/Ubuntu releases using their official advisory data and Debian version ordering. It includes older advisories still applicable to installed packages. A fix supplied through Ubuntu Pro may require a subscription to obtain; the report does not infer subscription status. See the support and uncertainty boundaries in the [README](../README.md).
+
+Rocky Linux and AlmaLinux checks cover 8/9/10 on x86_64/aarch64, plus noarch packages. Only recognized distribution vendors, binary package identities and module streams are assessed. Third-party rebuilds, EPEL, specialized channels, unsupported architectures and packages absent from the catalog remain unevaluated. RPM checks use published security errata and therefore do not claim coverage for every issue without a published fix.

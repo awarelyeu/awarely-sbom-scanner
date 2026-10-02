@@ -28,15 +28,15 @@ Usage:
   awarely-scan sync --input FILE --credentials FILE --output RECEIPT.json
 
 app: npm lockfile v2/v3, package.json, requirements.txt in the selected directory.
-host: Debian/Ubuntu installed package metadata; focused selection by default.
+host: auto-detected Debian/Ubuntu (DEB), Rocky/AlmaLinux (RPM); focused selection.
 
 Options:
   --output FILE     New CycloneDX 1.6 JSON file (required; never overwrites)
   --name NAME       Explicit application label (default: application/linux-host)
   --timeout N       Deadline in seconds, 1–300 (default: 60)
   --root DIR        Host root filesystem (default: /; also accepts offline roots)
-  --select LIST     Comma-separated DEB names or trailing * selectors
-  --all-packages    Include all installed DEB packages (explicit opt-in)
+  --select LIST     Comma-separated package names or trailing * selectors
+  --all-packages    Include all installed packages (explicit opt-in)
 
 Exit codes: 0 selected inputs processed; 2 invalid input/error; 3 partial coverage;
             4 output error; 5 interrupted/deadline; 6 API operation failed.

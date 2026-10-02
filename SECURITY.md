@@ -43,3 +43,5 @@ Create scoped, expiring credentials in your Awarely account with MFA enabled. Pr
 Sync requires a complete selected-input snapshot, revision and idempotency key. Server quotas and size limits fail closed rather than truncate. The signature, evidence labels and completeness claim are not proof of a client's honesty: a principal with inventory-write permission can intentionally replace its own source. Do not grant that credential to untrusted jobs or pull requests.
 
 No distribution-advisory solver is included. Distro packages cannot receive a confirmed upstream-semver match. A successful response is not a security certification.
+
+RPM collection reads bounded regular-file snapshots directly, without SQL execution, native database libraries, recovery writes or package-manager execution. SQLite WAL checksums and commit boundaries are validated in memory. Database changes or malformed page/overflow references fail without publishing an inventory. Installed vendor/module fields are untrusted inventory evidence, not a package-signature attestation.

@@ -42,6 +42,9 @@ func Host(ctx context.Context, path, selection string, all bool) (Result, error)
 	if err != nil {
 		return r, err
 	}
+	if distro == "rocky" || distro == "almalinux" {
+		return hostRPM(ctx, root, distro, release, selection, all)
+	}
 	b, err = safeio.ReadRegular(ctx, root, "var/lib/dpkg/status", 64<<20)
 	if err != nil {
 		return r, errors.New("cannot safely read dpkg status; only Debian/Ubuntu roots are supported")
@@ -164,8 +167,8 @@ func parseOSRelease(b []byte) (string, string, error) {
 		}
 		fields[k] = v
 	}
-	if (fields["ID"] != "debian" && fields["ID"] != "ubuntu") || fields["VERSION_ID"] == "" {
-		return "", "", errors.New("only versioned Debian/Ubuntu distributions are supported")
+	if (fields["ID"] != "debian" && fields["ID"] != "ubuntu" && fields["ID"] != "rocky" && fields["ID"] != "almalinux") || fields["VERSION_ID"] == "" {
+		return "", "", errors.New("only versioned Debian, Ubuntu, Rocky Linux and AlmaLinux distributions are supported")
 	}
 	return fields["ID"], fields["VERSION_ID"], nil
 }
