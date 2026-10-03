@@ -11,7 +11,7 @@ import tempfile
 
 binary = Path(sys.argv[1]).resolve(strict=True)
 image = sys.argv[2]
-if image not in [f"{d}:{v}" for d in ("rockylinux/rockylinux", "almalinux") for v in (8,9,10)]:
+if image not in [f"{d}:{v}" for d in ("rockylinux/rockylinux", "almalinux") for v in (8,9,10)] + ["amazonlinux:2", "amazonlinux:2023"]:
     raise SystemExit("Unexpected distro test image")
 subprocess.run(["docker", "pull", image], check=True, timeout=180)
 digest = subprocess.check_output(["docker", "image", "inspect", "--format", "{{index .RepoDigests 0}}", image], text=True).strip()
@@ -47,5 +47,11 @@ with tempfile.TemporaryDirectory(prefix="awarely-rpm-test-") as tmp:
     assert any(c['name']=='bash' for c in focused['components'])
     assert len(focused['components'])<len(bom['components'])
     result = subprocess.run(base + ["/awarely-scan", "host", "--output", "/tmp/default.json", "--name", "rpm-test"], text=True, capture_output=True, timeout=60)
-    assert result.returncode == 0, result.stderr
+    if image == "amazonlinux:2" and result.returncode == 3:
+        # The minimal AL2 container contains none of the default services.
+        # An empty selection must be explicit, never a complete empty snapshot.
+        assert "NO_SELECTED_PACKAGES_INSTALLED" in result.stderr
+        assert "Partial inventory" in result.stderr
+    else:
+        assert result.returncode == 0, result.stderr
     print(f"PASS {image}: {len(actual)} exact RPM identities; focused closure {len(focused['components'])}; offline, non-root, read-only root")

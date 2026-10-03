@@ -162,7 +162,7 @@ func TestBDBOverflowBoundsAndCycles(t *testing.T) {
 	}
 }
 func TestHostRPMAutoDetectionSnapshotAndSpecialFiles(t *testing.T) {
-	for _, distro := range []string{"rocky", "almalinux"} {
+	for _, distro := range []string{"rocky", "almalinux", "amzn"} {
 		t.Run(distro, func(t *testing.T) {
 			root := t.TempDir()
 			for _, d := range []string{"etc", "var/lib/rpm"} {

@@ -15,7 +15,7 @@ This preview does not support Alpine, pnpm/yarn/poetry locks, language environme
 
 ## Host profile
 
-Debian, Ubuntu, Rocky Linux and AlmaLinux are auto-detected using `ID` and `VERSION_ID` in regular `etc/os-release` or `usr/lib/os-release` files. For Debian/Ubuntu, installed-package metadata is read from `var/lib/dpkg/status`. The default profile selects:
+Debian, Ubuntu, Rocky Linux, AlmaLinux and Amazon Linux are auto-detected using `ID` and `VERSION_ID` in regular `etc/os-release` or `usr/lib/os-release` files. For Debian/Ubuntu, installed-package metadata is read from `var/lib/dpkg/status`. The default profile selects:
 
 ```text
 nginx*,apache2*,openssl,openssh-server,nodejs,python3,php*,openjdk-*,
@@ -74,3 +74,11 @@ Over-limit and invalid input fail without a new final report. A supported but in
 `check` evaluates supported Debian/Ubuntu releases using their official advisory data and Debian version ordering. It includes older advisories still applicable to installed packages. A fix supplied through Ubuntu Pro may require a subscription to obtain; the report does not infer subscription status. See the support and uncertainty boundaries in the [README](../README.md).
 
 Rocky Linux and AlmaLinux checks cover 8/9/10 on x86_64/aarch64, plus noarch packages. Only recognized distribution vendors, binary package identities and module streams are assessed. Third-party rebuilds, EPEL, specialized channels, unsupported architectures and packages absent from the catalog remain unevaluated. RPM checks use published security errata and therefore do not claim coverage for every issue without a published fix.
+
+### Amazon Linux
+
+The same RPM reader supports Amazon Linux 2023 and Amazon Linux 2, including SQLite/WAL and Berkeley DB databases. `ID=amzn` is required; `ID_LIKE` never substitutes for the actual distribution.
+
+Amazon Linux 2023 checks use official core-repository ALAS advisories with exact package name, architecture and RPM EVR. Updating a pinned release may require selecting a newer repository release. Amazon Linux 2 is end-of-life: inventory and sync work, but checks return an explicit end-of-life assessment gap. Neither an unevaluated package nor an empty match list certifies safety.
+
+References: [ALAS metadata](https://docs.aws.amazon.com/linux/al2023/ug/alas.html), [AL2023 support](https://docs.aws.amazon.com/linux/al2023/ug/release-cadence.html), [AL2 end of life](https://docs.aws.amazon.com/AL2/latest/relnotes/relnotes-20260825.html).

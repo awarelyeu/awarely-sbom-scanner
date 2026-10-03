@@ -42,8 +42,12 @@ func Host(ctx context.Context, path, selection string, all bool) (Result, error)
 	if err != nil {
 		return r, err
 	}
-	if distro == "rocky" || distro == "almalinux" {
-		return hostRPM(ctx, root, distro, release, selection, all)
+	if distro == "rocky" || distro == "almalinux" || distro == "amzn" {
+		r, err := hostRPM(ctx, root, distro, release, selection, all)
+		if distro == "amzn" && release == "2" {
+			r.Notices = append(r.Notices, "AMAZON_LINUX_2_END_OF_LIFE: inventory only; distribution vulnerability assessment is unsupported")
+		}
+		return r, err
 	}
 	b, err = safeio.ReadRegular(ctx, root, "var/lib/dpkg/status", 64<<20)
 	if err != nil {
@@ -167,8 +171,8 @@ func parseOSRelease(b []byte) (string, string, error) {
 		}
 		fields[k] = v
 	}
-	if (fields["ID"] != "debian" && fields["ID"] != "ubuntu" && fields["ID"] != "rocky" && fields["ID"] != "almalinux") || fields["VERSION_ID"] == "" {
-		return "", "", errors.New("only versioned Debian, Ubuntu, Rocky Linux and AlmaLinux distributions are supported")
+	if (fields["ID"] != "debian" && fields["ID"] != "ubuntu" && fields["ID"] != "rocky" && fields["ID"] != "almalinux" && fields["ID"] != "amzn") || fields["VERSION_ID"] == "" {
+		return "", "", errors.New("only versioned Debian, Ubuntu, Rocky Linux, AlmaLinux and Amazon Linux distributions are supported")
 	}
 	return fields["ID"], fields["VERSION_ID"], nil
 }
