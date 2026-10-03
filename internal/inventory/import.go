@@ -76,11 +76,11 @@ func Import(ctx context.Context, path string) (Result, error) {
 			if json.Unmarshal(raw, &c) != nil || c.Name == "" {
 				return errors.New("invalid SBOM component")
 			}
-			if c.Type == "file" {
-				continue
-			}
 			if err := visit(c.Components); err != nil {
 				return err
+			}
+			if c.Type == "file" {
+				continue
 			}
 			if !strings.HasPrefix(c.PURL, "pkg:") || strings.Contains(c.PURL, "#") {
 				r.Warn("COMPONENT_WITHOUT_SUPPORTED_PURL")
@@ -100,7 +100,7 @@ func Import(ctx context.Context, path string) (Result, error) {
 			if at > 0 {
 				version, err = url.PathUnescape(identity[at+1:])
 				if err != nil {
-					return err
+					return rError()
 				}
 				identity = identity[:at]
 			}

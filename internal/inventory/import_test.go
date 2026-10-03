@@ -91,3 +91,10 @@ func TestImportFileBoundary(t *testing.T) {
 		t.Fatal("cancellation ignored")
 	}
 }
+
+func TestImportNestedPackageInsideFile(t *testing.T) {
+	r, err := importFixture(t, `{"bomFormat":"CycloneDX","specVersion":"1.7","components":[{"type":"file","name":"app.jar","components":[{"name":"core","group":"org.example","version":"1","purl":"pkg:maven/org.example/core@1"}]}]}`)
+	if err != nil || len(r.Components) != 1 {
+		t.Fatal(r, err)
+	}
+}

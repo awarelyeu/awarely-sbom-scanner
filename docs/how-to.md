@@ -421,7 +421,7 @@ Prerequisites: complete steps 2–3 for SCAN_WORK and SCAN_BIN. Install curl, ta
     curl --fail --location --proto '=https' --tlsv1.2 "$BASE/$FILE" -o "$FILE"
   done
   cosign verify-blob "$CHECKSUMS" --bundle "$CHECKSUMS.sigstore.json" \
-    --certificate-identity-regexp '^https://github\.com/anchore/syft/\.github/workflows/[^@]+@refs/tags/v1\.54\.0$' \
+    --certificate-identity 'https://github.com/anchore/syft/.github/workflows/release.yaml@refs/heads/main' \
     --certificate-oidc-issuer 'https://token.actions.githubusercontent.com'
   awk -v file="$ARCHIVE" '$2 == file {print}' "$CHECKSUMS" > selected.sha256
   test "$(wc -l < selected.sha256 | tr -d ' ')" = 1
