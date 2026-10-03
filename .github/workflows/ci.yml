@@ -37,6 +37,7 @@ jobs:
           go vet ./...
           go test -race -cover ./...
           python3 scripts/check_runtime.py
+          python3 scripts/render_guides.py --check
       - name: Bounded parser fuzzing
         run: |
           for target in FuzzJSON FuzzLock FuzzRequirements FuzzDPKG FuzzRPMDatabase FuzzRPMHeader FuzzRPMWAL FuzzRPMDependency; do

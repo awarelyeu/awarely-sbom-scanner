@@ -16,6 +16,21 @@ Built for [Awarely Monitor](https://monitor.awarely.ro/en), with a standalone lo
 | Inventory synchronization through the Awarely API | Yes, replaces one configured source |
 | Jenkins plugin using the same CLI | Planned |
 
+## Complete walkthroughs
+
+Follow the **[English guide](docs/how-to.md)** or **[ghidul în română](docs/how-to.ro.md)** for installation and release verification, account setup, MFA, source credentials, local upload, API check/sync, reports, alerts, updates, token rotation and troubleshooting.
+
+| Distribution | Tested releases | Local inventory / sync | Distribution CVE assessment | Walkthrough |
+| --- | --- | --- | --- | --- |
+| Debian | 12, 13 | Available | Official Debian data | [EN](docs/how-to.md#debian) · [RO](docs/how-to.ro.md#debian) |
+| Ubuntu | 22.04, 24.04, 26.04 LTS | Available | Official Ubuntu data | [EN](docs/how-to.md#ubuntu) · [RO](docs/how-to.ro.md#ubuntu) |
+| Rocky Linux | 8, 9, 10 | Available | Official Rocky errata | [EN](docs/how-to.md#rocky-linux) · [RO](docs/how-to.ro.md#rocky-linux) |
+| AlmaLinux | 8, 9, 10 | Available | Official AlmaLinux errata | [EN](docs/how-to.md#almalinux) · [RO](docs/how-to.ro.md#almalinux) |
+| Amazon Linux 2023 | 2023 | Available | Official ALAS core advisories | [EN](docs/how-to.md#amazon-linux-2023) · [RO](docs/how-to.ro.md#amazon-linux-2023) |
+| Amazon Linux 2 | 2 | Available | **Not implemented; explicitly unevaluated** | [EN](docs/how-to.md#amazon-linux-2) · [RO](docs/how-to.ro.md#amazon-linux-2) |
+
+All rows cover Linux amd64/arm64. Assessment is limited to supported package identities and available advisory data; packages outside that coverage remain unevaluated. [Application manifest workflow](docs/how-to.md#applications) applies across these distributions. See [coverage details](docs/coverage.md).
+
 ## Quick start
 
 Download a Linux amd64 or arm64 archive from [Releases](https://github.com/awarelyeu/awarely-sbom-scanner/releases). Verify its provenance and checksum using [the release instructions](docs/releases.md) before running it. Source builds are also supported:
