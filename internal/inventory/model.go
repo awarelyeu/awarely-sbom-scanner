@@ -39,6 +39,7 @@ type Component struct {
 type Result struct {
 	Components []Component
 	Warnings   []string
+	Notices    []string
 	Inputs     []string
 	Scope      string
 	seen       map[string]int
@@ -152,6 +153,9 @@ func Marshal(r Result, app, version string, now time.Time) ([]byte, error) {
 		state = "partial"
 	}
 	props := []Property{{"awarely:mode", "local"}, {"awarely:coverage", state}, {"awarely:scope", r.Scope}, {"awarely:inputs", strings.Join(r.Inputs, ",")}, {"awarely:network", "disabled"}}
+	for _, notice := range r.Notices {
+		props = append(props, Property{"awarely:notice", notice})
+	}
 	for _, w := range r.Warnings {
 		props = append(props, Property{"awarely:warning", w})
 	}

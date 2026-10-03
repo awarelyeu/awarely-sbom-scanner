@@ -3,7 +3,7 @@
 [![CI](https://github.com/awarelyeu/awarely-sbom-scanner/actions/workflows/ci.yml/badge.svg)](https://github.com/awarelyeu/awarely-sbom-scanner/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
-Generate a local **CycloneDX SBOM** from application manifests or a focused selection of installed Debian/Ubuntu/Rocky Linux/AlmaLinux packages. Local collection runs without root, package installation, project scripts, telemetry or network access. Explicit `check` and `sync` commands communicate with Awarely Monitor over HTTPS.
+Generate a local **CycloneDX SBOM** from application manifests or a focused selection of installed Debian/Ubuntu/Rocky Linux/AlmaLinux/Amazon Linux packages. Local collection runs without root, package installation, project scripts, telemetry or network access. Explicit `check` and `sync` commands communicate with Awarely Monitor over HTTPS.
 
 Built for [Awarely Monitor](https://monitor.awarely.ro/en), with a standalone local workflow you can inspect and use independently.
 
@@ -56,7 +56,7 @@ The output file is created with owner-only permissions and is never overwritten.
 | `package.json` fallback | Declared versions | Partial; ranges remain unknown versions, transitive dependencies unresolved |
 | `requirements.txt` | Declared requirements | Partial; does not install packages, resolve dependencies or follow includes/URLs |
 | Debian/Ubuntu package database | Installed versions | Selected packages plus Depends/Pre-Depends closure |
-| Rocky Linux/AlmaLinux RPM database | Installed EVR versions | Selected packages plus installed capability providers; SQLite/WAL and Berkeley DB hash |
+| Rocky Linux/AlmaLinux/Amazon Linux RPM database | Installed EVR versions | Selected packages plus installed capability providers; SQLite/WAL and Berkeley DB hash |
 
 Application collection reads only supported manifests in the directory you choose. It does not recursively discover repositories, inspect `node_modules`, read `.env`, execute scripts or fetch registries. npm shrinkwrap takes precedence over package-lock; package.json is a fallback. Workspace links are not followed and are reported as partial coverage.
 
@@ -80,6 +80,8 @@ Application SBOMs can be reviewed and uploaded in **Settings → Assets**. Savin
 Host checks use official Debian and Ubuntu advisories, the installed source-package identity and Debian version ordering (including epochs and backported revisions). Supported releases are Debian 12/13 and Ubuntu 22.04/24.04/26.04 LTS on amd64/arm64. The report includes the distribution, source version, fixed version when published, advisory link and assessment evidence. Recollect older host SBOMs to include source metadata.
 
 The same binaries automatically detect Rocky Linux and AlmaLinux 8/9/10. RPM checks use each distribution’s official errata, exact binary package identity, architecture, module stream and RPM epoch/version/release ordering. Installed vendor and source metadata are preserved. Third-party RPM vendors and packages without a comparable advisory are explicitly unevaluated. This checks available published fixes; it is not a complete tracker of every unfixed issue, proof of signature authenticity, or proof that an installed kernel is running.
+
+Amazon Linux 2023 is auto-detected as `amzn` and uses official ALAS core-repository advisories on x86_64/aarch64, including noarch packages. Fixed versions are compared using RPM EVR, independently of other distributions. A pinned repository may require an explicit release upgrade to obtain a fix. Amazon Linux 2 reached end of life on June 30, 2026: local inventory and sync remain available, while vulnerability checks explicitly report its packages as unevaluated. The collector prints an end-of-life notice without mislabelling an otherwise complete inventory as partial. NVIDIA, Extras, third-party packages and runtime livepatch are outside this assessment.
 
 Unresolved Ubuntu assessments remain review candidates. Unsupported releases, missing source metadata and packages absent from the advisory catalog are explicitly unevaluated. Stale or unavailable advisory data makes the check fail. Host checks cover available distribution advisories without a twelve-month publication cutoff. They assume official distribution packages; PPAs, third-party rebuilds, Debian backports repositories, specialized kernels/FIPS and runtime livepatch state need separate assessment.
 

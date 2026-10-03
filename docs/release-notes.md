@@ -1,3 +1,9 @@
+# Amazon Linux support
+
+Linux amd64/arm64 binaries automatically recognize Amazon Linux 2023 and Amazon Linux 2. Local inventory remains offline and unprivileged; explicit API checks and source-scoped sync preserve Amazon RPM identity and evidence.
+
+Amazon Linux 2023 uses official core-repository security advisories. Amazon Linux 2 inventory remains usable, with an explicit end-of-life notice and unevaluated security status. No new runtime dependency, subprocess, cloud credential discovery or image-scanning mode was added.
+
 # Rocky Linux and AlmaLinux support
 
 The existing Linux amd64/arm64 binaries now detect Rocky Linux and AlmaLinux automatically. Local inventory, explicit API checks and source-scoped inventory sync support RPM packages on releases 8/9/10.

@@ -106,7 +106,7 @@ func ReadSnapshot(ctx context.Context, path string) (Snapshot, error) {
 		out := Component{Ecosystem: ecosystem, Name: name, Version: version}
 		if ecosystem == "deb" || ecosystem == "rpm" {
 			distro, packageName, valid := strings.Cut(name, "/")
-			if !valid || ((ecosystem == "deb" && distro != "debian" && distro != "ubuntu") || (ecosystem == "rpm" && distro != "rocky" && distro != "almalinux")) {
+			if !valid || ((ecosystem == "deb" && distro != "debian" && distro != "ubuntu") || (ecosystem == "rpm" && distro != "rocky" && distro != "almalinux" && distro != "amzn")) {
 				return Snapshot{}, errors.New("unsupported distribution")
 			}
 			out.Name, out.Distribution, out.Architecture = packageName, distro, q.Get("arch")

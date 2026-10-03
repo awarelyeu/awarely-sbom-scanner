@@ -11,7 +11,7 @@ import tempfile
 
 binary = Path(sys.argv[1]).resolve(strict=True)
 image = sys.argv[2]
-if image not in [f"{d}:{v}" for d in ("rockylinux/rockylinux", "almalinux") for v in (8,9,10)]:
+if image not in [f"{d}:{v}" for d in ("rockylinux/rockylinux", "almalinux") for v in (8,9,10)] + ["amazonlinux:2", "amazonlinux:2023"]:
     raise SystemExit("Unexpected distro test image")
 subprocess.run(["docker", "pull", image], check=True, timeout=180)
 digest = subprocess.check_output(["docker", "image", "inspect", "--format", "{{index .RepoDigests 0}}", image], text=True).strip()

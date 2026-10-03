@@ -91,3 +91,19 @@ func TestRPMSnapshotPreservesVendorModuleAndRejectsSpoofedMetadata(t *testing.T)
 		}
 	}
 }
+
+func TestAmazonLinuxSnapshotKeepsNativeRPMIdentity(t *testing.T) {
+	for _, release := range []string{"2", "2023"} {
+		c := map[string]any{"name": "openssl-libs", "version": "1:3.2.2-1.amzn" + release + ".0.1", "purl": "pkg:rpm/amzn/openssl-libs@1:3.2.2-1.amzn" + release + ".0.1?arch=aarch64&distro=amzn-" + release, "properties": []map[string]string{{"name": "awarely:evidence", "value": "installed-rpm"}, {"name": "awarely:rpm-vendor", "value": "Amazon Linux"}}}
+		b, _ := json.Marshal(map[string]any{"bomFormat": "CycloneDX", "specVersion": "1.6", "components": []any{c}})
+		p := filepath.Join(t.TempDir(), "amzn.json")
+		os.WriteFile(p, b, 0600)
+		got, err := ReadSnapshot(context.Background(), p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.Components[0].Distribution != "amzn" || got.Components[0].DistributionVersion != release || got.Components[0].RPMVendor != "Amazon Linux" {
+			t.Fatal("Amazon evidence lost")
+		}
+	}
+}

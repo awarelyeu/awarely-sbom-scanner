@@ -28,7 +28,7 @@ Usage:
   awarely-scan sync --input FILE --credentials FILE --output RECEIPT.json
 
 app: npm lockfile v2/v3, package.json, requirements.txt in the selected directory.
-host: auto-detected Debian/Ubuntu (DEB), Rocky/AlmaLinux (RPM); focused selection.
+host: auto-detected Debian/Ubuntu (DEB), Rocky/AlmaLinux/Amazon Linux (RPM); focused selection.
 
 Options:
   --output FILE     New CycloneDX 1.6 JSON file (required; never overwrites)
@@ -150,6 +150,9 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 		return 4
 	}
 	fmt.Fprintf(errOut, "Wrote %d unique components from %d selected inputs. No data was sent.\n", len(r.Components), len(r.Inputs))
+	for _, notice := range r.Notices {
+		fmt.Fprintln(errOut, "Notice:", notice)
+	}
 	if len(r.Warnings) > 0 {
 		for _, w := range r.Warnings {
 			fmt.Fprintln(errOut, "Coverage warning:", w)
