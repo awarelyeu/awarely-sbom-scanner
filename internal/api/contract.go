@@ -117,7 +117,7 @@ func ReadSnapshot(ctx context.Context, path string) (Snapshot, error) {
 			if len(q) != 2 || len(q["arch"]) != 1 || len(q["distro"]) != 1 || out.DistributionVersion == "" || out.Architecture == "" {
 				return Snapshot{}, errors.New("invalid distribution qualifiers")
 			}
-		} else if (ecosystem != "npm" && ecosystem != "pypi") || len(q) != 0 {
+		} else if !strings.Contains("|npm|pypi|maven|nuget|golang|composer|gem|cargo|", "|"+ecosystem+"|") || len(q) != 0 {
 			return Snapshot{}, errors.New("unsupported package identity")
 		}
 		if c.Name != out.Name || c.Version != version {
@@ -162,7 +162,7 @@ func ReadSnapshot(ctx context.Context, path string) (Snapshot, error) {
 				return Snapshot{}, err
 			}
 		}
-		if out.Evidence != "resolved-lockfile" && out.Evidence != "declared-manifest" && out.Evidence != "declared-requirements" && out.Evidence != "installed-dpkg" && out.Evidence != "installed-rpm" {
+		if out.Evidence != "resolved-lockfile" && out.Evidence != "declared-manifest" && out.Evidence != "declared-requirements" && out.Evidence != "installed-dpkg" && out.Evidence != "installed-rpm" && out.Evidence != "imported-sbom" {
 			return Snapshot{}, errors.New("component evidence is missing or unsupported")
 		}
 		if _, err := inventory.NewComponent(ecosystem, out.Name, out.Version, out.Evidence, nil); err != nil {
@@ -175,6 +175,12 @@ func ReadSnapshot(ctx context.Context, path string) (Snapshot, error) {
 			return Snapshot{}, errors.New("duplicate package identity")
 		}
 		seen[c.PURL] = true
+		if ecosystem == "golang" {
+			out.Ecosystem = "go"
+		}
+		if ecosystem == "gem" {
+			out.Ecosystem = "rubygems"
+		}
 		snapshot.Components = append(snapshot.Components, out)
 	}
 	return snapshot, nil

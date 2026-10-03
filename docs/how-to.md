@@ -4,7 +4,7 @@ From a verified binary to a local SBOM, an API check or a saved inventory. All a
 
 [English](how-to.md) · [Română](how-to.ro.md)
 
-Release: `v0.5.0-alpha.1`
+Release: `v0.6.0-alpha.1`
 
 - [1. Choose your workflow](#choose)
 - [2. Prepare the Linux machine](#prerequisites)
@@ -17,6 +17,7 @@ Release: `v0.5.0-alpha.1`
 - [4. Amazon Linux 2](#amazon-linux-2)
 - [5. Choose the collection scope](#scope)
 - [6. Collect an application instead](#applications)
+- [6b. Java and other ecosystems with optional Syft](#syft)
 - [7. Upload the local SBOM in Monitor](#upload)
 - [8. Create and protect a machine credential](#credentials)
 - [9. Check without saving](#check)
@@ -130,7 +131,7 @@ SCAN_BIN="$SCAN_WORK/release/awarely-scan"
 (
 set -eu
 cd "$SCAN_WORK"
-SCAN_VERSION=v0.5.0-alpha.1
+SCAN_VERSION=v0.6.0-alpha.1
 case "$(uname -m)" in
   x86_64) SCAN_ARCH=amd64 ;;
   aarch64|arm64) SCAN_ARCH=arm64 ;;
@@ -384,6 +385,101 @@ On any supported Linux host, select the project directory containing npm-shrinkw
 ```
 
 Lockfiles include resolved direct/transitive, development and optional entries; they do not prove deployment or installation. Workspace links are not followed. requirements.txt includes declared versions only; includes, URLs and dependency resolution are not followed. Partial files can be reviewed/uploaded or checked, but sync rejects them. pnpm/yarn/poetry lockfiles and automatic monorepo discovery are not supported.
+
+For broader collection using Syft, see step 6b.
+
+
+<a id="syft"></a>
+
+## 6b. Java and other ecosystems with optional Syft
+
+Syft is a separate Anchore tool under Apache-2.0. Awarely does not download or execute it automatically. Use it for collection beyond the native mode, then import CycloneDX JSON 1.4–1.7. Compatible output from the CycloneDX Maven/Gradle plugins is also accepted. Import does not execute builds, Java code or archives.
+
+| Ecosystem | Inventory / sync | CVE check |
+| --- | --- | --- |
+| Java / Maven | Yes | Maven versions and full coordinates |
+| npm, Python / PyPI | Yes | Comparable ranges; other cases need review |
+| .NET / NuGet, Go, PHP / Composer, RubyGems, Rust / Cargo | Yes | Unevaluated in this release |
+
+Prerequisites: complete steps 2–3 for SCAN_WORK and SCAN_BIN. Install curl, tar, sha256sum and Cosign ≥ 2.5 from the official Sigstore distribution. Installation and signature verification need internet. The following block pins Syft 1.54.0 and verifies the signature and checksum before extraction. Stop if verification fails; do not remove it.
+
+- [Cosign installation](https://docs.sigstore.dev/cosign/system_config/installation/)
+- [Syft verification](https://oss.anchore.com/docs/installation/verification/)
+
+```sh
+(
+  set -eu
+  SYFT_VERSION=1.54.0
+  case "$(uname -m)" in x86_64) SYFT_ARCH=amd64 ;; aarch64|arm64) SYFT_ARCH=arm64 ;; *) exit 2 ;; esac
+  SYFT_DIR="$SCAN_WORK/syft-$SYFT_VERSION"
+  mkdir -m 700 "$SYFT_DIR"
+  cd "$SYFT_DIR"
+  BASE="https://github.com/anchore/syft/releases/download/v$SYFT_VERSION"
+  ARCHIVE="syft_${SYFT_VERSION}_linux_${SYFT_ARCH}.tar.gz"
+  CHECKSUMS="syft_${SYFT_VERSION}_checksums.txt"
+  for FILE in "$ARCHIVE" "$CHECKSUMS" "$CHECKSUMS.sigstore.json"; do
+    curl --fail --location --proto '=https' --tlsv1.2 "$BASE/$FILE" -o "$FILE"
+  done
+  cosign verify-blob "$CHECKSUMS" --bundle "$CHECKSUMS.sigstore.json" \
+    --certificate-identity-regexp '^https://github\.com/anchore/syft/\.github/workflows/[^@]+@refs/tags/v1\.54\.0$' \
+    --certificate-oidc-issuer 'https://token.actions.githubusercontent.com'
+  awk -v file="$ARCHIVE" '$2 == file {print}' "$CHECKSUMS" > selected.sha256
+  test "$(wc -l < selected.sha256 | tr -d ' ')" = 1
+  sha256sum --check selected.sha256
+  tar -xzf "$ARCHIVE" syft
+  chmod 700 syft
+)
+SYFT_BIN="$SCAN_WORK/syft-1.54.0/syft"
+"$SYFT_BIN" version
+```
+
+Java example: /srv/demo-java contains the application JAR/WAR artifacts or gradle.lockfile after the build. Select the artifacts actually delivered. A lone pom.xml may inherit versions and does not represent the entire resolved dependency tree. For Maven projects without artifacts, generate the SBOM in your trusted build using the CycloneDX plugin, then use import directly.
+
+```sh
+# Select only the application directory you intend to inventory.
+# Keep configuration and output outside that directory.
+cat > "$SCAN_WORK/syft-config.yaml" <<'YAML'
+check-for-app-update: false
+enrich: []
+java:
+  use-network: false
+  use-maven-local-repository: false
+golang:
+  use-packages-lib: false
+  search-remote-licenses: false
+javascript:
+  search-remote-licenses: false
+python:
+  search-remote-licenses: false
+cpp:
+  vcpkg-allow-git-clone: false
+YAML
+"$SYFT_BIN" scan dir:/srv/demo-java --config "$SCAN_WORK/syft-config.yaml" \
+  --source-name demo-java --source-version demo \
+  --override-default-catalogers java-archive-cataloger,java-gradle-lockfile-cataloger \
+  -o "cyclonedx-json=$SCAN_WORK/demo-java.syft.json"
+"$SCAN_BIN" import --input "$SCAN_WORK/demo-java.syft.json" \
+  --name demo-java --output "$SCAN_WORK/demo-java.cdx.json"
+```
+
+demo-java.cdx.json is the normalized local export: upload it in Assets using step 7 or use it below. Keep independently maintained applications/snapshots in separate sources. This configuration disables network enrichment and Go tooling execution; run Syft without root against an explicit directory. For untrusted inputs, use an isolated environment with resource limits. Do not scan /, credential directories or machine-wide caches.
+
+```sh
+# Optional check: use the credential downloaded in step 8.
+"$SCAN_BIN" check --input "$SCAN_WORK/demo-java.cdx.json" \
+  --credentials "$SCAN_WORK/credentials.json" --output "$SCAN_WORK/demo-java-check.json"
+# Optional source replacement: requires inventory:write and complete input.
+"$SCAN_BIN" sync --input "$SCAN_WORK/demo-java.cdx.json" \
+  --credentials "$SCAN_WORK/credentials.json" --output "$SCAN_WORK/demo-java-receipt.json"
+```
+
+For other applications, change the target directory and cataloger selection using Syft documentation. Only the eight ecosystems in the table are imported; missing identities, unknown versions or unsupported variants produce exit 3 and a partial inventory that cannot replace a source with sync. File components are intentionally excluded. Maven classifiers and unknown qualifiers are not silently discarded. Repeated components are deduplicated. Awarely does not forward local paths, URLs or arbitrary SBOM metadata.
+
+Complete coverage means the supported software components in the selected file were processed, not that the producer found every dependency or that packages are installed. Import does not authenticate the SBOM producer. The report’s coverage.unevaluated and per-match precision explain assessment limits. No matches for an unevaluated ecosystem is not a clean bill of health.
+
+- [Syft catalogers](https://oss.anchore.com/docs/guides/sbom/catalogers/)
+- [CycloneDX Maven](https://cyclonedx.github.io/cyclonedx-maven-plugin/)
+- [CycloneDX Gradle](https://github.com/CycloneDX/cyclonedx-gradle-plugin)
 
 
 <a id="upload"></a>

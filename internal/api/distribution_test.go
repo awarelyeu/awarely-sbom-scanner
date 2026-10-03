@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"github.com/awarelyeu/awarely-sbom-scanner/internal/inventory"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -105,5 +106,31 @@ func TestAmazonLinuxSnapshotKeepsNativeRPMIdentity(t *testing.T) {
 		if got.Components[0].Distribution != "amzn" || got.Components[0].DistributionVersion != release || got.Components[0].RPMVendor != "Amazon Linux" {
 			t.Fatal("Amazon evidence lost")
 		}
+	}
+}
+
+func TestImportedMavenCanBeReadWithoutChangingEvidence(t *testing.T) {
+	dir := t.TempDir()
+	input := filepath.Join(dir, "input.json")
+	data := `{"bomFormat":"CycloneDX","specVersion":"1.7","components":[{"name":"core","group":"org.example","version":"2.0-rc1","purl":"pkg:maven/org.example/core@2.0-rc1"}]}`
+	if err := os.WriteFile(input, []byte(data), 0600); err != nil {
+		t.Fatal(err)
+	}
+	result, err := inventory.Import(context.Background(), input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := inventory.Marshal(result, "demo", "test", time.Unix(0, 0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	normalized := filepath.Join(dir, "normalized.json")
+	os.WriteFile(normalized, b, 0600)
+	s, err := ReadSnapshot(context.Background(), normalized)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.Coverage != "complete" || s.Components[0].Name != "org.example/core" || s.Components[0].Evidence != "imported-sbom" {
+		t.Fatal(s)
 	}
 }

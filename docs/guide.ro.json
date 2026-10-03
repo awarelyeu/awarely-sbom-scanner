@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "v0.5.0-alpha.1",
+  "version": "v0.6.0-alpha.1",
   "title": "Awarely Scan: ghid complet pentru Linux și aplicații",
   "intro": "De la binarul verificat la un SBOM local, o verificare API sau inventarul salvat. Numele aplicațiilor, căile, identificatorii și credentialele din exemple sunt fictive.",
   "sections": [
@@ -134,7 +134,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "umask 077\nSCAN_WORK=$(mktemp -d \"$HOME/awarely-scan.XXXXXXXX\")\nSCAN_BIN=\"$SCAN_WORK/release/awarely-scan\"\n(\nset -eu\ncd \"$SCAN_WORK\"\nSCAN_VERSION=v0.5.0-alpha.1\ncase \"$(uname -m)\" in\n  x86_64) SCAN_ARCH=amd64 ;;\n  aarch64|arm64) SCAN_ARCH=arm64 ;;\n  *) echo \"Unsupported architecture\" >&2; exit 1 ;;\nesac\nSCAN_ARCHIVE=\"awarely-scan_${SCAN_VERSION}_linux_${SCAN_ARCH}.tar.gz\"\nSCAN_RELEASE=\"https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/${SCAN_VERSION}\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE\" -o \"$SCAN_ARCHIVE\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/SHA256SUMS\" -o SHA256SUMS\ngh attestation verify \"$SCAN_ARCHIVE\" \\\n  --repo awarelyeu/awarely-sbom-scanner \\\n  --signer-workflow awarelyeu/awarely-sbom-scanner/.github/workflows/release.yml \\\n  --source-ref \"refs/tags/$SCAN_VERSION\"\nawk -v file=\"$SCAN_ARCHIVE\" '$2 == file { print; found=1 } END { if (!found) exit 1 }' SHA256SUMS > selected-SHA256SUMS\nsha256sum --check selected-SHA256SUMS\nmkdir release\ntar -xzf \"$SCAN_ARCHIVE\" -C release\n(cd release && sha256sum --check SHA256SUMS)\n\"$SCAN_BIN\" version\n\"$SCAN_BIN\" help\nprintf 'Working directory: %s\\n' \"$SCAN_WORK\"\n)"
+          "code": "umask 077\nSCAN_WORK=$(mktemp -d \"$HOME/awarely-scan.XXXXXXXX\")\nSCAN_BIN=\"$SCAN_WORK/release/awarely-scan\"\n(\nset -eu\ncd \"$SCAN_WORK\"\nSCAN_VERSION=v0.6.0-alpha.1\ncase \"$(uname -m)\" in\n  x86_64) SCAN_ARCH=amd64 ;;\n  aarch64|arm64) SCAN_ARCH=arm64 ;;\n  *) echo \"Unsupported architecture\" >&2; exit 1 ;;\nesac\nSCAN_ARCHIVE=\"awarely-scan_${SCAN_VERSION}_linux_${SCAN_ARCH}.tar.gz\"\nSCAN_RELEASE=\"https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/${SCAN_VERSION}\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE\" -o \"$SCAN_ARCHIVE\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/SHA256SUMS\" -o SHA256SUMS\ngh attestation verify \"$SCAN_ARCHIVE\" \\\n  --repo awarelyeu/awarely-sbom-scanner \\\n  --signer-workflow awarelyeu/awarely-sbom-scanner/.github/workflows/release.yml \\\n  --source-ref \"refs/tags/$SCAN_VERSION\"\nawk -v file=\"$SCAN_ARCHIVE\" '$2 == file { print; found=1 } END { if (!found) exit 1 }' SHA256SUMS > selected-SHA256SUMS\nsha256sum --check selected-SHA256SUMS\nmkdir release\ntar -xzf \"$SCAN_ARCHIVE\" -C release\n(cd release && sha256sum --check SHA256SUMS)\n\"$SCAN_BIN\" version\n\"$SCAN_BIN\" help\nprintf 'Working directory: %s\\n' \"$SCAN_WORK\"\n)"
         },
         {
           "type": "paragraph",
@@ -427,6 +427,110 @@
         {
           "type": "paragraph",
           "text": "Lockfile-urile includ versiunile rezolvate pentru intrările directe/tranzitive, de dezvoltare și opționale; nu dovedesc instalarea sau deployment-ul. Linkurile workspace nu sunt urmărite. requirements.txt păstrează versiunile declarate; nu urmărește include-uri, URL-uri sau rezolvarea dependențelor. Fișierele parțiale pot fi analizate/importate ori verificate, dar sync le refuză. Nu sunt acceptate lockfile-uri pnpm/yarn/poetry sau descoperirea automată a monorepo-urilor."
+        },
+        {
+          "type": "paragraph",
+          "text": "Pentru colectare extinsă cu Syft, vezi pasul 6b."
+        }
+      ]
+    },
+    {
+      "id": "syft",
+      "title": "6b. Java și alte ecosisteme cu Syft opțional",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Syft este un instrument Anchore separat, Apache-2.0. Awarely nu îl descarcă și nu îl execută automat. Folosește-l pentru colectarea care lipsește din modul nativ, apoi importă fișierul CycloneDX JSON 1.4–1.7. Sunt acceptate și fișiere compatibile produse de pluginurile CycloneDX Maven/Gradle. Importul nu execută build-uri, cod Java sau arhive."
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Ecosistem",
+            "Inventar / sync",
+            "Verificare CVE"
+          ],
+          "rows": [
+            [
+              "Java / Maven",
+              "Da",
+              "Versiuni Maven și coordonate complete"
+            ],
+            [
+              "npm, Python / PyPI",
+              "Da",
+              "Intervale comparabile; restul necesită revizuire"
+            ],
+            [
+              ".NET / NuGet, Go, PHP / Composer, RubyGems, Rust / Cargo",
+              "Da",
+              "Neevaluat în această versiune"
+            ]
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Pregătire: urmează pașii 2–3 pentru SCAN_WORK și SCAN_BIN. Ai nevoie de curl, tar, sha256sum și Cosign ≥ 2.5 instalat din distribuția oficială Sigstore. Instalarea și verificarea semnăturii necesită internet. Blocul următor fixează Syft 1.54.0 și verifică semnătura și checksum-ul înainte de extracție. Dacă verificarea eșuează, oprește-te; nu o elimina."
+        },
+        {
+          "type": "links",
+          "links": [
+            {
+              "label": "Cosign installation",
+              "href": "https://docs.sigstore.dev/cosign/system_config/installation/"
+            },
+            {
+              "label": "Syft verification",
+              "href": "https://oss.anchore.com/docs/installation/verification/"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "language": "sh",
+          "code": "(\n  set -eu\n  SYFT_VERSION=1.54.0\n  case \"$(uname -m)\" in x86_64) SYFT_ARCH=amd64 ;; aarch64|arm64) SYFT_ARCH=arm64 ;; *) exit 2 ;; esac\n  SYFT_DIR=\"$SCAN_WORK/syft-$SYFT_VERSION\"\n  mkdir -m 700 \"$SYFT_DIR\"\n  cd \"$SYFT_DIR\"\n  BASE=\"https://github.com/anchore/syft/releases/download/v$SYFT_VERSION\"\n  ARCHIVE=\"syft_${SYFT_VERSION}_linux_${SYFT_ARCH}.tar.gz\"\n  CHECKSUMS=\"syft_${SYFT_VERSION}_checksums.txt\"\n  for FILE in \"$ARCHIVE\" \"$CHECKSUMS\" \"$CHECKSUMS.sigstore.json\"; do\n    curl --fail --location --proto '=https' --tlsv1.2 \"$BASE/$FILE\" -o \"$FILE\"\n  done\n  cosign verify-blob \"$CHECKSUMS\" --bundle \"$CHECKSUMS.sigstore.json\" \\\n    --certificate-identity-regexp '^https://github\\.com/anchore/syft/\\.github/workflows/[^@]+@refs/tags/v1\\.54\\.0$' \\\n    --certificate-oidc-issuer 'https://token.actions.githubusercontent.com'\n  awk -v file=\"$ARCHIVE\" '$2 == file {print}' \"$CHECKSUMS\" > selected.sha256\n  test \"$(wc -l < selected.sha256 | tr -d ' ')\" = 1\n  sha256sum --check selected.sha256\n  tar -xzf \"$ARCHIVE\" syft\n  chmod 700 syft\n)\nSYFT_BIN=\"$SCAN_WORK/syft-1.54.0/syft\"\n\"$SYFT_BIN\" version"
+        },
+        {
+          "type": "paragraph",
+          "text": "Exemplu Java: /srv/demo-java conține artefactele JAR/WAR ale aplicației sau gradle.lockfile după build. Folosește artefactele efectiv livrate. Un pom.xml izolat poate avea versiuni moștenite și nu reprezintă întregul arbore rezolvat. Pentru proiecte Maven fără artefacte, generează SBOM-ul în build-ul tău de încredere cu pluginul CycloneDX și treci direct la comanda import."
+        },
+        {
+          "type": "code",
+          "language": "sh",
+          "code": "# Select only the application directory you intend to inventory.\n# Keep configuration and output outside that directory.\ncat > \"$SCAN_WORK/syft-config.yaml\" <<'YAML'\ncheck-for-app-update: false\nenrich: []\njava:\n  use-network: false\n  use-maven-local-repository: false\ngolang:\n  use-packages-lib: false\n  search-remote-licenses: false\njavascript:\n  search-remote-licenses: false\npython:\n  search-remote-licenses: false\ncpp:\n  vcpkg-allow-git-clone: false\nYAML\n\"$SYFT_BIN\" scan dir:/srv/demo-java --config \"$SCAN_WORK/syft-config.yaml\" \\\n  --source-name demo-java --source-version demo \\\n  --override-default-catalogers java-archive-cataloger,java-gradle-lockfile-cataloger \\\n  -o \"cyclonedx-json=$SCAN_WORK/demo-java.syft.json\"\n\"$SCAN_BIN\" import --input \"$SCAN_WORK/demo-java.syft.json\" \\\n  --name demo-java --output \"$SCAN_WORK/demo-java.cdx.json\""
+        },
+        {
+          "type": "paragraph",
+          "text": "Fișierul demo-java.cdx.json este exportul local normalizat: îl poți încărca în Active conform pasului 7 sau îl poți folosi mai jos. Păstrează fiecare aplicație/snapshot independent într-o sursă separată. Configurația dezactivează îmbogățirea prin rețea și execuția uneltelor Go; rulează Syft fără root, într-un director ales explicit. Pentru intrări neîncredere, folosește un mediu izolat cu limite de resurse. Nu scana /, directoarele de credențiale sau cache-urile întregii mașini."
+        },
+        {
+          "type": "code",
+          "language": "sh",
+          "code": "# Optional check: use the credential downloaded in step 8.\n\"$SCAN_BIN\" check --input \"$SCAN_WORK/demo-java.cdx.json\" \\\n  --credentials \"$SCAN_WORK/credentials.json\" --output \"$SCAN_WORK/demo-java-check.json\"\n# Optional source replacement: requires inventory:write and complete input.\n\"$SCAN_BIN\" sync --input \"$SCAN_WORK/demo-java.cdx.json\" \\\n  --credentials \"$SCAN_WORK/credentials.json\" --output \"$SCAN_WORK/demo-java-receipt.json\""
+        },
+        {
+          "type": "paragraph",
+          "text": "Pentru alte aplicații, schimbă directorul și selecția de catalogere conform documentației Syft. Sunt importate doar cele opt ecosisteme din tabel; identitățile lipsă, versiunile necunoscute sau variantele neacceptate produc codul 3 și inventar parțial, care nu poate înlocui o sursă prin sync. Componentele file sunt excluse intenționat. Clasificatoarele Maven și calificatorii necunoscuți nu sunt eliminați în tăcere. Componentele repetate sunt deduplicate. Awarely nu trimite căile locale, URL-urile sau metadatele arbitrare din SBOM."
+        },
+        {
+          "type": "paragraph",
+          "text": "Acoperirea completă înseamnă că toate componentele software acceptate din fișierul selectat au fost procesate, nu că producătorul a găsit toate dependențele sau că pachetele sunt instalate. Importul nu autentifică producătorul SBOM-ului. În raport, coverage.unevaluated și precizia fiecărei potriviri explică limitele verificării. Un rezultat fără potriviri pentru un ecosistem neevaluat nu este un rezultat curat."
+        },
+        {
+          "type": "links",
+          "links": [
+            {
+              "label": "Syft catalogers",
+              "href": "https://oss.anchore.com/docs/guides/sbom/catalogers/"
+            },
+            {
+              "label": "CycloneDX Maven",
+              "href": "https://cyclonedx.github.io/cyclonedx-maven-plugin/"
+            },
+            {
+              "label": "CycloneDX Gradle",
+              "href": "https://github.com/CycloneDX/cyclonedx-gradle-plugin"
+            }
+          ]
         }
       ]
     },

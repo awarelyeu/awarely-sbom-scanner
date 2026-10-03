@@ -38,6 +38,20 @@ with tempfile.TemporaryDirectory(prefix="awarely-scan-test-") as folder:
         calls = trace.read_text()
         assert len(re.findall(r"\bexecve\(", calls)) == 1, "unexpected child execution"
         assert not re.search(r"\b(socket|connect|sendto|sendmsg|bind|listen|accept|recvfrom|recvmsg)\(", calls), calls
+    external = root / "external.json"
+    external.write_text(json.dumps({"bomFormat":"CycloneDX","specVersion":"1.7","components":[{"group":"org.example","name":"core","version":"1.0-rc1","purl":"pkg:maven/org.example/core@1.0-rc1","description":"PRIVATE_CANARY","externalReferences":[{"url":"https://SECRET@example.invalid"}]}]}))
+    imported = root / "imported.cdx.json"
+    command = [str(binary), "import", "--input", str(external), "--output", str(imported)]
+    import_trace = root / "import-syscalls.txt"
+    if sys.platform == "linux": command = ["strace", "-f", "-e", "trace=network,execve", "-o", str(import_trace)] + command
+    result = subprocess.run(command, capture_output=True, text=True, timeout=20)
+    assert result.returncode == 0, result.stderr
+    assert "PRIVATE_CANARY" not in imported.read_text() and "SECRET" not in imported.read_text()
+    assert imported.stat().st_mode & 0o777 == 0o600
+    if import_trace.exists():
+        calls = import_trace.read_text()
+        assert len(re.findall(r"\bexecve\(", calls)) == 1
+        assert not re.search(r"\b(socket|connect|sendto|sendmsg|bind|listen|accept|recvfrom|recvmsg)\(", calls), calls
     before = output.read_bytes()
     result = subprocess.run([str(binary), "app", "--path", str(app), "--output", str(output)], capture_output=True, timeout=20)
     assert result.returncode == 4 and output.read_bytes() == before

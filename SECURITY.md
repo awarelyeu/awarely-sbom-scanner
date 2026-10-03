@@ -45,3 +45,7 @@ Sync requires a complete selected-input snapshot, revision and idempotency key. 
 No distribution-advisory solver is included. Distro packages cannot receive a confirmed upstream-semver match. A successful response is not a security certification.
 
 RPM collection reads bounded regular-file snapshots directly, without SQL execution, native database libraries, recovery writes or package-manager execution. SQLite WAL checksums and commit boundaries are validated in memory. Database changes or malformed page/overflow references fail without publishing an inventory. Installed vendor/module fields are untrusted inventory evidence, not a package-signature attestation.
+
+## Optional SBOM producers
+
+Syft is separately installed and run by the user; Awarely does not download, launch or trust it automatically. Import accepts bounded CycloneDX JSON, retains allowlisted package identities and labels them imported-sbom. Coverage describes the selected file, not producer authenticity or completeness of the deployment. Unsupported identities/variants or missing versions produce partial input; sync refuses partial replacement. Source URLs and file paths are never followed. Protect intermediate Syft output too, because it can contain local paths or metadata before normalization. Run third-party collectors against explicitly selected inputs without root, using resource/network isolation for untrusted material.
