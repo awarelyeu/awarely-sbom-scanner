@@ -1,5 +1,7 @@
-# Distribution advisory checks
+# Rocky Linux and AlmaLinux support
 
-Host inventories now preserve source-package names and versions, including binary-only rebuilds. API checks evaluate supported Debian/Ubuntu packages against official distribution advisories and report fixed versions, advisory links and per-component evidence. Backported fixes use Debian version ordering. Unknown assessments and unsupported inputs remain explicit; unavailable or stale data cannot produce a clean result.
+The existing Linux amd64/arm64 binaries now detect Rocky Linux and AlmaLinux automatically. Local inventory, explicit API checks and source-scoped inventory sync support RPM packages on releases 8/9/10.
 
-Local collection remains offline and rootless. Recollect host inventories created with earlier releases to include source-package metadata. Read the [coverage](https://github.com/awarelyeu/awarely-sbom-scanner/blob/v0.3.0-alpha.1/docs/coverage.md) and [API](https://github.com/awarelyeu/awarely-sbom-scanner/blob/v0.3.0-alpha.1/docs/api.md) documentation for supported releases and report semantics.
+Local collection reads bounded SQLite/WAL and Berkeley DB snapshots without root, network access, subprocesses or package installation. API checks use official distribution advisories and RPM EVR ordering, preserving architecture, vendor, module stream and backported revisions. Unsupported or unassessed packages remain explicit in coverage.
+
+See [coverage](https://github.com/awarelyeu/awarely-sbom-scanner/blob/v0.4.0-alpha.1/docs/coverage.md) and [API semantics](https://github.com/awarelyeu/awarely-sbom-scanner/blob/v0.4.0-alpha.1/docs/api.md). Jenkins integration remains a later phase.

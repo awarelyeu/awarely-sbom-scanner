@@ -22,7 +22,7 @@ Names are validated and JSON is encoded structurally. No raw project error line,
 
 ## Testing and release policy
 
-Unit and race tests exercise traversal, special files, malformed/duplicate JSON, package identity, partial coverage, version precision and no-overwrite output. Fuzz targets cover JSON, npm locks, requirements and dpkg. CI rejects external runtime modules, subprocess/plugin/cgo dependencies, and networking dependencies in the local collector. It traces Linux local-mode system calls on synthetic fixtures. Remote client tests cover certificate verification, redirect rejection, response bounds, consistency and retry identity.
+Unit and race tests exercise traversal, special files, malformed/duplicate JSON, package identity, partial coverage, version precision and no-overwrite output. Fuzz targets cover JSON, npm locks, requirements, dpkg, RPM databases, headers, WAL and dependency expressions. CI rejects external runtime modules, subprocess/plugin/cgo dependencies, and networking dependencies in the local collector. It traces Linux local-mode system calls on synthetic fixtures. Remote client tests cover certificate verification, redirect rejection, response bounds, consistency and retry identity.
 
 Automated tests use synthetic data and isolated environments. CI must not upload inventory to production. Linux amd64 and arm64 are tested. Test results cover the exercised paths and do not guarantee that no vulnerability exists.
 
@@ -43,3 +43,5 @@ Create scoped, expiring credentials in your Awarely account with MFA enabled. Pr
 Sync requires a complete selected-input snapshot, revision and idempotency key. Server quotas and size limits fail closed rather than truncate. The signature, evidence labels and completeness claim are not proof of a client's honesty: a principal with inventory-write permission can intentionally replace its own source. Do not grant that credential to untrusted jobs or pull requests.
 
 No distribution-advisory solver is included. Distro packages cannot receive a confirmed upstream-semver match. A successful response is not a security certification.
+
+RPM collection reads bounded regular-file snapshots directly, without SQL execution, native database libraries, recovery writes or package-manager execution. SQLite WAL checksums and commit boundaries are validated in memory. Database changes or malformed page/overflow references fail without publishing an inventory. Installed vendor/module fields are untrusted inventory evidence, not a package-signature attestation.

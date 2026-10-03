@@ -2,7 +2,7 @@
 
 ## Current API preview
 
-- Local CycloneDX 1.6 collection for documented npm/Python/DEB inputs.
+- Local CycloneDX 1.6 collection for documented npm/Python/DEB/RPM inputs.
 - Explicit HTTPS checks with complete component-level JSON and coverage.
 - Source-scoped, atomic inventory sync with revisions and idempotency.
 - Scoped expiring credentials and MFA management.

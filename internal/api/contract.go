@@ -24,6 +24,8 @@ type Component struct {
 	Architecture        string `json:"architecture,omitempty"`
 	SourcePackage       string `json:"sourcePackage,omitempty"`
 	SourceVersion       string `json:"sourceVersion,omitempty"`
+	RPMVendor           string `json:"rpmVendor,omitempty"`
+	RPMModule           string `json:"rpmModule,omitempty"`
 }
 type Snapshot struct {
 	SchemaVersion    int         `json:"schemaVersion"`
@@ -102,9 +104,9 @@ func ReadSnapshot(ctx context.Context, path string) (Snapshot, error) {
 			return Snapshot{}, errors.New("invalid package qualifiers")
 		}
 		out := Component{Ecosystem: ecosystem, Name: name, Version: version}
-		if ecosystem == "deb" {
+		if ecosystem == "deb" || ecosystem == "rpm" {
 			distro, packageName, valid := strings.Cut(name, "/")
-			if !valid || (distro != "debian" && distro != "ubuntu") {
+			if !valid || ((ecosystem == "deb" && distro != "debian" && distro != "ubuntu") || (ecosystem == "rpm" && distro != "rocky" && distro != "almalinux")) {
 				return Snapshot{}, errors.New("unsupported distribution")
 			}
 			out.Name, out.Distribution, out.Architecture = packageName, distro, q.Get("arch")
@@ -124,7 +126,7 @@ func ReadSnapshot(ctx context.Context, path string) (Snapshot, error) {
 		sourceSeen := map[string]bool{}
 		for _, p := range c.Properties {
 			if p.Name == "awarely:source-package" || p.Name == "awarely:source-version" {
-				if ecosystem != "deb" || sourceSeen[p.Name] || p.Value == "" {
+				if (ecosystem != "deb" && ecosystem != "rpm") || sourceSeen[p.Name] || p.Value == "" {
 					return Snapshot{}, errors.New("invalid source package metadata")
 				}
 				sourceSeen[p.Name] = true
@@ -132,6 +134,17 @@ func ReadSnapshot(ctx context.Context, path string) (Snapshot, error) {
 					out.SourcePackage = p.Value
 				} else {
 					out.SourceVersion = p.Value
+				}
+			}
+			if p.Name == "awarely:rpm-vendor" || p.Name == "awarely:rpm-module" {
+				if ecosystem != "rpm" || sourceSeen[p.Name] || !inventory.ValidText(p.Value, 200) {
+					return Snapshot{}, errors.New("invalid RPM metadata")
+				}
+				sourceSeen[p.Name] = true
+				if p.Name == "awarely:rpm-vendor" {
+					out.RPMVendor = p.Value
+				} else {
+					out.RPMModule = p.Value
 				}
 			}
 			if p.Name == "awarely:evidence" {
@@ -145,11 +158,11 @@ func ReadSnapshot(ctx context.Context, path string) (Snapshot, error) {
 			if out.SourcePackage == "" || out.SourceVersion == "" {
 				return Snapshot{}, errors.New("incomplete source package metadata")
 			}
-			if _, err := inventory.NewComponent("deb", out.SourcePackage, out.SourceVersion, "installed-dpkg", nil); err != nil {
+			if _, err := inventory.NewComponent(ecosystem, out.SourcePackage, out.SourceVersion, "installed-dpkg", nil); err != nil {
 				return Snapshot{}, err
 			}
 		}
-		if out.Evidence != "resolved-lockfile" && out.Evidence != "declared-manifest" && out.Evidence != "declared-requirements" && out.Evidence != "installed-dpkg" {
+		if out.Evidence != "resolved-lockfile" && out.Evidence != "declared-manifest" && out.Evidence != "declared-requirements" && out.Evidence != "installed-dpkg" && out.Evidence != "installed-rpm" {
 			return Snapshot{}, errors.New("component evidence is missing or unsupported")
 		}
 		if _, err := inventory.NewComponent(ecosystem, out.Name, out.Version, out.Evidence, nil); err != nil {

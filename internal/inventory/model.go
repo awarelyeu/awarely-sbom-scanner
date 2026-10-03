@@ -20,7 +20,7 @@ const MaxOutputBytes = 5 << 20
 var npmName = regexp.MustCompile(`^(?:@[A-Za-z0-9][A-Za-z0-9._-]*/)?[A-Za-z0-9][A-Za-z0-9._-]*$`)
 var pythonName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
 var debName = regexp.MustCompile(`^[a-z0-9][a-z0-9+.-]*$`)
-var versionText = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9.!+:~_-]*$`)
+var versionText = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9.!+:~_^\-]*$`)
 var npmVersion = regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.-]+)?(?:\+[A-Za-z0-9.-]+)?$`)
 var pyNormalize = regexp.MustCompile(`[-_.]+`)
 
@@ -97,6 +97,8 @@ func NewComponent(ecosystem, name, version, evidence string, qualifiers url.Valu
 	case "pypi":
 		valid = pythonName.MatchString(name)
 		name = pyNormalize.ReplaceAllString(strings.ToLower(name), "-")
+	case "rpm":
+		valid = rpmName.MatchString(name)
 	case "deb":
 		valid = debName.MatchString(name)
 	}
@@ -111,8 +113,8 @@ func NewComponent(ecosystem, name, version, evidence string, qualifiers url.Valu
 		parts[i] = strings.ReplaceAll(url.PathEscape(p), "@", "%40")
 	}
 	purl := "pkg:" + ecosystem + "/" + strings.Join(parts, "/")
-	if ecosystem == "deb" && qualifiers.Get("distro") != "" {
-		purl = "pkg:deb/" + url.PathEscape(strings.SplitN(qualifiers.Get("distro"), "-", 2)[0]) + "/" + url.PathEscape(name)
+	if (ecosystem == "deb" || ecosystem == "rpm") && qualifiers.Get("distro") != "" {
+		purl = "pkg:" + ecosystem + "/" + url.PathEscape(strings.SplitN(qualifiers.Get("distro"), "-", 2)[0]) + "/" + url.PathEscape(name)
 	}
 	if version != "" {
 		purl += "@" + url.PathEscape(version)

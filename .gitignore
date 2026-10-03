@@ -13,3 +13,5 @@
 *credentials*.json
 *receipt*.json
 *check-results*.json
+
+/build/

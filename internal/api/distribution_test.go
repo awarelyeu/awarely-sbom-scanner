@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -68,6 +69,25 @@ func TestSnapshotPreservesSourceIdentityAndRejectsAmbiguity(t *testing.T) {
 			}
 		} else if err == nil {
 			t.Fatal("ambiguous metadata accepted")
+		}
+	}
+}
+
+func TestRPMSnapshotPreservesVendorModuleAndRejectsSpoofedMetadata(t *testing.T) {
+	const source = `{"bomFormat":"CycloneDX","specVersion":"1.6","metadata":{"properties":[{"name":"awarely:coverage","value":"complete-for-selected-inputs"}]},"components":[{"name":"nodejs","version":"1:20.1-1.module+el9.3+123+abc","purl":"pkg:rpm/rocky/nodejs@1:20.1-1.module+el9.3+123+abc?arch=x86_64&distro=rocky-9.3","properties":[{"name":"awarely:evidence","value":"installed-rpm"},{"name":"awarely:rpm-vendor","value":"Rocky Enterprise Software Foundation"},{"name":"awarely:rpm-module","value":"nodejs:20:9001:rhel9"},{"name":"awarely:source-package","value":"nodejs"},{"name":"awarely:source-version","value":"20.1-1.module+el9.3+123+abc"}]}]}`
+	path := filepath.Join(t.TempDir(), "rpm.json")
+	os.WriteFile(path, []byte(source), 0600)
+	s, e := ReadSnapshot(context.Background(), path)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if s.Coverage != "complete" || s.Components[0].RPMModule != "nodejs:20:9001:rhel9" || s.Components[0].RPMVendor != "Rocky Enterprise Software Foundation" || s.Components[0].SourceVersion != "20.1-1.module+el9.3+123+abc" {
+		t.Fatalf("lost RPM metadata: %+v", s)
+	}
+	for _, bad := range []string{strings.Replace(source, "pkg:rpm/rocky/", "pkg:rpm/ubuntu/", 1), strings.Replace(source, "\"awarely:source-package\"", "\"awarely:rpm-module\"", 1), strings.Replace(source, "arch=x86_64", "arch=x86_64&arch=aarch64", 1)} {
+		os.WriteFile(path, []byte(bad), 0600)
+		if _, e := ReadSnapshot(context.Background(), path); e == nil {
+			t.Fatal("ambiguous RPM identity accepted")
 		}
 	}
 }
