@@ -23,6 +23,8 @@ var debName = regexp.MustCompile(`^[a-z0-9][a-z0-9+.-]*$`)
 var versionText = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9.!+:~_^\-]*$`)
 var npmVersion = regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.-]+)?(?:\+[A-Za-z0-9.-]+)?$`)
 var pyNormalize = regexp.MustCompile(`[-_.]+`)
+var mavenName = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9_.-]*/[A-Za-z0-9_][A-Za-z0-9_.-]*$`)
+var pathName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._~-]*(/[A-Za-z0-9][A-Za-z0-9._~-]*)*$`)
 
 type Property struct {
 	Name  string `json:"name"`
@@ -102,6 +104,17 @@ func NewComponent(ecosystem, name, version, evidence string, qualifiers url.Valu
 		valid = rpmName.MatchString(name)
 	case "deb":
 		valid = debName.MatchString(name)
+	case "maven":
+		valid = mavenName.MatchString(name)
+	case "nuget", "gem", "cargo":
+		valid = pythonName.MatchString(name)
+	case "golang", "composer":
+		valid = pathName.MatchString(name) && !strings.Contains(name, "/../")
+	}
+	for _, segment := range strings.Split(name, "/") {
+		if segment == "." || segment == ".." {
+			valid = false
+		}
 	}
 	if !valid || !ValidText(name, 200) || (version != "" && (!ValidText(version, 100) || !versionText.MatchString(version))) {
 		return Component{}, errors.New("invalid package identity")

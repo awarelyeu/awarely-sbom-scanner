@@ -31,6 +31,19 @@ Follow the **[English guide](docs/how-to.md)** or **[ghidul în română](docs/h
 
 All rows cover Linux amd64/arm64. Assessment is limited to supported package identities and available advisory data; packages outside that coverage remain unevaluated. [Application manifest workflow](docs/how-to.md#applications) applies across these distributions. See [coverage details](docs/coverage.md).
 
+
+## Optional Syft import and Java
+
+Keep the native Linux/npm/Python collectors, or generate an application SBOM with [Syft](https://github.com/anchore/syft) and import it locally:
+
+```sh
+awarely-scan import --input application.syft.json --name demo-app --output application.cdx.json
+```
+
+Accepts CycloneDX JSON 1.4–1.7 for Maven, npm, PyPI, NuGet, Go, Composer, RubyGems and Cargo. The normalized file supports local upload, API check and source sync. Java checks preserve full Maven coordinates and Maven version ordering. NuGet/Go/Composer/RubyGems/Cargo currently support inventory and sync; their CVE evaluation is explicitly **unevaluated**. Syft is optional, separately installed, and never downloaded or executed by Awarely Scan. No Syft runtime dependency is bundled.
+
+Follow the complete verified-installation and Java workflow: [English](docs/how-to.md#syft) · [Română](docs/how-to.ro.md#syft). Unknown identities/variants or missing versions make the import partial; partial snapshots cannot sync. This is selected-file coverage, not proof of deployment completeness.
+
 ## Quick start
 
 Download a Linux amd64 or arm64 archive from [Releases](https://github.com/awarelyeu/awarely-sbom-scanner/releases). Verify its provenance and checksum using [the release instructions](docs/releases.md) before running it. Source builds are also supported:

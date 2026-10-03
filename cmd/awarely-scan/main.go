@@ -23,11 +23,13 @@ Usage:
   awarely-scan app --path DIR --output FILE [--name NAME]
   awarely-scan host --output FILE [--select 'nginx*,openssl'] [--name NAME]
   awarely-scan host --all-packages --output FILE
+  awarely-scan import --input FILE --output FILE [--name NAME]
   awarely-scan version
   awarely-scan check --input FILE --credentials FILE --output REPORT.json
   awarely-scan sync --input FILE --credentials FILE --output RECEIPT.json
 
 app: npm lockfile v2/v3, package.json, requirements.txt in the selected directory.
+import: CycloneDX JSON from Syft or another producer; application packages only.
 host: auto-detected Debian/Ubuntu (DEB), Rocky/AlmaLinux/Amazon Linux (RPM); focused selection.
 
 Options:
@@ -67,7 +69,7 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 		return runRemote(parent, args, out, errOut)
 	}
 	mode := args[0]
-	if mode != "app" && mode != "host" {
+	if mode != "app" && mode != "host" && mode != "import" {
 		fmt.Fprint(errOut, help)
 		return 2
 	}
@@ -80,6 +82,8 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 	var all bool
 	if mode == "app" {
 		fs.StringVar(&path, "path", ".", "application directory")
+	} else if mode == "import" {
+		fs.StringVar(&path, "input", "", "selected CycloneDX SBOM")
 	} else {
 		fs.StringVar(&path, "root", "/", "Linux root")
 		fs.StringVar(&selection, "select", inventory.DefaultSelection, "package selection")
@@ -93,7 +97,7 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 		fmt.Fprintln(errOut, "Invalid arguments. Run awarely-scan help.")
 		return 2
 	}
-	if fs.NArg() != 0 || *output == "" || *output == "-" || *timeout < 1 || *timeout > 300 {
+	if (mode == "import" && path == "") || fs.NArg() != 0 || *output == "" || *output == "-" || *timeout < 1 || *timeout > 300 {
 		fmt.Fprintln(errOut, "Provide --output FILE and a timeout between 1 and 300 seconds; positional arguments are not accepted.")
 		return 2
 	}
@@ -125,6 +129,8 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 	var err error
 	if mode == "app" {
 		r, err = inventory.App(ctx, path)
+	} else if mode == "import" {
+		r, err = inventory.Import(ctx, path)
 	} else {
 		r, err = inventory.Host(ctx, path, selection, all)
 	}

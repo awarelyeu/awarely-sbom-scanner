@@ -11,7 +11,7 @@ npm lockfiles must use version 2 or 3. All represented non-link package entries 
 
 `package.json` and `requirements.txt` cannot establish the complete resolved dependency tree. They always yield partial coverage. Exact declarations are labeled declared, not installed. Version ranges do not become an exact version in the SBOM. Python environment markers are not evaluated and their declarations are included conservatively with a warning. Includes, direct references and continuations are not followed.
 
-This preview does not support Alpine, pnpm/yarn/poetry locks, language environments, arbitrary binaries, JAR/ZIP/OCI archives, containers or automatic monorepo discovery. Select individual application directories with supported files.
+The native collector does not read Alpine, pnpm/yarn/poetry locks, language environments, arbitrary binaries, JAR/ZIP/OCI archives or containers. Use optional Syft collection and the explicit CycloneDX import workflow for supported application identities. Awarely itself never opens archives, invokes Syft or discovers monorepos.
 
 ## Host profile
 
@@ -82,3 +82,7 @@ The same RPM reader supports Amazon Linux 2023 and Amazon Linux 2, including SQL
 Amazon Linux 2023 checks use official core-repository ALAS advisories with exact package name, architecture and RPM EVR. Updating a pinned release may require selecting a newer repository release. Amazon Linux 2 is end-of-life: inventory and sync work, but checks return an explicit end-of-life assessment gap. Neither an unevaluated package nor an empty match list certifies safety.
 
 References: [ALAS metadata](https://docs.aws.amazon.com/linux/al2023/ug/alas.html), [AL2023 support](https://docs.aws.amazon.com/linux/al2023/ug/release-cadence.html), [AL2 end of life](https://docs.aws.amazon.com/AL2/latest/relnotes/relnotes-20260825.html).
+
+## External application SBOMs
+
+`import` accepts CycloneDX JSON 1.4–1.7, including nested components, under the existing 5 MiB / 5,000 component and JSON complexity limits. Maven coordinates preserve case and namespace. Default Maven packaging qualifiers are accepted; classifiers/custom qualifiers make the input partial. Imported packages carry `imported-sbom` evidence, never an installed or resolved-lockfile claim. Metadata, paths and external URLs are not forwarded. See the [Syft guide](how-to.md#syft) for all supported ecosystem identities and explicit CVE coverage.
