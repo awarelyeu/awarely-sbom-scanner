@@ -121,6 +121,10 @@ func (p *rpmDependencyParser) node(depth int) *rpmDependencyNode {
 	}
 }
 func rpmDependency(value string, providers func(string) []string) rpmDependencyResult {
+	steps := 0
+	return rpmDependencyWithBudget(value, providers, func() bool { steps++; return steps <= maxRPMDependencySteps })
+}
+func rpmDependencyWithBudget(value string, providers func(string) []string, consume func() bool) rpmDependencyResult {
 	bad := rpmDependencyResult{ids: map[string]bool{}, mayTrue: true, mayFalse: true}
 	if len(value) > 4096 {
 		return bad
@@ -133,6 +137,9 @@ func rpmDependency(value string, providers func(string) []string) rpmDependencyR
 	}
 	var evaluate func(*rpmDependencyNode) rpmDependencyResult
 	evaluate = func(n *rpmDependencyNode) rpmDependencyResult {
+		if !consume() {
+			return bad
+		}
 		r := rpmDependencyResult{ids: map[string]bool{}}
 		if n.op == "" {
 			if strings.HasPrefix(n.name, "rpmlib(") {
@@ -141,6 +148,9 @@ func rpmDependency(value string, providers func(string) []string) rpmDependencyR
 				return r
 			}
 			for _, id := range providers(n.name) {
+				if !consume() {
+					return bad
+				}
 				r.ids[id] = true
 			}
 			r.covered = len(r.ids) > 0
@@ -150,9 +160,15 @@ func rpmDependency(value string, providers func(string) []string) rpmDependencyR
 		}
 		a, b := evaluate(n.left), evaluate(n.right)
 		for id := range a.ids {
+			if !consume() {
+				return bad
+			}
 			r.ids[id] = true
 		}
 		for id := range b.ids {
+			if !consume() {
+				return bad
+			}
 			r.ids[id] = true
 		}
 		switch n.op {
@@ -166,6 +182,9 @@ func rpmDependency(value string, providers func(string) []string) rpmDependencyR
 			r.mayFalse = a.mayFalse && b.mayFalse
 		case "with", "without":
 			for id := range a.ids {
+				if !consume() {
+					return bad
+				}
 				if b.ids[id] == (n.op == "with") {
 					r.covered = true
 				}
@@ -177,6 +196,9 @@ func rpmDependency(value string, providers func(string) []string) rpmDependencyR
 			if n.otherwise != nil {
 				c = evaluate(n.otherwise)
 				for id := range c.ids {
+					if !consume() {
+						return bad
+					}
 					r.ids[id] = true
 				}
 			}

@@ -51,6 +51,8 @@ RPM PURLs retain distribution release, architecture and full epoch/version/relea
 | dpkg status | 64 MiB / 50,000 records |
 | RPM database / WAL / header | 128 MiB / 64 MiB / 32 MiB |
 | RPM records / retained header array | 50,000 / 262,144 entries |
+| Expanded RPM metadata, per package / total | 32 MiB / 64 MiB |
+| Retained RPM capabilities / dependency work steps | 250,000 / 2,000,000 |
 | os-release | 64 KiB |
 | JSON nesting | 16 |
 | JSON values | 150,000 |

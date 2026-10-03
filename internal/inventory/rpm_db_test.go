@@ -13,6 +13,9 @@ func TestRPMReferenceDatabases(t *testing.T) {
 		t.Skip("optional independently generated RPM databases")
 	}
 	paths, _ := filepath.Glob(filepath.Join(dir, "*", "*"))
+	if len(paths) == 0 {
+		t.Fatal("configured RPM reference fixture directory is empty")
+	}
 	for _, path := range paths {
 		if filepath.Base(filepath.Dir(path)) == "centos5-plain" {
 			continue

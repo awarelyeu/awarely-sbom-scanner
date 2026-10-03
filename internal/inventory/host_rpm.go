@@ -26,7 +26,12 @@ var rpmModule = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._+-]*:[A-Za-z0-9][A-Z
 type rpmPackage struct {
 	Name, Version, Arch, SourceName, SourceVersion, Vendor, Module string
 	Requires, Provides                                             []string
+	metadataBytes                                                  int
 }
+
+const maxRPMMetadata = 64 << 20
+const maxRPMCapabilities = 250000
+const maxRPMDependencySteps = 2000000
 
 func parseRPMHeader(b []byte) (rpmPackage, error) {
 	var p rpmPackage
@@ -97,6 +102,10 @@ func parseRPMHeader(b []byte) (rpmPackage, error) {
 			if end < 0 || end > 4096 {
 				return p, errRPMDB
 			}
+			p.metadataBytes += end
+			if p.metadataBytes > maxRPMMetadata/2 {
+				return p, errRPMDB
+			}
 			value := string(data[off : off+end])
 			if !ValidText(value, 4096) && !(tag == 1117 && value == "") {
 				return p, errRPMDB
@@ -146,9 +155,35 @@ func parseRPMHeader(b []byte) (rpmPackage, error) {
 		if int(indexes[i]) >= len(dirs) {
 			return p, errRPMDB
 		}
+		// Count expanded paths before allocation: many basenames can refer
+		// to the same long directory in a small on-disk RPM header.
+		p.metadataBytes += len(dirs[indexes[i]]) + len(name)
+		if p.metadataBytes > maxRPMMetadata/2 || len(p.Provides)+len(p.Requires) >= maxRPMCapabilities {
+			return p, errRPMDB
+		}
 		p.Provides = append(p.Provides, dirs[indexes[i]]+name)
 	}
+	if len(p.Provides)+len(p.Requires) > maxRPMCapabilities {
+		return p, errRPMDB
+	}
+	p.Provides, p.Requires = uniqueRPMCapabilities(p.Provides), uniqueRPMCapabilities(p.Requires)
 	return p, nil
+}
+
+func uniqueRPMCapabilities(values []string) []string {
+	seen := make(map[string]bool, len(values))
+	result := values[:0]
+	for _, value := range values {
+		if !seen[value] {
+			seen[value] = true
+			result = append(result, value)
+		}
+	}
+	if len(result) != len(values) {
+		// Do not retain the oversized backing array after deduplication.
+		return append([]string(nil), result...)
+	}
+	return result
 }
 
 func hostRPM(ctx context.Context, root *os.Root, distro, release, selection string, all bool) (Result, error) {
@@ -213,6 +248,7 @@ func hostRPM(ctx context.Context, root *os.Root, distro, release, selection stri
 		}
 	}
 	pkgs := map[string]rpmPackage{}
+	metadataBytes, capabilityCount := 0, 0
 	err = rpmRecords(ctx, b, func(blob []byte) error {
 		p, e := parseRPMHeader(blob)
 		if e != nil {
@@ -220,6 +256,11 @@ func hostRPM(ctx context.Context, root *os.Root, distro, release, selection stri
 		}
 		if p.Name == "gpg-pubkey" {
 			return nil
+		}
+		metadataBytes += p.metadataBytes
+		capabilityCount += len(p.Provides) + len(p.Requires) + 1
+		if metadataBytes > maxRPMMetadata || capabilityCount > maxRPMCapabilities {
+			return errors.New("RPM metadata exceeds inventory resource limits")
 		}
 		id := p.Name + "@" + p.Version + ":" + p.Arch
 		if _, ok := pkgs[id]; ok {
@@ -272,6 +313,23 @@ func hostRPM(ctx context.Context, root *os.Root, distro, release, selection stri
 	if !all && selection != defaultRPMSelection && len(matched) < len(selectors) {
 		r.Warn("EXPLICIT_SELECTOR_WITHOUT_INSTALLED_MATCH")
 	}
+	dependencySteps := 0
+	var dependencyErr error
+	consume := func() bool {
+		if dependencyErr != nil {
+			return false
+		}
+		dependencySteps++
+		if dependencySteps > maxRPMDependencySteps {
+			dependencyErr = errors.New("RPM dependency resolution exceeds inventory resource limits")
+			return false
+		}
+		if dependencySteps%256 == 0 && ctx.Err() != nil {
+			dependencyErr = ctx.Err()
+			return false
+		}
+		return true
+	}
 	for i := 0; i < len(queue); i++ {
 		if ctx.Err() != nil {
 			return r, ctx.Err()
@@ -284,16 +342,25 @@ func hostRPM(ctx context.Context, root *os.Root, distro, release, selection stri
 		}
 		p := pkgs[queue[i]]
 		for _, cap := range p.Requires {
-			resolved := rpmDependency(cap, func(name string) []string {
+			if ctx.Err() != nil {
+				return r, ctx.Err()
+			}
+			resolved := rpmDependencyWithBudget(cap, func(name string) []string {
 				var ids []string
 				for _, id := range providers[name] {
+					if !consume() {
+						return nil
+					}
 					candidate := pkgs[id]
 					if candidate.Arch == p.Arch || candidate.Arch == "noarch" || p.Arch == "noarch" {
 						ids = append(ids, id)
 					}
 				}
 				return ids
-			})
+			}, consume)
+			if dependencyErr != nil {
+				return r, dependencyErr
+			}
 			for id := range resolved.ids {
 				if !selected[id] {
 					selected[id] = true
