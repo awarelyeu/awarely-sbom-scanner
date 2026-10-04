@@ -11,6 +11,7 @@ Built for [Awarely Monitor](https://monitor.awarely.ro/en), with a standalone lo
 
 | Workflow | Available |
 | --- | --- |
+| Guided Linux / npm / Python / Java setup | Yes, with input checks and optional verified Syft |
 | Local SBOM file | Yes |
 | CVE check through the Awarely API | Yes, without changing saved inventory |
 | Inventory synchronization through the Awarely API | Yes, replaces one configured source |
@@ -40,11 +41,30 @@ Keep the native Linux/npm/Python collectors, or generate an application SBOM wit
 awarely-scan import --input application.syft.json --name demo-app --output application.cdx.json
 ```
 
-Accepts CycloneDX JSON 1.4–1.7 for Maven, npm, PyPI, NuGet, Go, Composer, RubyGems and Cargo. The normalized file supports local upload, API check and source sync. Java checks preserve full Maven coordinates and Maven version ordering. NuGet/Go/Composer/RubyGems/Cargo currently support inventory and sync; their CVE evaluation is explicitly **unevaluated**. Syft is optional, separately installed, and never downloaded or executed by Awarely Scan. No Syft runtime dependency is bundled.
+Accepts CycloneDX JSON 1.4–1.7 for Maven, npm, PyPI, NuGet, Go, Composer, RubyGems and Cargo. The normalized file supports local upload, API check and source sync. Java checks preserve full Maven coordinates and Maven version ordering. NuGet/Go/Composer/RubyGems/Cargo currently support inventory and sync; their CVE evaluation is explicitly **unevaluated**. Syft is optional: guided mode can download a pinned, verified version and run it after your approval. No Syft runtime dependency is bundled. Manual import remains available.
 
 Follow the complete verified-installation and Java workflow: [English](docs/how-to.md#syft) · [Română](docs/how-to.ro.md#syft). Unknown identities/variants or missing versions make the import partial; partial snapshots cannot sync. This is selected-file coverage, not proof of deployment completeness.
 
-## Quick start
+## Guided quick start
+
+After [verified installation](docs/how-to.md#quick-install), run:
+
+```sh
+"$HOME/.local/bin/awarely-scan" guided
+```
+
+Choose **Linux, npm, Python, Java, or other application ecosystems**. The scanner checks the selected inputs, explains missing prerequisites and writes a private SBOM. Then choose local-only, API check or API sync. Running the binary without arguments in a terminal opens the same menu. All terminal messages are in English.
+
+- Linux is detected automatically. No package-manager command or root access is needed.
+- npm reads a resolved lockfile without Node.js/npm. Optional Syft inspection is also available.
+- Python offers requirements.txt (partial) or an existing virtual environment through Syft.
+- Java inspects built JAR/WAR/EAR artifacts with Syft; it does not build the application.
+- Managed Syft uses a pinned archive, verified on every run, with an isolated environment and fixed offline configuration. No gh/Cosign commands are needed for this step. The initial Awarely installer uses gh for signed build provenance, without GitHub authentication.
+- API requests need your explicitly selected private credential file and confirmation. Check preserves saved inventory; sync replaces only the credential's source. Partial inventories cannot sync.
+
+See the complete [English](docs/how-to.md) or [Romanian](docs/how-to.ro.md) walkthrough. Existing commands below remain available for scripts and CI.
+
+## Noninteractive commands
 
 Download a Linux amd64 or arm64 archive from [Releases](https://github.com/awarelyeu/awarely-sbom-scanner/releases). Verify its provenance and checksum using [the release instructions](docs/releases.md) before running it. Source builds are also supported:
 
@@ -86,7 +106,7 @@ The output file is created with owner-only permissions and is never overwritten.
 | Debian/Ubuntu package database | Installed versions | Selected packages plus Depends/Pre-Depends closure |
 | Rocky Linux/AlmaLinux/Amazon Linux RPM database | Installed EVR versions | Selected packages plus installed capability providers; SQLite/WAL and Berkeley DB hash |
 
-Application collection reads only supported manifests in the directory you choose. It does not recursively discover repositories, inspect `node_modules`, read `.env`, execute scripts or fetch registries. npm shrinkwrap takes precedence over package-lock; package.json is a fallback. Workspace links are not followed and are reported as partial coverage.
+Native application collection reads only supported manifests in the directory you choose. It does not recursively discover repositories, inspect `node_modules`, read `.env`, execute scripts or fetch registries. npm shrinkwrap takes precedence over package-lock; package.json is a fallback. Workspace links are not followed and are reported as partial coverage.
 
 Every report includes `awarely:coverage`, the selected scope, input filenames and warning codes. CycloneDX composition is conservatively marked incomplete: successfully parsing the selected files does not prove completeness of the deployed application or host.
 

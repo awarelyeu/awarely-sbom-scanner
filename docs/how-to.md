@@ -1,32 +1,85 @@
-# Awarely Scan: complete Linux and application guide
+# Awarely Scan: installation and guided scanning
 
-From a verified binary to a local SBOM, an API check or a saved inventory. All application names, paths, IDs and credentials in examples are fictional.
+Start with the simplified installer and guided menu for Linux, npm, Python or Java. Finish with a local file, API check or synchronization. CLI messages are in English. Manual commands remain below for automation; example names and credentials are fictional.
 
 [English](how-to.md) · [Română](how-to.ro.md)
 
-Release: `v0.6.0-alpha.1`
+Release: `v0.7.0-alpha.1`
 
+- [Start: simplified one-time installation](#quick-install)
+- [Guided scanning: menu choices](#guided)
 - [1. Choose your workflow](#choose)
 - [2. Prepare the Linux machine](#prerequisites)
-- [3. Download, verify and run](#install)
-- [4. Debian](#debian)
-- [4. Ubuntu](#ubuntu)
-- [4. Rocky Linux](#rocky-linux)
-- [4. AlmaLinux](#almalinux)
-- [4. Amazon Linux 2023](#amazon-linux-2023)
-- [4. Amazon Linux 2](#amazon-linux-2)
-- [5. Choose the collection scope](#scope)
-- [6. Collect an application instead](#applications)
-- [6b. Java and other ecosystems with optional Syft](#syft)
+- [3. Download, verify and run · manual alternative](#install)
+- [4. Debian · manual alternative](#debian)
+- [4. Ubuntu · manual alternative](#ubuntu)
+- [4. Rocky Linux · manual alternative](#rocky-linux)
+- [4. AlmaLinux · manual alternative](#almalinux)
+- [4. Amazon Linux 2023 · manual alternative](#amazon-linux-2023)
+- [4. Amazon Linux 2 · manual alternative](#amazon-linux-2)
+- [5. Choose the collection scope · manual alternative](#scope)
+- [6. Collect an application instead · manual alternative](#applications)
+- [6b. Java and other ecosystems with optional Syft · manual alternative](#syft)
 - [7. Upload the local SBOM in Monitor](#upload)
 - [8. Create and protect a machine credential](#credentials)
-- [9. Check without saving](#check)
-- [10. Synchronize one source](#sync)
+- [9. Check without saving · manual alternative](#check)
+- [10. Synchronize one source · manual alternative](#sync)
 - [11. Read findings, exports and alerts](#results)
 - [12. Rescan after a package update](#after-remediation)
 - [13. Rotate, revoke and retire a source](#credentials-lifecycle)
 - [14. Limits and safe retries](#limits)
 - [15. Troubleshooting and exit codes](#troubleshooting)
+
+<a id="quick-install"></a>
+
+## Start: simplified one-time installation
+
+Run on Linux amd64/arm64 as a regular user. You need curl, tar, coreutils (sha256sum), awk and gh with attestation verify support. If missing, the installer stops and explains what to install; section 2 has commands for each distribution. These tools verify the installation, not the project scan. No GitHub account or token is needed.
+
+Download and review the official installer (press q to exit less), then run it. It verifies signed provenance for the exact version and checksums, then publishes the binary at ~/.local/bin/awarely-scan. It refuses to overwrite an existing installation; move the old binary aside when upgrading. If it prints STOP, resolve the cause before starting the scanner.
+
+```sh
+curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \
+  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.7.0-alpha.1/install.sh \
+  -o awarely-install.sh
+# Review the installer before running it.
+less awarely-install.sh
+sh awarely-install.sh
+"$HOME/.local/bin/awarely-scan" guided
+```
+
+After READY, there are no Syft/Cosign commands to copy. Open the menu on each run with the command below. If the binary is already on PATH, just run awarely-scan. Manual verified installation and transfer from a trusted workstation remain available in section 3.
+
+```sh
+"$HOME/.local/bin/awarely-scan" guided
+```
+
+
+<a id="guided"></a>
+
+## Guided scanning: menu choices
+
+| Choice | What you enter | What the scanner checks |
+| --- | --- | --- |
+| 1. Linux | Focused (1) / All packages (2) | Detects the distribution and reads its package database; no root or tool installation. |
+| 2. npm | /srv/demo-shop → 1 (native) / 2 (Syft) | Looks for a v2/v3 lockfile or package.json; reading needs no Node.js/npm. Never runs npm install. |
+| 3. Python | /srv/demo-python → 1 (requirements.txt) / 2 (installed environment) | Mode 1 is partial; mode 2 requires metadata from an existing virtual environment and can prepare Syft. |
+| 4. Java | /srv/demo-java | Requires existing JAR/WAR/EAR artifacts; does not install Java/Maven or build the project. |
+| 5. Other ecosystems | /srv/my-app | Syft for NuGet/Go/Composer/RubyGems/Cargo. Inventory and sync supported; CVE assessment unevaluated. |
+
+Enter real paths without quotes or shell commands. The scanner checks inputs and explains missing items before collection. For Syft, type yes only to approve preparation and execution: it downloads a fixed version (~30 MB), verified against the hash pinned in the Awarely release. The archive is kept in ~/.awarely-scan-tools and rechecked on every use; no gh/Cosign or system package installation is needed. Syft configuration disables network enrichment; use a separate sandbox for untrusted projects.
+
+After scanning, enter an application label and results parent directory (Enter keeps your home directory). The scanner creates a private awarely-results-... folder and prints the full inventory.cdx.json path. Each scan gets its own folder, so you do not need to invent filenames. No inventory has been sent yet.
+
+1. Choose 1 or press Enter: keep the local file. For browser upload, follow section 7.
+2. Choose 2: API check. Create a credential using section 8, transfer it outside the project, apply chmod 600 and enter its file path. The menu shows the destination, application and source; confirm yes. You receive check-result.json in the same folder and a terminal summary. Saved inventory and alerts are unchanged.
+3. Choose 3: API sync. Available only for complete inventories. Review the displayed source and confirm yes: only that source is immediately replaced. You receive sync-result.json. Future alerts follow saved preferences; no retrospective email is sent.
+4. If no credential is ready or you do not want the operation, enter q or answer no. A completed local export remains available. Restart the menu any time for a fresh scan.
+
+npm example: 2 → /srv/demo-shop → 1 → demo-shop → Enter → 1. Java: 4 → /srv/demo-java → yes → demo-java → Enter → 1. Installed Python: 3 → /srv/demo-python → 2 → yes → demo-python → Enter → 1. Linux: 1 → 1 → test-linux → Enter → 1.
+
+Exit code 3 means a partial inventory was written, not that a CVE was found. Code 0 does not guarantee absence of vulnerabilities. Review versions, precision and unevaluated components in the report. Commands in the following sections are alternatives for automation; they are not extra steps after the menu.
+
 
 <a id="choose"></a>
 
@@ -41,7 +94,7 @@ Release: `v0.6.0-alpha.1`
 
 The release is an API preview. The same Linux binary supports amd64 and arm64 builds across the distributions below. Jenkins integration, containers, AMI/VHD images, Alpine and arbitrary binary scanning are not available. An offline Linux root directory is supported; an image file is not.
 
-Read steps 2–3 first. Choose one distribution in step 4, then either upload (step 7), check (steps 8–9), or sync (steps 8 and 10). For application manifests, use step 6 instead of step 4.
+Recommended workflow: simplified installation → guided scan → choose what happens to the result. For API operations, prepare a credential using section 8. Distribution sections and long commands are manual alternatives, not mandatory steps in the menu.
 
 
 <a id="prerequisites"></a>
@@ -173,7 +226,7 @@ Do not run gh auth login or create a GitHub token for this installation. In step
 
 <a id="install"></a>
 
-## 3. Download, verify and run
+## 3. Download, verify and run · manual alternative
 
 This pins the published preview release instead of silently downloading a changing latest version. Stop on any download, attestation or checksum failure. The outer checksum list contains both architectures; select only the archive you downloaded. Extraction happens only after verification.
 
@@ -193,7 +246,7 @@ for tool in curl tar sha256sum awk gh; do
 done
 gh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }
 cd "$SCAN_WORK"
-SCAN_VERSION=v0.6.0-alpha.1
+SCAN_VERSION=v0.7.0-alpha.1
 case "$(uname -m)" in
   x86_64) SCAN_ARCH=amd64 ;;
   aarch64|arm64) SCAN_ARCH=arm64 ;;
@@ -238,7 +291,7 @@ Continue to step 4 or 6 only after the READY message, version output and help. I
 
 <a id="debian"></a>
 
-## 4. Debian
+## 4. Debian · manual alternative
 
 Supported inventory releases: 12, 13; Linux amd64/arm64. Complete steps 2–3 first. The distribution is detected automatically; there is no --distro flag or separate installer.
 
@@ -270,7 +323,7 @@ Optional: sync replaces this source in the saved inventory. Run only when that i
 
 <a id="ubuntu"></a>
 
-## 4. Ubuntu
+## 4. Ubuntu · manual alternative
 
 Supported inventory releases: 22.04, 24.04, 26.04 LTS; Linux amd64/arm64. Complete steps 2–3 first. The distribution is detected automatically; there is no --distro flag or separate installer.
 
@@ -302,7 +355,7 @@ Optional: sync replaces this source in the saved inventory. Run only when that i
 
 <a id="rocky-linux"></a>
 
-## 4. Rocky Linux
+## 4. Rocky Linux · manual alternative
 
 Supported inventory releases: 8, 9, 10; Linux amd64/arm64. Complete steps 2–3 first. The distribution is detected automatically; there is no --distro flag or separate installer.
 
@@ -334,7 +387,7 @@ Optional: sync replaces this source in the saved inventory. Run only when that i
 
 <a id="almalinux"></a>
 
-## 4. AlmaLinux
+## 4. AlmaLinux · manual alternative
 
 Supported inventory releases: 8, 9, 10; Linux amd64/arm64. Complete steps 2–3 first. The distribution is detected automatically; there is no --distro flag or separate installer.
 
@@ -366,7 +419,7 @@ Optional: sync replaces this source in the saved inventory. Run only when that i
 
 <a id="amazon-linux-2023"></a>
 
-## 4. Amazon Linux 2023
+## 4. Amazon Linux 2023 · manual alternative
 
 Supported inventory releases: 2023; Linux amd64/arm64. Complete steps 2–3 first. The distribution is detected automatically; there is no --distro flag or separate installer.
 
@@ -398,7 +451,7 @@ Optional: sync replaces this source in the saved inventory. Run only when that i
 
 <a id="amazon-linux-2"></a>
 
-## 4. Amazon Linux 2
+## 4. Amazon Linux 2 · manual alternative
 
 Supported inventory releases: 2; Linux amd64/arm64. Complete steps 2–3 first. The distribution is detected automatically; there is no --distro flag or separate installer.
 
@@ -430,7 +483,7 @@ Optional: sync replaces this source in the saved inventory. Run only when that i
 
 <a id="scope"></a>
 
-## 5. Choose the collection scope
+## 5. Choose the collection scope · manual alternative
 
 The default host profile selects common server software and its installed dependency closure. It does not collect every OS package. For DEB it includes nginx/apache2, OpenSSL, SSH, Node.js, Python, PHP, Java, databases and container runtimes; RPM uses distribution package names such as httpd. Missing optional members of this default profile are acceptable.
 
@@ -450,7 +503,7 @@ Choose one scope; --select and --all-packages cannot be combined. An unmatched c
 
 <a id="applications"></a>
 
-## 6. Collect an application instead
+## 6. Collect an application instead · manual alternative
 
 On any supported Linux host, select the project directory containing npm-shrinkwrap.json or package-lock.json v2/v3. The fallback package.json and requirements.txt are also readable, but always partial. No npm install, pip install or project scripts are executed.
 
@@ -466,9 +519,11 @@ For broader collection using Syft, see step 6b.
 
 <a id="syft"></a>
 
-## 6b. Java and other ecosystems with optional Syft
+## 6b. Java and other ecosystems with optional Syft · manual alternative
 
-Syft is a separate Anchore tool under Apache-2.0. Awarely does not download or execute it automatically. Use it for collection beyond the native mode, then import CycloneDX JSON 1.4–1.7. Compatible output from the CycloneDX Maven/Gradle plugins is also accepted. Import does not execute builds, Java code or archives.
+In guided mode, Awarely prepares and verifies Syft after your approval: Cosign and the commands below are unnecessary. These instructions are only for separate manual Syft installation and use.
+
+Syft is a separate Anchore tool under Apache-2.0. In the manual workflow you run it separately; guided mode can prepare and run it after confirmation. Use it for collection beyond the native mode, then import CycloneDX JSON 1.4–1.7. Compatible output from the CycloneDX Maven/Gradle plugins is also accepted. Import does not execute builds, Java code or archives.
 
 | Ecosystem | Inventory / sync | CVE check |
 | --- | --- | --- |
@@ -476,37 +531,107 @@ Syft is a separate Anchore tool under Apache-2.0. Awarely does not download or e
 | npm, Python / PyPI | Yes | Comparable ranges; other cases need review |
 | .NET / NuGet, Go, PHP / Composer, RubyGems, Rust / Cargo | Yes | Unevaluated in this release |
 
-Prerequisites: complete steps 2–3 for SCAN_WORK and SCAN_BIN. Install curl, tar, sha256sum and Cosign ≥ 2.5 from the official Sigstore distribution. Installation and signature verification need internet. The following block pins Syft 1.54.0 and verifies the signature and checksum before extraction. Stop if verification fails; do not remove it.
+Complete steps 2–3 first and keep the same Bash session: SCAN_WORK and SCAN_BIN must point to the successful installation. Run the three blocks below in order: A — Cosign, B — Syft, C — Java collection. Downloading and verification require internet, but no GitHub account, token, sudo or PATH changes.
 
-- [Cosign installation](https://docs.sigstore.dev/cosign/system_config/installation/)
-- [Syft verification](https://oss.anchore.com/docs/installation/verification/)
+A. Install and verify Cosign. This tool verifies the Syft release signature. Download Cosign 3.1.3 from its official release and compare the binary with the pinned SHA-256 for your architecture before its first execution. Values were checked against the official checksum list; do not replace them to bypass a failure. The hash-verified binary then validates its release’s Sigstore proof. Installation stays in SCAN_WORK, and COSIGN_BIN is set only after success.
+
+- [Cosign 3.1.3 — official release](https://github.com/sigstore/cosign/releases/tag/v3.1.3)
+- [Cosign — installation and verification](https://docs.sigstore.dev/cosign/system_config/installation/)
 
 ```sh
+COSIGN_BIN=
+umask 077
+COSIGN_DIR=$(mktemp -d "${SCAN_WORK:?STOP: complete step 3 first}/cosign-3.1.3.XXXXXXXX")
 (
   set -eu
+  : "${COSIGN_DIR:?STOP: could not create the Cosign directory}"
+  for tool in curl sha256sum; do
+    command -v "$tool" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\n' "$tool" >&2; exit 1; }
+  done
+  COSIGN_VERSION=3.1.3
+  case "$(uname -m)" in
+    x86_64) COSIGN_ARCH=amd64; COSIGN_SHA256=4629c757b7618056f8ddd7e2625ae9fdd94c0372a65049520bc7d9df9efc7f71 ;;
+    aarch64|arm64) COSIGN_ARCH=arm64; COSIGN_SHA256=c5d324e091826b0d7a78eb16fef316450b4eb9aaec045611c08ba06f5e73220a ;;
+    *) echo 'STOP: unsupported architecture' >&2; exit 1 ;;
+  esac
+  cd "$COSIGN_DIR"
+  BASE="https://github.com/sigstore/cosign/releases/download/v$COSIGN_VERSION"
+  curl --fail --location --connect-timeout 15 --max-time 180 --proto '=https' --proto-redir '=https' --tlsv1.2 \
+    "$BASE/cosign-linux-$COSIGN_ARCH" -o cosign
+  printf '%s  cosign\n' "$COSIGN_SHA256" > selected.sha256
+  sha256sum --check selected.sha256
+  chmod 700 cosign
+  curl --fail --location --connect-timeout 15 --max-time 180 --proto '=https' --proto-redir '=https' --tlsv1.2 \
+    "$BASE/cosign-linux-$COSIGN_ARCH.sigstore.json" -o cosign.sigstore.json
+  ./cosign verify-blob cosign --bundle cosign.sigstore.json \
+    --certificate-identity keyless@projectsigstore.iam.gserviceaccount.com \
+    --certificate-oidc-issuer https://accounts.google.com
+  ./cosign version
+)
+COSIGN_INSTALL_STATUS=$?
+if [ "$COSIGN_INSTALL_STATUS" -eq 0 ]; then
+  COSIGN_BIN="$COSIGN_DIR/cosign"
+  printf 'READY: %s\n' "$COSIGN_BIN"
+else
+  COSIGN_BIN=
+  echo 'STOP: Cosign installation incomplete. Fix the error and rerun this entire block.' >&2
+  (exit "$COSIGN_INSTALL_STATUS")
+fi
+```
+
+Continue only after successful verification, version v3.1.3 and READY. A bare cosign command does not need to work: this guide invokes its full path through COSIGN_BIN.
+
+B. Install and verify Syft 1.54.0. Use Cosign from block A to verify Anchore’s signed checksum list, then verify the archive before extraction. If Cosign is missing, the block stops before downloads. SYFT_BIN is set only after verification and successful startup.
+
+- [Syft — release verification](https://oss.anchore.com/docs/installation/verification/)
+
+```sh
+SYFT_BIN=
+umask 077
+SYFT_DIR=$(mktemp -d "${SCAN_WORK:?STOP: complete step 3 first}/syft-1.54.0.XXXXXXXX")
+(
+  set -eu
+  : "${SYFT_DIR:?STOP: could not create the Syft directory}"
+  test -n "${COSIGN_BIN:-}" && test -x "$COSIGN_BIN" || { echo 'STOP: complete the Cosign block above first.' >&2; exit 1; }
+  for tool in curl tar sha256sum awk; do
+    command -v "$tool" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\n' "$tool" >&2; exit 1; }
+  done
   SYFT_VERSION=1.54.0
-  case "$(uname -m)" in x86_64) SYFT_ARCH=amd64 ;; aarch64|arm64) SYFT_ARCH=arm64 ;; *) exit 2 ;; esac
-  SYFT_DIR="$SCAN_WORK/syft-$SYFT_VERSION"
-  mkdir -m 700 "$SYFT_DIR"
+  case "$(uname -m)" in
+    x86_64) SYFT_ARCH=amd64 ;;
+    aarch64|arm64) SYFT_ARCH=arm64 ;;
+    *) echo 'STOP: unsupported architecture' >&2; exit 1 ;;
+  esac
   cd "$SYFT_DIR"
   BASE="https://github.com/anchore/syft/releases/download/v$SYFT_VERSION"
   ARCHIVE="syft_${SYFT_VERSION}_linux_${SYFT_ARCH}.tar.gz"
   CHECKSUMS="syft_${SYFT_VERSION}_checksums.txt"
   for FILE in "$ARCHIVE" "$CHECKSUMS" "$CHECKSUMS.sigstore.json"; do
-    curl --fail --location --proto '=https' --tlsv1.2 "$BASE/$FILE" -o "$FILE"
+    curl --fail --location --connect-timeout 15 --max-time 180 --proto '=https' --proto-redir '=https' --tlsv1.2 "$BASE/$FILE" -o "$FILE"
   done
-  cosign verify-blob "$CHECKSUMS" --bundle "$CHECKSUMS.sigstore.json" \
+  "$COSIGN_BIN" verify-blob "$CHECKSUMS" --bundle "$CHECKSUMS.sigstore.json" \
     --certificate-identity 'https://github.com/anchore/syft/.github/workflows/release.yaml@refs/heads/main' \
     --certificate-oidc-issuer 'https://token.actions.githubusercontent.com'
-  awk -v file="$ARCHIVE" '$2 == file {print}' "$CHECKSUMS" > selected.sha256
-  test "$(wc -l < selected.sha256 | tr -d ' ')" = 1
+  awk -v file="$ARCHIVE" '$2 == file {print; count++} END {if (count != 1) exit 1}' "$CHECKSUMS" > selected.sha256
   sha256sum --check selected.sha256
   tar -xzf "$ARCHIVE" syft
   chmod 700 syft
+  ./syft version
 )
-SYFT_BIN="$SCAN_WORK/syft-1.54.0/syft"
-"$SYFT_BIN" version
+SYFT_INSTALL_STATUS=$?
+if [ "$SYFT_INSTALL_STATUS" -eq 0 ]; then
+  SYFT_BIN="$SYFT_DIR/syft"
+  printf 'READY: %s\n' "$SYFT_BIN"
+else
+  SYFT_BIN=
+  echo 'STOP: Syft installation incomplete. Fix the error and rerun this entire block. Do not scan yet.' >&2
+  (exit "$SYFT_INSTALL_STATUS")
+fi
 ```
+
+Continue only after version 1.54.0 and READY. For cosign: command not found or syft: No such file or directory from older instructions, run block A first, then the updated block B. Each run uses a fresh private directory; earlier downloads are neither deleted nor overwritten. SCAN_WORK, SCAN_BIN and existing SBOMs remain unchanged. In a new terminal, restore SCAN_WORK and SCAN_BIN as described in step 3, then COSIGN_BIN and SYFT_BIN using the READY paths shown here, or repeat blocks A–B.
+
+C. Collect the Java application and import the result into Awarely. Start only after both READY messages.
 
 Java example: /srv/demo-java contains the application JAR/WAR artifacts or gradle.lockfile after the build. Select the artifacts actually delivered. A lone pom.xml may inherit versions and does not represent the entire resolved dependency tree. For Maven projects without artifacts, generate the SBOM in your trusted build using the CycloneDX plugin, then use import directly.
 
@@ -608,7 +733,7 @@ Illustration only: this intentionally invalid configuration is not usable. All A
 
 <a id="check"></a>
 
-## 9. Check without saving
+## 9. Check without saving · manual alternative
 
 Use a Check only or Check and sync credential. Replace demo-shop.cdx.json with the file from your distribution section when scanning a host.
 
@@ -623,7 +748,7 @@ Open the resulting JSON with a local viewer. summary gives totals; matches inclu
 
 <a id="sync"></a>
 
-## 10. Synchronize one source
+## 10. Synchronize one source · manual alternative
 
 Use Sync only or Check and sync. The snapshot must be complete for the selected inputs. check does not run automatically as part of sync.
 
@@ -710,6 +835,7 @@ Sync reads a revision and uses an idempotency key. Bounded transport/503 retries
 
 | Symptom | Action |
 | --- | --- |
+| cosign: command not found / syft: No such file or directory | Step 6b: run block A (Cosign), then B (Syft); wait for READY from each. Use COSIGN_BIN and SYFT_BIN rather than assuming tools are on PATH. |
 | MISSING / command not found | Return to step 2, install the tool using your distribution block and repeat the check. |
 | gh: unknown command / unknown flag | Update GitHub CLI from the official repository (step 2), then check gh --version and gh attestation verify --help. |
 | To get started with GitHub CLI / gh auth login | You used the older commands without --bundle. Do not log in: copy the entire updated step-3 block, which downloads the public proof and verifies without an account. |

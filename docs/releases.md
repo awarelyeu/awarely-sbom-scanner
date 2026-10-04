@@ -28,3 +28,7 @@ Stop on any verification error. Extract into a directory you own and run the bin
 CI must pass for the exact commit before a maintainer creates a `v*` release tag. The release workflow re-runs tests and security checks, builds with the pinned Go version, packages license notices and publishes signed build provenance beside the archives. The initial release is marked prerelease. For an existing release, a maintainer may publish its original, verified attestation bundle as an additional asset without replacing its archive, checksum or tag.
 
 Workflow permissions are read-only except the release job's explicit artifact/attestation permissions. The scanner repository has no production AWS credentials or Monitor deploy hooks. If a release is compromised, withdraw its download, publish an advisory and ship a new verified version; never silently replace an existing release archive.
+
+## Simplified installation
+
+The public `install.sh` asset automates the same archive provenance and checksum checks, without GitHub authentication. Review the script before running it. It checks prerequisites, stops on missing tools and publishes to `~/.local/bin/awarely-scan` without replacing an existing binary. It does not install system packages or run as root. See [guided installation](how-to.md#quick-install).

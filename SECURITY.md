@@ -2,7 +2,7 @@
 
 ## Scope of this preview
 
-Local collection never uses the network. Only explicit `check` and `sync` commands use an HTTPS client. There is no credential discovery, auto-update, plugin loading or subprocess execution. The server treats every client and inventory as untrusted; owning a signed binary grants no API authority.
+Local collection never uses the network. Explicit `check` and `sync` commands use an HTTPS client. Guided mode adds consented tool preparation and optional API actions. There is no credential discovery, auto-update or plugin loading; subprocess execution is isolated to the optional Syft runner. The server treats every client and inventory as untrusted; owning a signed binary grants no API authority.
 
 Use a non-privileged account and select a directory or root filesystem you are authorized to inspect. Only Linux amd64/arm64 release binaries are supported. macOS is used for development tests.
 
@@ -22,7 +22,7 @@ Names are validated and JSON is encoded structurally. No raw project error line,
 
 ## Testing and release policy
 
-Unit and race tests exercise traversal, special files, malformed/duplicate JSON, package identity, partial coverage, version precision and no-overwrite output. Fuzz targets cover JSON, npm locks, requirements, dpkg, RPM databases, headers, WAL and dependency expressions. CI rejects external runtime modules, subprocess/plugin/cgo dependencies, and networking dependencies in the local collector. It traces Linux local-mode system calls on synthetic fixtures. Remote client tests cover certificate verification, redirect rejection, response bounds, consistency and retry identity.
+Unit and race tests exercise traversal, special files, malformed/duplicate JSON, package identity, partial coverage, version precision and no-overwrite output. Fuzz targets cover JSON, npm locks, requirements, dpkg, RPM databases, headers, WAL and dependency expressions. CI rejects external runtime modules, plugin/cgo dependencies, and networking/subprocess dependencies in the native collector. Only the producer package may import os/exec. It traces Linux local-mode system calls on synthetic fixtures. Remote client tests cover certificate verification, redirect rejection, response bounds, consistency and retry identity.
 
 Automated tests use synthetic data and isolated environments. CI must not upload inventory to production. Linux amd64 and arm64 are tested. Test results cover the exercised paths and do not guarantee that no vulnerability exists.
 
@@ -48,4 +48,12 @@ RPM collection reads bounded regular-file snapshots directly, without SQL execut
 
 ## Optional SBOM producers
 
-Syft is separately installed and run by the user; Awarely does not download, launch or trust it automatically. Import accepts bounded CycloneDX JSON, retains allowlisted package identities and labels them imported-sbom. Coverage describes the selected file, not producer authenticity or completeness of the deployment. Unsupported identities/variants or missing versions produce partial input; sync refuses partial replacement. Source URLs and file paths are never followed. Protect intermediate Syft output too, because it can contain local paths or metadata before normalization. Run third-party collectors against explicitly selected inputs without root, using resource/network isolation for untrusted material.
+Syft is optional. It may be installed/run separately, or prepared by the guided scanner after an explicit confirmation. The managed runner accepts only a fixed Linux amd64/arm64 archive whose SHA-256 was verified by maintainers against the upstream signed release. The digest pins are part of the signed Awarely release; archive verification is repeated on every use. No PATH executable or user Syft configuration is trusted. The runner never uses sudo or installs project dependencies. Import accepts bounded CycloneDX JSON, retains allowlisted package identities and labels them imported-sbom. Coverage describes the selected file, not producer authenticity or completeness of the deployment. Unsupported identities/variants or missing versions produce partial input; sync refuses partial replacement. Source URLs and file paths are never followed. Protect intermediate Syft output too, because it can contain local paths or metadata before normalization. Run third-party collectors against explicitly selected inputs without root, using resource/network isolation for untrusted material.
+
+## Guided tool boundary
+
+An approved download uses HTTPS with certificate verification, fixed release URLs, an explicit GitHub redirect allowlist, bounded response sizes/deadlines, and no environment proxies or credentials. The owner-only cache stores the original archive; only its regular syft executable is extracted to a fresh private workspace. Extracted executables and raw producer output are removed after the run.
+
+Syft receives a fixed offline configuration, selected catalogers, an isolated working directory and a minimal environment without cloud/API credentials, user configuration or executable search paths. Output and execution time are bounded; cancellation kills the process group. These controls are **not an OS sandbox or a memory limit**. Do not scan hostile projects outside a separate sandbox with memory/filesystem/network restrictions. CI additionally verifies offline behavior under a network namespace and syscall tracing.
+
+The wizard defaults to a local export. Download/execution and API transmission require separate explicit choices. It displays the credential's destination/application/source before confirmation; partial snapshots cannot sync. An empty inventory cannot clear a source in guided mode. Existing noninteractive commands retain their contracts. API credential acquisition, package-manager changes and project builds remain operator-controlled.

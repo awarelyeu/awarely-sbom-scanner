@@ -1,9 +1,103 @@
 {
   "schemaVersion": 1,
-  "version": "v0.6.0-alpha.1",
-  "title": "Awarely Scan: complete Linux and application guide",
-  "intro": "From a verified binary to a local SBOM, an API check or a saved inventory. All application names, paths, IDs and credentials in examples are fictional.",
+  "version": "v0.7.0-alpha.1",
+  "title": "Awarely Scan: installation and guided scanning",
+  "intro": "Start with the simplified installer and guided menu for Linux, npm, Python or Java. Finish with a local file, API check or synchronization. CLI messages are in English. Manual commands remain below for automation; example names and credentials are fictional.",
   "sections": [
+    {
+      "id": "quick-install",
+      "title": "Start: simplified one-time installation",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Run on Linux amd64/arm64 as a regular user. You need curl, tar, coreutils (sha256sum), awk and gh with attestation verify support. If missing, the installer stops and explains what to install; section 2 has commands for each distribution. These tools verify the installation, not the project scan. No GitHub account or token is needed."
+        },
+        {
+          "type": "paragraph",
+          "text": "Download and review the official installer (press q to exit less), then run it. It verifies signed provenance for the exact version and checksums, then publishes the binary at ~/.local/bin/awarely-scan. It refuses to overwrite an existing installation; move the old binary aside when upgrading. If it prints STOP, resolve the cause before starting the scanner."
+        },
+        {
+          "type": "code",
+          "language": "sh",
+          "code": "curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \\\n  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.7.0-alpha.1/install.sh \\\n  -o awarely-install.sh\n# Review the installer before running it.\nless awarely-install.sh\nsh awarely-install.sh\n\"$HOME/.local/bin/awarely-scan\" guided"
+        },
+        {
+          "type": "paragraph",
+          "text": "After READY, there are no Syft/Cosign commands to copy. Open the menu on each run with the command below. If the binary is already on PATH, just run awarely-scan. Manual verified installation and transfer from a trusted workstation remain available in section 3."
+        },
+        {
+          "type": "code",
+          "language": "sh",
+          "code": "\"$HOME/.local/bin/awarely-scan\" guided"
+        }
+      ]
+    },
+    {
+      "id": "guided",
+      "title": "Guided scanning: menu choices",
+      "blocks": [
+        {
+          "type": "table",
+          "headers": [
+            "Choice",
+            "What you enter",
+            "What the scanner checks"
+          ],
+          "rows": [
+            [
+              "1. Linux",
+              "Focused (1) / All packages (2)",
+              "Detects the distribution and reads its package database; no root or tool installation."
+            ],
+            [
+              "2. npm",
+              "/srv/demo-shop → 1 (native) / 2 (Syft)",
+              "Looks for a v2/v3 lockfile or package.json; reading needs no Node.js/npm. Never runs npm install."
+            ],
+            [
+              "3. Python",
+              "/srv/demo-python → 1 (requirements.txt) / 2 (installed environment)",
+              "Mode 1 is partial; mode 2 requires metadata from an existing virtual environment and can prepare Syft."
+            ],
+            [
+              "4. Java",
+              "/srv/demo-java",
+              "Requires existing JAR/WAR/EAR artifacts; does not install Java/Maven or build the project."
+            ],
+            [
+              "5. Other ecosystems",
+              "/srv/my-app",
+              "Syft for NuGet/Go/Composer/RubyGems/Cargo. Inventory and sync supported; CVE assessment unevaluated."
+            ]
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Enter real paths without quotes or shell commands. The scanner checks inputs and explains missing items before collection. For Syft, type yes only to approve preparation and execution: it downloads a fixed version (~30 MB), verified against the hash pinned in the Awarely release. The archive is kept in ~/.awarely-scan-tools and rechecked on every use; no gh/Cosign or system package installation is needed. Syft configuration disables network enrichment; use a separate sandbox for untrusted projects."
+        },
+        {
+          "type": "paragraph",
+          "text": "After scanning, enter an application label and results parent directory (Enter keeps your home directory). The scanner creates a private awarely-results-... folder and prints the full inventory.cdx.json path. Each scan gets its own folder, so you do not need to invent filenames. No inventory has been sent yet."
+        },
+        {
+          "type": "list",
+          "items": [
+            "Choose 1 or press Enter: keep the local file. For browser upload, follow section 7.",
+            "Choose 2: API check. Create a credential using section 8, transfer it outside the project, apply chmod 600 and enter its file path. The menu shows the destination, application and source; confirm yes. You receive check-result.json in the same folder and a terminal summary. Saved inventory and alerts are unchanged.",
+            "Choose 3: API sync. Available only for complete inventories. Review the displayed source and confirm yes: only that source is immediately replaced. You receive sync-result.json. Future alerts follow saved preferences; no retrospective email is sent.",
+            "If no credential is ready or you do not want the operation, enter q or answer no. A completed local export remains available. Restart the menu any time for a fresh scan."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "npm example: 2 → /srv/demo-shop → 1 → demo-shop → Enter → 1. Java: 4 → /srv/demo-java → yes → demo-java → Enter → 1. Installed Python: 3 → /srv/demo-python → 2 → yes → demo-python → Enter → 1. Linux: 1 → 1 → test-linux → Enter → 1."
+        },
+        {
+          "type": "paragraph",
+          "text": "Exit code 3 means a partial inventory was written, not that a CVE was found. Code 0 does not guarantee absence of vulnerabilities. Review versions, precision and unevaluated components in the report. Commands in the following sections are alternatives for automation; they are not extra steps after the menu."
+        }
+      ]
+    },
     {
       "id": "choose",
       "title": "1. Choose your workflow",
@@ -44,7 +138,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Read steps 2–3 first. Choose one distribution in step 4, then either upload (step 7), check (steps 8–9), or sync (steps 8 and 10). For application manifests, use step 6 instead of step 4."
+          "text": "Recommended workflow: simplified installation → guided scan → choose what happens to the result. For API operations, prepare a credential using section 8. Distribution sections and long commands are manual alternatives, not mandatory steps in the menu."
         }
       ]
     },
@@ -185,7 +279,7 @@
     },
     {
       "id": "install",
-      "title": "3. Download, verify and run",
+      "title": "3. Download, verify and run · manual alternative",
       "blocks": [
         {
           "type": "paragraph",
@@ -202,7 +296,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "SCAN_BIN=\numask 077\nSCAN_WORK=$(mktemp -d \"$HOME/awarely-scan.XXXXXXXX\")\n(\nset -eu\n: \"${SCAN_WORK:?Could not create working directory}\"\nfor tool in curl tar sha256sum awk gh; do\n  command -v \"$tool\" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\\n' \"$tool\" >&2; exit 1; }\ndone\ngh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }\ncd \"$SCAN_WORK\"\nSCAN_VERSION=v0.6.0-alpha.1\ncase \"$(uname -m)\" in\n  x86_64) SCAN_ARCH=amd64 ;;\n  aarch64|arm64) SCAN_ARCH=arm64 ;;\n  *) echo \"Unsupported architecture\" >&2; exit 1 ;;\nesac\nSCAN_ARCHIVE=\"awarely-scan_${SCAN_VERSION}_linux_${SCAN_ARCH}.tar.gz\"\nSCAN_RELEASE=\"https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/${SCAN_VERSION}\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE\" -o \"$SCAN_ARCHIVE\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/SHA256SUMS\" -o SHA256SUMS\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE.sigstore.jsonl\" -o \"$SCAN_ARCHIVE.sigstore.jsonl\"\ngh attestation verify \"$SCAN_ARCHIVE\" \\\n  --bundle \"$SCAN_ARCHIVE.sigstore.jsonl\" \\\n  --repo awarelyeu/awarely-sbom-scanner \\\n  --signer-workflow awarelyeu/awarely-sbom-scanner/.github/workflows/release.yml \\\n  --source-ref \"refs/tags/$SCAN_VERSION\"\nawk -v file=\"$SCAN_ARCHIVE\" '$2 == file { print; found=1 } END { if (!found) exit 1 }' SHA256SUMS > selected-SHA256SUMS\nsha256sum --check selected-SHA256SUMS\nmkdir release\ntar -xzf \"$SCAN_ARCHIVE\" -C release\n(cd release && sha256sum --check SHA256SUMS)\n\"$SCAN_WORK/release/awarely-scan\" version\n\"$SCAN_WORK/release/awarely-scan\" help\nprintf 'Working directory: %s\\n' \"$SCAN_WORK\"\n)\nSCAN_INSTALL_STATUS=$?\nif [ \"$SCAN_INSTALL_STATUS\" -eq 0 ]; then\n  SCAN_BIN=\"$SCAN_WORK/release/awarely-scan\"\n  printf 'READY: %s\\n' \"$SCAN_BIN\"\nelse\n  SCAN_BIN=\n  printf 'STOP: installation incomplete in %s. Fix the error and rerun all of step 3. Do not scan yet.\\n' \"$SCAN_WORK\" >&2\n  (exit \"$SCAN_INSTALL_STATUS\")\nfi"
+          "code": "SCAN_BIN=\numask 077\nSCAN_WORK=$(mktemp -d \"$HOME/awarely-scan.XXXXXXXX\")\n(\nset -eu\n: \"${SCAN_WORK:?Could not create working directory}\"\nfor tool in curl tar sha256sum awk gh; do\n  command -v \"$tool\" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\\n' \"$tool\" >&2; exit 1; }\ndone\ngh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }\ncd \"$SCAN_WORK\"\nSCAN_VERSION=v0.7.0-alpha.1\ncase \"$(uname -m)\" in\n  x86_64) SCAN_ARCH=amd64 ;;\n  aarch64|arm64) SCAN_ARCH=arm64 ;;\n  *) echo \"Unsupported architecture\" >&2; exit 1 ;;\nesac\nSCAN_ARCHIVE=\"awarely-scan_${SCAN_VERSION}_linux_${SCAN_ARCH}.tar.gz\"\nSCAN_RELEASE=\"https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/${SCAN_VERSION}\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE\" -o \"$SCAN_ARCHIVE\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/SHA256SUMS\" -o SHA256SUMS\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE.sigstore.jsonl\" -o \"$SCAN_ARCHIVE.sigstore.jsonl\"\ngh attestation verify \"$SCAN_ARCHIVE\" \\\n  --bundle \"$SCAN_ARCHIVE.sigstore.jsonl\" \\\n  --repo awarelyeu/awarely-sbom-scanner \\\n  --signer-workflow awarelyeu/awarely-sbom-scanner/.github/workflows/release.yml \\\n  --source-ref \"refs/tags/$SCAN_VERSION\"\nawk -v file=\"$SCAN_ARCHIVE\" '$2 == file { print; found=1 } END { if (!found) exit 1 }' SHA256SUMS > selected-SHA256SUMS\nsha256sum --check selected-SHA256SUMS\nmkdir release\ntar -xzf \"$SCAN_ARCHIVE\" -C release\n(cd release && sha256sum --check SHA256SUMS)\n\"$SCAN_WORK/release/awarely-scan\" version\n\"$SCAN_WORK/release/awarely-scan\" help\nprintf 'Working directory: %s\\n' \"$SCAN_WORK\"\n)\nSCAN_INSTALL_STATUS=$?\nif [ \"$SCAN_INSTALL_STATUS\" -eq 0 ]; then\n  SCAN_BIN=\"$SCAN_WORK/release/awarely-scan\"\n  printf 'READY: %s\\n' \"$SCAN_BIN\"\nelse\n  SCAN_BIN=\n  printf 'STOP: installation incomplete in %s. Fix the error and rerun all of step 3. Do not scan yet.\\n' \"$SCAN_WORK\" >&2\n  (exit \"$SCAN_INSTALL_STATUS\")\nfi"
         },
         {
           "type": "paragraph",
@@ -220,7 +314,7 @@
     },
     {
       "id": "debian",
-      "title": "4. Debian",
+      "title": "4. Debian · manual alternative",
       "blocks": [
         {
           "type": "paragraph",
@@ -261,7 +355,7 @@
     },
     {
       "id": "ubuntu",
-      "title": "4. Ubuntu",
+      "title": "4. Ubuntu · manual alternative",
       "blocks": [
         {
           "type": "paragraph",
@@ -302,7 +396,7 @@
     },
     {
       "id": "rocky-linux",
-      "title": "4. Rocky Linux",
+      "title": "4. Rocky Linux · manual alternative",
       "blocks": [
         {
           "type": "paragraph",
@@ -343,7 +437,7 @@
     },
     {
       "id": "almalinux",
-      "title": "4. AlmaLinux",
+      "title": "4. AlmaLinux · manual alternative",
       "blocks": [
         {
           "type": "paragraph",
@@ -384,7 +478,7 @@
     },
     {
       "id": "amazon-linux-2023",
-      "title": "4. Amazon Linux 2023",
+      "title": "4. Amazon Linux 2023 · manual alternative",
       "blocks": [
         {
           "type": "paragraph",
@@ -425,7 +519,7 @@
     },
     {
       "id": "amazon-linux-2",
-      "title": "4. Amazon Linux 2",
+      "title": "4. Amazon Linux 2 · manual alternative",
       "blocks": [
         {
           "type": "paragraph",
@@ -466,7 +560,7 @@
     },
     {
       "id": "scope",
-      "title": "5. Choose the collection scope",
+      "title": "5. Choose the collection scope · manual alternative",
       "blocks": [
         {
           "type": "paragraph",
@@ -485,7 +579,7 @@
     },
     {
       "id": "applications",
-      "title": "6. Collect an application instead",
+      "title": "6. Collect an application instead · manual alternative",
       "blocks": [
         {
           "type": "paragraph",
@@ -508,11 +602,15 @@
     },
     {
       "id": "syft",
-      "title": "6b. Java and other ecosystems with optional Syft",
+      "title": "6b. Java and other ecosystems with optional Syft · manual alternative",
       "blocks": [
         {
           "type": "paragraph",
-          "text": "Syft is a separate Anchore tool under Apache-2.0. Awarely does not download or execute it automatically. Use it for collection beyond the native mode, then import CycloneDX JSON 1.4–1.7. Compatible output from the CycloneDX Maven/Gradle plugins is also accepted. Import does not execute builds, Java code or archives."
+          "text": "In guided mode, Awarely prepares and verifies Syft after your approval: Cosign and the commands below are unnecessary. These instructions are only for separate manual Syft installation and use."
+        },
+        {
+          "type": "paragraph",
+          "text": "Syft is a separate Anchore tool under Apache-2.0. In the manual workflow you run it separately; guided mode can prepare and run it after confirmation. Use it for collection beyond the native mode, then import CycloneDX JSON 1.4–1.7. Compatible output from the CycloneDX Maven/Gradle plugins is also accepted. Import does not execute builds, Java code or archives."
         },
         {
           "type": "table",
@@ -541,17 +639,43 @@
         },
         {
           "type": "paragraph",
-          "text": "Prerequisites: complete steps 2–3 for SCAN_WORK and SCAN_BIN. Install curl, tar, sha256sum and Cosign ≥ 2.5 from the official Sigstore distribution. Installation and signature verification need internet. The following block pins Syft 1.54.0 and verifies the signature and checksum before extraction. Stop if verification fails; do not remove it."
+          "text": "Complete steps 2–3 first and keep the same Bash session: SCAN_WORK and SCAN_BIN must point to the successful installation. Run the three blocks below in order: A — Cosign, B — Syft, C — Java collection. Downloading and verification require internet, but no GitHub account, token, sudo or PATH changes."
+        },
+        {
+          "type": "paragraph",
+          "text": "A. Install and verify Cosign. This tool verifies the Syft release signature. Download Cosign 3.1.3 from its official release and compare the binary with the pinned SHA-256 for your architecture before its first execution. Values were checked against the official checksum list; do not replace them to bypass a failure. The hash-verified binary then validates its release’s Sigstore proof. Installation stays in SCAN_WORK, and COSIGN_BIN is set only after success."
         },
         {
           "type": "links",
           "links": [
             {
-              "label": "Cosign installation",
-              "href": "https://docs.sigstore.dev/cosign/system_config/installation/"
+              "label": "Cosign 3.1.3 — official release",
+              "href": "https://github.com/sigstore/cosign/releases/tag/v3.1.3"
             },
             {
-              "label": "Syft verification",
+              "label": "Cosign — installation and verification",
+              "href": "https://docs.sigstore.dev/cosign/system_config/installation/"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "language": "sh",
+          "code": "COSIGN_BIN=\numask 077\nCOSIGN_DIR=$(mktemp -d \"${SCAN_WORK:?STOP: complete step 3 first}/cosign-3.1.3.XXXXXXXX\")\n(\n  set -eu\n  : \"${COSIGN_DIR:?STOP: could not create the Cosign directory}\"\n  for tool in curl sha256sum; do\n    command -v \"$tool\" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\\n' \"$tool\" >&2; exit 1; }\n  done\n  COSIGN_VERSION=3.1.3\n  case \"$(uname -m)\" in\n    x86_64) COSIGN_ARCH=amd64; COSIGN_SHA256=4629c757b7618056f8ddd7e2625ae9fdd94c0372a65049520bc7d9df9efc7f71 ;;\n    aarch64|arm64) COSIGN_ARCH=arm64; COSIGN_SHA256=c5d324e091826b0d7a78eb16fef316450b4eb9aaec045611c08ba06f5e73220a ;;\n    *) echo 'STOP: unsupported architecture' >&2; exit 1 ;;\n  esac\n  cd \"$COSIGN_DIR\"\n  BASE=\"https://github.com/sigstore/cosign/releases/download/v$COSIGN_VERSION\"\n  curl --fail --location --connect-timeout 15 --max-time 180 --proto '=https' --proto-redir '=https' --tlsv1.2 \\\n    \"$BASE/cosign-linux-$COSIGN_ARCH\" -o cosign\n  printf '%s  cosign\\n' \"$COSIGN_SHA256\" > selected.sha256\n  sha256sum --check selected.sha256\n  chmod 700 cosign\n  curl --fail --location --connect-timeout 15 --max-time 180 --proto '=https' --proto-redir '=https' --tlsv1.2 \\\n    \"$BASE/cosign-linux-$COSIGN_ARCH.sigstore.json\" -o cosign.sigstore.json\n  ./cosign verify-blob cosign --bundle cosign.sigstore.json \\\n    --certificate-identity keyless@projectsigstore.iam.gserviceaccount.com \\\n    --certificate-oidc-issuer https://accounts.google.com\n  ./cosign version\n)\nCOSIGN_INSTALL_STATUS=$?\nif [ \"$COSIGN_INSTALL_STATUS\" -eq 0 ]; then\n  COSIGN_BIN=\"$COSIGN_DIR/cosign\"\n  printf 'READY: %s\\n' \"$COSIGN_BIN\"\nelse\n  COSIGN_BIN=\n  echo 'STOP: Cosign installation incomplete. Fix the error and rerun this entire block.' >&2\n  (exit \"$COSIGN_INSTALL_STATUS\")\nfi"
+        },
+        {
+          "type": "paragraph",
+          "text": "Continue only after successful verification, version v3.1.3 and READY. A bare cosign command does not need to work: this guide invokes its full path through COSIGN_BIN."
+        },
+        {
+          "type": "paragraph",
+          "text": "B. Install and verify Syft 1.54.0. Use Cosign from block A to verify Anchore’s signed checksum list, then verify the archive before extraction. If Cosign is missing, the block stops before downloads. SYFT_BIN is set only after verification and successful startup."
+        },
+        {
+          "type": "links",
+          "links": [
+            {
+              "label": "Syft — release verification",
               "href": "https://oss.anchore.com/docs/installation/verification/"
             }
           ]
@@ -559,7 +683,15 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "(\n  set -eu\n  SYFT_VERSION=1.54.0\n  case \"$(uname -m)\" in x86_64) SYFT_ARCH=amd64 ;; aarch64|arm64) SYFT_ARCH=arm64 ;; *) exit 2 ;; esac\n  SYFT_DIR=\"$SCAN_WORK/syft-$SYFT_VERSION\"\n  mkdir -m 700 \"$SYFT_DIR\"\n  cd \"$SYFT_DIR\"\n  BASE=\"https://github.com/anchore/syft/releases/download/v$SYFT_VERSION\"\n  ARCHIVE=\"syft_${SYFT_VERSION}_linux_${SYFT_ARCH}.tar.gz\"\n  CHECKSUMS=\"syft_${SYFT_VERSION}_checksums.txt\"\n  for FILE in \"$ARCHIVE\" \"$CHECKSUMS\" \"$CHECKSUMS.sigstore.json\"; do\n    curl --fail --location --proto '=https' --tlsv1.2 \"$BASE/$FILE\" -o \"$FILE\"\n  done\n  cosign verify-blob \"$CHECKSUMS\" --bundle \"$CHECKSUMS.sigstore.json\" \\\n    --certificate-identity 'https://github.com/anchore/syft/.github/workflows/release.yaml@refs/heads/main' \\\n    --certificate-oidc-issuer 'https://token.actions.githubusercontent.com'\n  awk -v file=\"$ARCHIVE\" '$2 == file {print}' \"$CHECKSUMS\" > selected.sha256\n  test \"$(wc -l < selected.sha256 | tr -d ' ')\" = 1\n  sha256sum --check selected.sha256\n  tar -xzf \"$ARCHIVE\" syft\n  chmod 700 syft\n)\nSYFT_BIN=\"$SCAN_WORK/syft-1.54.0/syft\"\n\"$SYFT_BIN\" version"
+          "code": "SYFT_BIN=\numask 077\nSYFT_DIR=$(mktemp -d \"${SCAN_WORK:?STOP: complete step 3 first}/syft-1.54.0.XXXXXXXX\")\n(\n  set -eu\n  : \"${SYFT_DIR:?STOP: could not create the Syft directory}\"\n  test -n \"${COSIGN_BIN:-}\" && test -x \"$COSIGN_BIN\" || { echo 'STOP: complete the Cosign block above first.' >&2; exit 1; }\n  for tool in curl tar sha256sum awk; do\n    command -v \"$tool\" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\\n' \"$tool\" >&2; exit 1; }\n  done\n  SYFT_VERSION=1.54.0\n  case \"$(uname -m)\" in\n    x86_64) SYFT_ARCH=amd64 ;;\n    aarch64|arm64) SYFT_ARCH=arm64 ;;\n    *) echo 'STOP: unsupported architecture' >&2; exit 1 ;;\n  esac\n  cd \"$SYFT_DIR\"\n  BASE=\"https://github.com/anchore/syft/releases/download/v$SYFT_VERSION\"\n  ARCHIVE=\"syft_${SYFT_VERSION}_linux_${SYFT_ARCH}.tar.gz\"\n  CHECKSUMS=\"syft_${SYFT_VERSION}_checksums.txt\"\n  for FILE in \"$ARCHIVE\" \"$CHECKSUMS\" \"$CHECKSUMS.sigstore.json\"; do\n    curl --fail --location --connect-timeout 15 --max-time 180 --proto '=https' --proto-redir '=https' --tlsv1.2 \"$BASE/$FILE\" -o \"$FILE\"\n  done\n  \"$COSIGN_BIN\" verify-blob \"$CHECKSUMS\" --bundle \"$CHECKSUMS.sigstore.json\" \\\n    --certificate-identity 'https://github.com/anchore/syft/.github/workflows/release.yaml@refs/heads/main' \\\n    --certificate-oidc-issuer 'https://token.actions.githubusercontent.com'\n  awk -v file=\"$ARCHIVE\" '$2 == file {print; count++} END {if (count != 1) exit 1}' \"$CHECKSUMS\" > selected.sha256\n  sha256sum --check selected.sha256\n  tar -xzf \"$ARCHIVE\" syft\n  chmod 700 syft\n  ./syft version\n)\nSYFT_INSTALL_STATUS=$?\nif [ \"$SYFT_INSTALL_STATUS\" -eq 0 ]; then\n  SYFT_BIN=\"$SYFT_DIR/syft\"\n  printf 'READY: %s\\n' \"$SYFT_BIN\"\nelse\n  SYFT_BIN=\n  echo 'STOP: Syft installation incomplete. Fix the error and rerun this entire block. Do not scan yet.' >&2\n  (exit \"$SYFT_INSTALL_STATUS\")\nfi"
+        },
+        {
+          "type": "paragraph",
+          "text": "Continue only after version 1.54.0 and READY. For cosign: command not found or syft: No such file or directory from older instructions, run block A first, then the updated block B. Each run uses a fresh private directory; earlier downloads are neither deleted nor overwritten. SCAN_WORK, SCAN_BIN and existing SBOMs remain unchanged. In a new terminal, restore SCAN_WORK and SCAN_BIN as described in step 3, then COSIGN_BIN and SYFT_BIN using the READY paths shown here, or repeat blocks A–B."
+        },
+        {
+          "type": "paragraph",
+          "text": "C. Collect the Java application and import the result into Awarely. Start only after both READY messages."
         },
         {
           "type": "paragraph",
@@ -668,7 +800,7 @@
     },
     {
       "id": "check",
-      "title": "9. Check without saving",
+      "title": "9. Check without saving · manual alternative",
       "blocks": [
         {
           "type": "paragraph",
@@ -687,7 +819,7 @@
     },
     {
       "id": "sync",
-      "title": "10. Synchronize one source",
+      "title": "10. Synchronize one source · manual alternative",
       "blocks": [
         {
           "type": "paragraph",
@@ -834,6 +966,10 @@
             "Action"
           ],
           "rows": [
+            [
+              "cosign: command not found / syft: No such file or directory",
+              "Step 6b: run block A (Cosign), then B (Syft); wait for READY from each. Use COSIGN_BIN and SYFT_BIN rather than assuming tools are on PATH."
+            ],
             [
               "MISSING / command not found",
               "Return to step 2, install the tool using your distribution block and repeat the check."

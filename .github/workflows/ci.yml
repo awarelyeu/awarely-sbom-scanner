@@ -51,6 +51,8 @@ jobs:
           python3 scripts/integration.py dist/awarely-scan
       - name: Real Syft interoperability without network access
         run: python3 scripts/integration_syft.py dist/awarely-scan
+      - name: Guided workflow and managed producer isolation
+        run: python3 scripts/integration_guided.py dist/awarely-scan
       - name: Go vulnerability analysis
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
   rpm:

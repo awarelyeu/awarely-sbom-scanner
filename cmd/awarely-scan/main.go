@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/api"
+	"github.com/awarelyeu/awarely-sbom-scanner/internal/guided"
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/inventory"
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/safeio"
 )
@@ -20,6 +21,8 @@ var version = "dev"
 const help = `Awarely Scan — SBOM inventory, API check and source sync
 
 Usage:
+  awarely-scan                      Guided setup when run in a terminal
+  awarely-scan guided               Guided Linux/npm/Python/Java workflow
   awarely-scan app --path DIR --output FILE [--name NAME]
   awarely-scan host --output FILE [--select 'nginx*,openssl'] [--name NAME]
   awarely-scan host --all-packages --output FILE
@@ -42,7 +45,8 @@ Options:
 
 Exit codes: 0 selected inputs processed; 2 invalid input/error; 3 partial coverage;
             4 output error; 5 interrupted/deadline; 6 API operation failed.
-Local modes: no network, installation, project execution, credentials or telemetry.
+Native host/app/import: no network, installation, project execution, credentials or telemetry.
+Guided mode: optional verified Syft preparation/execution after explicit consent.
 Local collection never uses network or credentials. API operations are explicit.
 check does not change saved inventory. sync replaces only the credential's source.
 Credentials: protected JSON file (chmod 600), or --credentials - for stdin.
@@ -53,13 +57,26 @@ Remote operations return 6 on failure; a successful check is not an all-clear.
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
-	os.Exit(run(ctx, os.Args[1:], os.Stdout, os.Stderr))
+	args := os.Args[1:]
+	if len(args) == 0 {
+		if stdinTerminal() {
+			args = []string{"guided"}
+		}
+	}
+	os.Exit(run(ctx, args, os.Stdout, os.Stderr))
 }
 
 func run(parent context.Context, args []string, out, errOut io.Writer) int {
 	if len(args) == 0 || args[0] == "help" || args[0] == "--help" {
 		fmt.Fprint(out, help)
 		return 0
+	}
+	if args[0] == "guided" {
+		if len(args) != 1 {
+			fmt.Fprintln(errOut, "Guided mode accepts no arguments. Use host/app/import/check/sync for automation.")
+			return 2
+		}
+		return guided.Run(parent, os.Stdin, out, errOut, version)
 	}
 	if args[0] == "version" {
 		fmt.Fprintln(out, "awarely-scan", version)
