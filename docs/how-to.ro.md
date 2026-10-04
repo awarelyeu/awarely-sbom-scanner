@@ -4,7 +4,7 @@
 
 [English](how-to.md) · [Română](how-to.ro.md)
 
-Release: `v0.7.0-alpha.1`
+Release: `v0.7.0-alpha.2`
 
 - [Start: instalare simplificată, o singură dată](#quick-install)
 - [Scanare ghidată: alegerile din meniu](#guided)
@@ -40,7 +40,7 @@ Descarcă și citește installerul oficial (în less, apasă q pentru a ieși), 
 
 ```sh
 curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \
-  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.7.0-alpha.1/install.sh \
+  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.7.0-alpha.2/install.sh \
   -o awarely-install.sh
 # Review the installer before running it.
 less awarely-install.sh
@@ -246,7 +246,7 @@ for tool in curl tar sha256sum awk gh; do
 done
 gh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }
 cd "$SCAN_WORK"
-SCAN_VERSION=v0.7.0-alpha.1
+SCAN_VERSION=v0.7.0-alpha.2
 case "$(uname -m)" in
   x86_64) SCAN_ARCH=amd64 ;;
   aarch64|arm64) SCAN_ARCH=arm64 ;;
