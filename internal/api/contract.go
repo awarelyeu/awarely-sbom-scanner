@@ -3,6 +3,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -54,10 +55,14 @@ func ReadSnapshot(ctx context.Context, path string) (Snapshot, error) {
 		Metadata struct {
 			Properties []inventory.Property `json:"properties"`
 		} `json:"metadata"`
-		Components []inventory.Component `json:"components"`
+		Components json.RawMessage `json:"components"`
 	}
-	if json.Unmarshal(b, &bom) != nil || bom.Format != "CycloneDX" || bom.Spec != "1.6" || len(bom.Components) > inventory.MaxComponents {
-		return snapshot, errors.New("expected bounded CycloneDX 1.6 inventory")
+	if json.Unmarshal(b, &bom) != nil || bom.Format != "CycloneDX" || bom.Spec != "1.6" || bom.Components == nil || bytes.Equal(bytes.TrimSpace(bom.Components), []byte("null")) {
+		return snapshot, errors.New("expected bounded CycloneDX 1.6 inventory with a components array")
+	}
+	var components []inventory.Component
+	if json.Unmarshal(bom.Components, &components) != nil || len(components) > inventory.MaxComponents {
+		return snapshot, errors.New("expected bounded CycloneDX 1.6 inventory with a components array")
 	}
 	coverage := "partial"
 	coverageFound := false
@@ -74,7 +79,7 @@ func ReadSnapshot(ctx context.Context, path string) (Snapshot, error) {
 	}
 	snapshot = Snapshot{SchemaVersion: 1, Coverage: coverage, Components: []Component{}}
 	seen := map[string]bool{}
-	for _, c := range bom.Components {
+	for _, c := range components {
 		if err := ctx.Err(); err != nil {
 			return Snapshot{}, err
 		}

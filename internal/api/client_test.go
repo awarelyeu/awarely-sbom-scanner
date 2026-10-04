@@ -49,6 +49,30 @@ func TestCredentialBoundary(t *testing.T) {
 		t.Fatal("duplicate field accepted")
 	}
 }
+
+func TestSnapshotRequiresComponentsArray(t *testing.T) {
+	dir := t.TempDir()
+	for _, input := range []string{
+		`{"bomFormat":"CycloneDX","specVersion":"1.6"}`,
+		`{"bomFormat":"CycloneDX","specVersion":"1.6","components":null}`,
+	} {
+		path := filepath.Join(dir, "invalid.json")
+		if err := os.WriteFile(path, []byte(input), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := ReadSnapshot(context.Background(), path); err == nil {
+			t.Fatalf("missing components array accepted: %s", input)
+		}
+	}
+	empty := filepath.Join(dir, "empty.json")
+	if err := os.WriteFile(empty, []byte(`{"bomFormat":"CycloneDX","specVersion":"1.6","components":[]}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if snapshot, err := ReadSnapshot(context.Background(), empty); err != nil || len(snapshot.Components) != 0 {
+		t.Fatalf("valid empty components array rejected: %+v %v", snapshot, err)
+	}
+}
+
 func TestRedirectAndTLSCannotLeakToken(t *testing.T) {
 	received := 0
 	target := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { received++ }))
