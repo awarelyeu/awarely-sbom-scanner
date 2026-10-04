@@ -476,37 +476,107 @@ Syft is a separate Anchore tool under Apache-2.0. Awarely does not download or e
 | npm, Python / PyPI | Yes | Comparable ranges; other cases need review |
 | .NET / NuGet, Go, PHP / Composer, RubyGems, Rust / Cargo | Yes | Unevaluated in this release |
 
-Prerequisites: complete steps 2–3 for SCAN_WORK and SCAN_BIN. Install curl, tar, sha256sum and Cosign ≥ 2.5 from the official Sigstore distribution. Installation and signature verification need internet. The following block pins Syft 1.54.0 and verifies the signature and checksum before extraction. Stop if verification fails; do not remove it.
+Complete steps 2–3 first and keep the same Bash session: SCAN_WORK and SCAN_BIN must point to the successful installation. Run the three blocks below in order: A — Cosign, B — Syft, C — Java collection. Downloading and verification require internet, but no GitHub account, token, sudo or PATH changes.
 
-- [Cosign installation](https://docs.sigstore.dev/cosign/system_config/installation/)
-- [Syft verification](https://oss.anchore.com/docs/installation/verification/)
+A. Install and verify Cosign. This tool verifies the Syft release signature. Download Cosign 3.1.3 from its official release and compare the binary with the pinned SHA-256 for your architecture before its first execution. Values were checked against the official checksum list; do not replace them to bypass a failure. The hash-verified binary then validates its release’s Sigstore proof. Installation stays in SCAN_WORK, and COSIGN_BIN is set only after success.
+
+- [Cosign 3.1.3 — official release](https://github.com/sigstore/cosign/releases/tag/v3.1.3)
+- [Cosign — installation and verification](https://docs.sigstore.dev/cosign/system_config/installation/)
 
 ```sh
+COSIGN_BIN=
+umask 077
+COSIGN_DIR=$(mktemp -d "${SCAN_WORK:?STOP: complete step 3 first}/cosign-3.1.3.XXXXXXXX")
 (
   set -eu
+  : "${COSIGN_DIR:?STOP: could not create the Cosign directory}"
+  for tool in curl sha256sum; do
+    command -v "$tool" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\n' "$tool" >&2; exit 1; }
+  done
+  COSIGN_VERSION=3.1.3
+  case "$(uname -m)" in
+    x86_64) COSIGN_ARCH=amd64; COSIGN_SHA256=4629c757b7618056f8ddd7e2625ae9fdd94c0372a65049520bc7d9df9efc7f71 ;;
+    aarch64|arm64) COSIGN_ARCH=arm64; COSIGN_SHA256=c5d324e091826b0d7a78eb16fef316450b4eb9aaec045611c08ba06f5e73220a ;;
+    *) echo 'STOP: unsupported architecture' >&2; exit 1 ;;
+  esac
+  cd "$COSIGN_DIR"
+  BASE="https://github.com/sigstore/cosign/releases/download/v$COSIGN_VERSION"
+  curl --fail --location --connect-timeout 15 --max-time 180 --proto '=https' --proto-redir '=https' --tlsv1.2 \
+    "$BASE/cosign-linux-$COSIGN_ARCH" -o cosign
+  printf '%s  cosign\n' "$COSIGN_SHA256" > selected.sha256
+  sha256sum --check selected.sha256
+  chmod 700 cosign
+  curl --fail --location --connect-timeout 15 --max-time 180 --proto '=https' --proto-redir '=https' --tlsv1.2 \
+    "$BASE/cosign-linux-$COSIGN_ARCH.sigstore.json" -o cosign.sigstore.json
+  ./cosign verify-blob cosign --bundle cosign.sigstore.json \
+    --certificate-identity keyless@projectsigstore.iam.gserviceaccount.com \
+    --certificate-oidc-issuer https://accounts.google.com
+  ./cosign version
+)
+COSIGN_INSTALL_STATUS=$?
+if [ "$COSIGN_INSTALL_STATUS" -eq 0 ]; then
+  COSIGN_BIN="$COSIGN_DIR/cosign"
+  printf 'READY: %s\n' "$COSIGN_BIN"
+else
+  COSIGN_BIN=
+  echo 'STOP: Cosign installation incomplete. Fix the error and rerun this entire block.' >&2
+  (exit "$COSIGN_INSTALL_STATUS")
+fi
+```
+
+Continue only after successful verification, version v3.1.3 and READY. A bare cosign command does not need to work: this guide invokes its full path through COSIGN_BIN.
+
+B. Install and verify Syft 1.54.0. Use Cosign from block A to verify Anchore’s signed checksum list, then verify the archive before extraction. If Cosign is missing, the block stops before downloads. SYFT_BIN is set only after verification and successful startup.
+
+- [Syft — release verification](https://oss.anchore.com/docs/installation/verification/)
+
+```sh
+SYFT_BIN=
+umask 077
+SYFT_DIR=$(mktemp -d "${SCAN_WORK:?STOP: complete step 3 first}/syft-1.54.0.XXXXXXXX")
+(
+  set -eu
+  : "${SYFT_DIR:?STOP: could not create the Syft directory}"
+  test -n "${COSIGN_BIN:-}" && test -x "$COSIGN_BIN" || { echo 'STOP: complete the Cosign block above first.' >&2; exit 1; }
+  for tool in curl tar sha256sum awk; do
+    command -v "$tool" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\n' "$tool" >&2; exit 1; }
+  done
   SYFT_VERSION=1.54.0
-  case "$(uname -m)" in x86_64) SYFT_ARCH=amd64 ;; aarch64|arm64) SYFT_ARCH=arm64 ;; *) exit 2 ;; esac
-  SYFT_DIR="$SCAN_WORK/syft-$SYFT_VERSION"
-  mkdir -m 700 "$SYFT_DIR"
+  case "$(uname -m)" in
+    x86_64) SYFT_ARCH=amd64 ;;
+    aarch64|arm64) SYFT_ARCH=arm64 ;;
+    *) echo 'STOP: unsupported architecture' >&2; exit 1 ;;
+  esac
   cd "$SYFT_DIR"
   BASE="https://github.com/anchore/syft/releases/download/v$SYFT_VERSION"
   ARCHIVE="syft_${SYFT_VERSION}_linux_${SYFT_ARCH}.tar.gz"
   CHECKSUMS="syft_${SYFT_VERSION}_checksums.txt"
   for FILE in "$ARCHIVE" "$CHECKSUMS" "$CHECKSUMS.sigstore.json"; do
-    curl --fail --location --proto '=https' --tlsv1.2 "$BASE/$FILE" -o "$FILE"
+    curl --fail --location --connect-timeout 15 --max-time 180 --proto '=https' --proto-redir '=https' --tlsv1.2 "$BASE/$FILE" -o "$FILE"
   done
-  cosign verify-blob "$CHECKSUMS" --bundle "$CHECKSUMS.sigstore.json" \
+  "$COSIGN_BIN" verify-blob "$CHECKSUMS" --bundle "$CHECKSUMS.sigstore.json" \
     --certificate-identity 'https://github.com/anchore/syft/.github/workflows/release.yaml@refs/heads/main' \
     --certificate-oidc-issuer 'https://token.actions.githubusercontent.com'
-  awk -v file="$ARCHIVE" '$2 == file {print}' "$CHECKSUMS" > selected.sha256
-  test "$(wc -l < selected.sha256 | tr -d ' ')" = 1
+  awk -v file="$ARCHIVE" '$2 == file {print; count++} END {if (count != 1) exit 1}' "$CHECKSUMS" > selected.sha256
   sha256sum --check selected.sha256
   tar -xzf "$ARCHIVE" syft
   chmod 700 syft
+  ./syft version
 )
-SYFT_BIN="$SCAN_WORK/syft-1.54.0/syft"
-"$SYFT_BIN" version
+SYFT_INSTALL_STATUS=$?
+if [ "$SYFT_INSTALL_STATUS" -eq 0 ]; then
+  SYFT_BIN="$SYFT_DIR/syft"
+  printf 'READY: %s\n' "$SYFT_BIN"
+else
+  SYFT_BIN=
+  echo 'STOP: Syft installation incomplete. Fix the error and rerun this entire block. Do not scan yet.' >&2
+  (exit "$SYFT_INSTALL_STATUS")
+fi
 ```
+
+Continue only after version 1.54.0 and READY. For cosign: command not found or syft: No such file or directory from older instructions, run block A first, then the updated block B. Each run uses a fresh private directory; earlier downloads are neither deleted nor overwritten. SCAN_WORK, SCAN_BIN and existing SBOMs remain unchanged. In a new terminal, restore SCAN_WORK and SCAN_BIN as described in step 3, then COSIGN_BIN and SYFT_BIN using the READY paths shown here, or repeat blocks A–B.
+
+C. Collect the Java application and import the result into Awarely. Start only after both READY messages.
 
 Java example: /srv/demo-java contains the application JAR/WAR artifacts or gradle.lockfile after the build. Select the artifacts actually delivered. A lone pom.xml may inherit versions and does not represent the entire resolved dependency tree. For Maven projects without artifacts, generate the SBOM in your trusted build using the CycloneDX plugin, then use import directly.
 
@@ -710,6 +780,7 @@ Sync reads a revision and uses an idempotency key. Bounded transport/503 retries
 
 | Symptom | Action |
 | --- | --- |
+| cosign: command not found / syft: No such file or directory | Step 6b: run block A (Cosign), then B (Syft); wait for READY from each. Use COSIGN_BIN and SYFT_BIN rather than assuming tools are on PATH. |
 | MISSING / command not found | Return to step 2, install the tool using your distribution block and repeat the check. |
 | gh: unknown command / unknown flag | Update GitHub CLI from the official repository (step 2), then check gh --version and gh attestation verify --help. |
 | To get started with GitHub CLI / gh auth login | You used the older commands without --bundle. Do not log in: copy the entire updated step-3 block, which downloads the public proof and verifies without an account. |

@@ -85,11 +85,11 @@ Debian 12/13 și Ubuntu 22.04/24.04/26.04 — apt. apt-get update reîncarcă li
 ```sh
 (
 set -eu
-# Actualizează lista pachetelor și instalează uneltele de descărcare/verificare.
+# Refresh package metadata and install download/verification tools.
 sudo apt-get update
 sudo apt-get install -y ca-certificates curl tar coreutils
 command -v awk >/dev/null || sudo apt-get install -y gawk
-# Adaugă cheia de semnare a depozitului oficial GitHub CLI.
+# Add the signing key for the official GitHub CLI package repository.
 GH_KEY_FILE=$(mktemp)
 trap 'rm -f "$GH_KEY_FILE"' EXIT
 curl --proto '=https' --tlsv1.2 -fL \
@@ -98,11 +98,11 @@ curl --proto '=https' --tlsv1.2 -fL \
 sudo install -d -m 755 /etc/apt/keyrings
 sudo install -m 644 "$GH_KEY_FILE" /etc/apt/keyrings/githubcli-archive-keyring.gpg
 rm "$GH_KEY_FILE"
-# Configurează sursa pentru arhitectura mașinii; cheia se aplică doar acestei surse.
+# Configure the source for this machine architecture; its key is scoped to this source.
 printf 'deb [arch=%s signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main\n' "$(dpkg --print-architecture)" \
   | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
 sudo apt-get update
-# Instalează gh sau actualizează versiunea mai veche deja instalată.
+# Install gh or upgrade an older installed version.
 sudo apt-get install -y gh
 )
 ```
@@ -476,37 +476,107 @@ Syft este un instrument Anchore separat, Apache-2.0. Awarely nu îl descarcă ș
 | npm, Python / PyPI | Da | Intervale comparabile; restul necesită revizuire |
 | .NET / NuGet, Go, PHP / Composer, RubyGems, Rust / Cargo | Da | Neevaluat în această versiune |
 
-Pregătire: urmează pașii 2–3 pentru SCAN_WORK și SCAN_BIN. Ai nevoie de curl, tar, sha256sum și Cosign ≥ 2.5 instalat din distribuția oficială Sigstore. Instalarea și verificarea semnăturii necesită internet. Blocul următor fixează Syft 1.54.0 și verifică semnătura și checksum-ul înainte de extracție. Dacă verificarea eșuează, oprește-te; nu o elimina.
+Parcurge întâi pașii 2–3 și păstrează aceeași sesiune Bash: SCAN_WORK și SCAN_BIN trebuie să indice instalarea reușită. Rulează în ordine cele trei blocuri de mai jos: A — Cosign, B — Syft, C — colectare Java. Descărcarea și verificarea necesită internet, dar nu necesită cont GitHub, token, sudo sau modificarea PATH.
 
-- [Cosign installation](https://docs.sigstore.dev/cosign/system_config/installation/)
-- [Syft verification](https://oss.anchore.com/docs/installation/verification/)
+A. Instalează și verifică Cosign. Acest utilitar verifică semnătura distribuției Syft. Descărcăm Cosign 3.1.3 din release-ul oficial și comparăm binarul cu SHA-256 fixat pentru arhitectura ta înainte de prima execuție. Valorile au fost comparate cu lista oficială de checksum-uri; nu le înlocui pentru a ocoli o eroare. Binarul verificat validează apoi și dovada Sigstore a propriei distribuții. Instalarea este în SCAN_WORK, iar COSIGN_BIN este setat numai după succes.
+
+- [Cosign 3.1.3 — official release](https://github.com/sigstore/cosign/releases/tag/v3.1.3)
+- [Cosign — installation and verification](https://docs.sigstore.dev/cosign/system_config/installation/)
 
 ```sh
+COSIGN_BIN=
+umask 077
+COSIGN_DIR=$(mktemp -d "${SCAN_WORK:?STOP: complete step 3 first}/cosign-3.1.3.XXXXXXXX")
 (
   set -eu
+  : "${COSIGN_DIR:?STOP: could not create the Cosign directory}"
+  for tool in curl sha256sum; do
+    command -v "$tool" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\n' "$tool" >&2; exit 1; }
+  done
+  COSIGN_VERSION=3.1.3
+  case "$(uname -m)" in
+    x86_64) COSIGN_ARCH=amd64; COSIGN_SHA256=4629c757b7618056f8ddd7e2625ae9fdd94c0372a65049520bc7d9df9efc7f71 ;;
+    aarch64|arm64) COSIGN_ARCH=arm64; COSIGN_SHA256=c5d324e091826b0d7a78eb16fef316450b4eb9aaec045611c08ba06f5e73220a ;;
+    *) echo 'STOP: unsupported architecture' >&2; exit 1 ;;
+  esac
+  cd "$COSIGN_DIR"
+  BASE="https://github.com/sigstore/cosign/releases/download/v$COSIGN_VERSION"
+  curl --fail --location --connect-timeout 15 --max-time 180 --proto '=https' --proto-redir '=https' --tlsv1.2 \
+    "$BASE/cosign-linux-$COSIGN_ARCH" -o cosign
+  printf '%s  cosign\n' "$COSIGN_SHA256" > selected.sha256
+  sha256sum --check selected.sha256
+  chmod 700 cosign
+  curl --fail --location --connect-timeout 15 --max-time 180 --proto '=https' --proto-redir '=https' --tlsv1.2 \
+    "$BASE/cosign-linux-$COSIGN_ARCH.sigstore.json" -o cosign.sigstore.json
+  ./cosign verify-blob cosign --bundle cosign.sigstore.json \
+    --certificate-identity keyless@projectsigstore.iam.gserviceaccount.com \
+    --certificate-oidc-issuer https://accounts.google.com
+  ./cosign version
+)
+COSIGN_INSTALL_STATUS=$?
+if [ "$COSIGN_INSTALL_STATUS" -eq 0 ]; then
+  COSIGN_BIN="$COSIGN_DIR/cosign"
+  printf 'READY: %s\n' "$COSIGN_BIN"
+else
+  COSIGN_BIN=
+  echo 'STOP: Cosign installation incomplete. Fix the error and rerun this entire block.' >&2
+  (exit "$COSIGN_INSTALL_STATUS")
+fi
+```
+
+Continuă numai după verificările reușite, versiunea v3.1.3 și mesajul READY. Nu trebuie să poți rula cosign ca o comandă simplă: în acest ghid îl apelăm prin calea completă din COSIGN_BIN.
+
+B. Instalează și verifică Syft 1.54.0. Folosim Cosign din blocul A pentru semnătura listei de checksum-uri Anchore, apoi verificăm arhiva înainte de extragere. Dacă lipsește Cosign, blocul se oprește înainte de descărcări. SYFT_BIN este setat numai după verificare și pornire reușită.
+
+- [Syft — release verification](https://oss.anchore.com/docs/installation/verification/)
+
+```sh
+SYFT_BIN=
+umask 077
+SYFT_DIR=$(mktemp -d "${SCAN_WORK:?STOP: complete step 3 first}/syft-1.54.0.XXXXXXXX")
+(
+  set -eu
+  : "${SYFT_DIR:?STOP: could not create the Syft directory}"
+  test -n "${COSIGN_BIN:-}" && test -x "$COSIGN_BIN" || { echo 'STOP: complete the Cosign block above first.' >&2; exit 1; }
+  for tool in curl tar sha256sum awk; do
+    command -v "$tool" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\n' "$tool" >&2; exit 1; }
+  done
   SYFT_VERSION=1.54.0
-  case "$(uname -m)" in x86_64) SYFT_ARCH=amd64 ;; aarch64|arm64) SYFT_ARCH=arm64 ;; *) exit 2 ;; esac
-  SYFT_DIR="$SCAN_WORK/syft-$SYFT_VERSION"
-  mkdir -m 700 "$SYFT_DIR"
+  case "$(uname -m)" in
+    x86_64) SYFT_ARCH=amd64 ;;
+    aarch64|arm64) SYFT_ARCH=arm64 ;;
+    *) echo 'STOP: unsupported architecture' >&2; exit 1 ;;
+  esac
   cd "$SYFT_DIR"
   BASE="https://github.com/anchore/syft/releases/download/v$SYFT_VERSION"
   ARCHIVE="syft_${SYFT_VERSION}_linux_${SYFT_ARCH}.tar.gz"
   CHECKSUMS="syft_${SYFT_VERSION}_checksums.txt"
   for FILE in "$ARCHIVE" "$CHECKSUMS" "$CHECKSUMS.sigstore.json"; do
-    curl --fail --location --proto '=https' --tlsv1.2 "$BASE/$FILE" -o "$FILE"
+    curl --fail --location --connect-timeout 15 --max-time 180 --proto '=https' --proto-redir '=https' --tlsv1.2 "$BASE/$FILE" -o "$FILE"
   done
-  cosign verify-blob "$CHECKSUMS" --bundle "$CHECKSUMS.sigstore.json" \
+  "$COSIGN_BIN" verify-blob "$CHECKSUMS" --bundle "$CHECKSUMS.sigstore.json" \
     --certificate-identity 'https://github.com/anchore/syft/.github/workflows/release.yaml@refs/heads/main' \
     --certificate-oidc-issuer 'https://token.actions.githubusercontent.com'
-  awk -v file="$ARCHIVE" '$2 == file {print}' "$CHECKSUMS" > selected.sha256
-  test "$(wc -l < selected.sha256 | tr -d ' ')" = 1
+  awk -v file="$ARCHIVE" '$2 == file {print; count++} END {if (count != 1) exit 1}' "$CHECKSUMS" > selected.sha256
   sha256sum --check selected.sha256
   tar -xzf "$ARCHIVE" syft
   chmod 700 syft
+  ./syft version
 )
-SYFT_BIN="$SCAN_WORK/syft-1.54.0/syft"
-"$SYFT_BIN" version
+SYFT_INSTALL_STATUS=$?
+if [ "$SYFT_INSTALL_STATUS" -eq 0 ]; then
+  SYFT_BIN="$SYFT_DIR/syft"
+  printf 'READY: %s\n' "$SYFT_BIN"
+else
+  SYFT_BIN=
+  echo 'STOP: Syft installation incomplete. Fix the error and rerun this entire block. Do not scan yet.' >&2
+  (exit "$SYFT_INSTALL_STATUS")
+fi
 ```
+
+Continuă numai după versiunea 1.54.0 și READY. Pentru cosign: command not found sau syft: No such file or directory din instrucțiunile vechi, rulează întâi blocul A, apoi blocul B actualizat. Fiecare rulare folosește un director privat nou; nu șterge și nu suprascrie fișierele descărcate anterior. SCAN_WORK, SCAN_BIN și SBOM-urile existente rămân aceleași. Dacă deschizi alt terminal, restabilește SCAN_WORK și SCAN_BIN conform pasului 3, apoi COSIGN_BIN și SYFT_BIN folosind căile READY afișate aici, sau repetă blocurile A–B.
+
+C. Colectează aplicația Java și importă rezultatul în Awarely. Acest pas începe numai după cele două mesaje READY.
 
 Exemplu Java: /srv/demo-java conține artefactele JAR/WAR ale aplicației sau gradle.lockfile după build. Folosește artefactele efectiv livrate. Un pom.xml izolat poate avea versiuni moștenite și nu reprezintă întregul arbore rezolvat. Pentru proiecte Maven fără artefacte, generează SBOM-ul în build-ul tău de încredere cu pluginul CycloneDX și treci direct la comanda import.
 
@@ -710,6 +780,7 @@ Sync citește revizia și folosește o cheie de idempotență. Reîncercările 
 
 | Simptom | Acțiune |
 | --- | --- |
+| cosign: command not found / syft: No such file or directory | Pasul 6b: rulează blocul A (Cosign), apoi B (Syft); așteaptă READY la fiecare. Folosește COSIGN_BIN și SYFT_BIN, nu o instalare presupusă în PATH. |
 | MISSING / command not found | Revino la pasul 2, instalează utilitarul din blocul distribuției tale și repetă verificarea. |
 | gh: unknown command / unknown flag | Actualizează GitHub CLI din depozitul oficial (pasul 2), apoi verifică gh --version și gh attestation verify --help. |
 | To get started with GitHub CLI / gh auth login | Ai folosit comenzile vechi, fără --bundle. Nu te autentifica: copiază întregul bloc actualizat de la pasul 3, care descarcă dovada publică și verifică fără cont. |
