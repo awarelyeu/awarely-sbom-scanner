@@ -6,4 +6,4 @@ Optional Syft preparation uses a fixed, digest-verified archive and requires con
 
 API transmission requires a separate confirmation showing its destination and source. Partial inventories cannot sync. Native host/app/import commands retain their offline behavior; existing automation commands remain supported.
 
-See the [English guide](https://github.com/awarelyeu/awarely-sbom-scanner/blob/v0.7.0-alpha.1/docs/how-to.md) and [Romanian guide](https://github.com/awarelyeu/awarely-sbom-scanner/blob/v0.7.0-alpha.1/docs/how-to.ro.md). This remains a prerelease pending the user walkthrough. Jenkins is a later stage. Ecosystem CVE coverage is unchanged; inventory support is not a vulnerability verdict.
+See the [English guide](https://github.com/awarelyeu/awarely-sbom-scanner/blob/v0.7.0-alpha.2/docs/how-to.md) and [Romanian guide](https://github.com/awarelyeu/awarely-sbom-scanner/blob/v0.7.0-alpha.2/docs/how-to.ro.md). This remains a prerelease pending the user walkthrough. Jenkins is a later stage. Ecosystem CVE coverage is unchanged; inventory support is not a vulnerability verdict.
