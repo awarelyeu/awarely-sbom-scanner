@@ -34,11 +34,20 @@ jobs:
           GOTOOLCHAIN: local
         run: python3 scripts/package_release.py "$RELEASE_VERSION"
       - name: Attest release archives
+        id: provenance
         uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
         with:
           subject-path: dist/*.tar.gz
+      - name: Package public verification bundles
+        env:
+          BUNDLE_PATH: ${{ steps.provenance.outputs.bundle-path }}
+        run: |
+          test -s "$BUNDLE_PATH"
+          for archive in dist/*.tar.gz; do
+            cp "$BUNDLE_PATH" "$archive.sigstore.jsonl"
+          done
       - name: Publish API prerelease
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_VERSION: ${{ github.ref_name }}
-        run: gh release create "$RELEASE_VERSION" dist/*.tar.gz dist/SHA256SUMS --verify-tag --prerelease --title "Awarely Scan $RELEASE_VERSION" --notes-file docs/release-notes.md
+        run: gh release create "$RELEASE_VERSION" dist/*.tar.gz dist/*.sigstore.jsonl dist/SHA256SUMS --verify-tag --prerelease --title "Awarely Scan $RELEASE_VERSION" --notes-file docs/release-notes.md
