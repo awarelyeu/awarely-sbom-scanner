@@ -34,7 +34,7 @@ jobs:
           GOTOOLCHAIN: local
         run: |
           python3 scripts/package_release.py "$RELEASE_VERSION"
-          cp scripts/install.sh dist/install.sh
+          sed "s/^SCAN_VERSION=.*/SCAN_VERSION=$RELEASE_VERSION/" scripts/install.sh > dist/install.sh
           sh -n dist/install.sh
       - name: Attest release archives
         id: provenance
