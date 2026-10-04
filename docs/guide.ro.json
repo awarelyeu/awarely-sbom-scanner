@@ -1,9 +1,103 @@
 {
   "schemaVersion": 1,
-  "version": "v0.6.0-alpha.1",
-  "title": "Awarely Scan: ghid complet pentru Linux și aplicații",
-  "intro": "De la binarul verificat la un SBOM local, o verificare API sau inventarul salvat. Numele aplicațiilor, căile, identificatorii și credentialele din exemple sunt fictive.",
+  "version": "v0.7.0-alpha.1",
+  "title": "Awarely Scan: instalare și scanare ghidată",
+  "intro": "Începe cu instalarea simplificată și meniul ghidat pentru Linux, npm, Python sau Java. Alege la final fișier local, verificare API sau sincronizare. Mesajele CLI sunt în engleză. Comenzile manuale rămân mai jos pentru automatizări; numele și credențialele din exemple sunt fictive.",
   "sections": [
+    {
+      "id": "quick-install",
+      "title": "Start: instalare simplificată, o singură dată",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Rulează pe Linux amd64/arm64, ca utilizator obișnuit. Ai nevoie de curl, tar, coreutils (sha256sum), awk și o versiune gh cu attestation verify. Dacă lipsesc, installerul se oprește și arată ce trebuie instalat; secțiunea 2 are comenzile pentru fiecare distribuție. Acestea servesc verificării instalării, nu scanării proiectului. Nu este necesar cont sau token GitHub."
+        },
+        {
+          "type": "paragraph",
+          "text": "Descarcă și citește installerul oficial (în less, apasă q pentru a ieși), apoi rulează-l. El verifică proveniența semnată pentru versiunea exactă și checksum-urile, apoi publică binarul în ~/.local/bin/awarely-scan. Nu suprascrie o instalare existentă; mută separat binarul vechi dacă faci upgrade. Dacă apare STOP, rezolvă cauza înainte de a rula scannerul."
+        },
+        {
+          "type": "code",
+          "language": "sh",
+          "code": "curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \\\n  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.7.0-alpha.1/install.sh \\\n  -o awarely-install.sh\n# Review the installer before running it.\nless awarely-install.sh\nsh awarely-install.sh\n\"$HOME/.local/bin/awarely-scan\" guided"
+        },
+        {
+          "type": "paragraph",
+          "text": "După READY, nu mai ai de copiat comenzile pentru Syft/Cosign. Deschide meniul de fiecare dată cu comanda de mai jos. Dacă binarul este deja în PATH, poți folosi doar awarely-scan. Instalarea verificată manual și transferul de pe o stație de încredere rămân disponibile în secțiunea 3."
+        },
+        {
+          "type": "code",
+          "language": "sh",
+          "code": "\"$HOME/.local/bin/awarely-scan\" guided"
+        }
+      ]
+    },
+    {
+      "id": "guided",
+      "title": "Scanare ghidată: alegerile din meniu",
+      "blocks": [
+        {
+          "type": "table",
+          "headers": [
+            "Alegere",
+            "Ce introduci",
+            "Ce verifică scannerul"
+          ],
+          "rows": [
+            [
+              "1. Linux",
+              "Focused (1) / All packages (2)",
+              "Detectează distribuția și citește baza pachetelor; fără root sau instalare de unelte."
+            ],
+            [
+              "2. npm",
+              "/srv/demo-shop → 1 (native) / 2 (Syft)",
+              "Caută lockfile v2/v3 sau package.json; Node.js/npm nu este necesar pentru citire. Nu rulează npm install."
+            ],
+            [
+              "3. Python",
+              "/srv/demo-python → 1 (requirements.txt) / 2 (installed environment)",
+              "Modul 1 este parțial; modul 2 cere metadatele unei .venv existente și poate pregăti Syft."
+            ],
+            [
+              "4. Java",
+              "/srv/demo-java",
+              "Cere artefacte JAR/WAR/EAR existente; nu instalează Java/Maven și nu construiește proiectul."
+            ],
+            [
+              "5. Other ecosystems",
+              "/srv/my-app",
+              "Syft pentru NuGet/Go/Composer/RubyGems/Cargo. Inventar și sync disponibile; CVE neevaluat."
+            ]
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Introdu căi reale, fără ghilimele sau comenzi shell. Scannerul verifică intrările și explică lipsurile înainte de colectare. Pentru Syft, confirmă yes doar dacă dorești pregătirea și rularea lui: se descarcă o versiune fixă (~30 MB), verificată după hash-ul din release-ul Awarely. Arhiva este păstrată în ~/.awarely-scan-tools și reverificată la fiecare utilizare; nu cere gh/Cosign și nu instalează pachete în sistem. Configurația Syft dezactivează îmbogățirea prin rețea; rulează proiecte de neîncredere într-un sandbox separat."
+        },
+        {
+          "type": "paragraph",
+          "text": "După scanare, alege un nume de aplicație și directorul părinte pentru rezultate (Enter păstrează directorul home). Scannerul creează un folder privat awarely-results-... și afișează calea completă către inventory.cdx.json. Fiecare scanare are propriul folder, deci nu trebuie să inventezi nume noi. Nu trimite încă inventarul."
+        },
+        {
+          "type": "list",
+          "items": [
+            "Alege 1 sau apasă Enter: păstrează fișierul local. Pentru upload, urmează secțiunea 7.",
+            "Alege 2: verificare API. Creează credențiala conform secțiunii 8, transfer-o în afara proiectului, aplică chmod 600 și introdu calea fișierului. Meniul afișează destinația, aplicația și sursa; confirmă yes. Primești check-result.json în același folder și un rezumat în terminal. Inventarul salvat și alertele nu se modifică.",
+            "Alege 3: sincronizare API. Este disponibilă numai pentru inventare complete. Verifică sursa afișată și confirmă yes: numai acea sursă este înlocuită imediat. Primești sync-result.json. Alertele viitoare urmează preferințele salvate; nu se trimit emailuri retroactive.",
+            "Dacă lipsește tokenul sau nu dorești operația, introdu q ori răspunde no. Fișierul local deja creat rămâne disponibil. Reia oricând meniul pentru o nouă scanare."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Exemplu npm: 2 → /srv/demo-shop → 1 → demo-shop → Enter → 1. Exemplu Java: 4 → /srv/demo-java → yes → demo-java → Enter → 1. Pentru Python cu pachete instalate: 3 → /srv/demo-python → 2 → yes → demo-python → Enter → 1. Linux: 1 → 1 → test-linux → Enter → 1."
+        },
+        {
+          "type": "paragraph",
+          "text": "Exit code 3 înseamnă că s-a scris un inventar parțial, nu că s-a găsit un CVE. Codul 0 nu garantează absența vulnerabilităților. Examinează versiunile, precizia și componentele neevaluate din raport. Comenzile din secțiunile următoare sunt alternative pentru automatizări; nu trebuie rulate în plus față de meniu."
+        }
+      ]
+    },
     {
       "id": "choose",
       "title": "1. Alege fluxul",
@@ -44,7 +138,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Citește întâi pașii 2–3. Alege o distribuție la pasul 4, apoi upload (pasul 7), verificare (pașii 8–9) sau sincronizare (pașii 8 și 10). Pentru manifestele aplicațiilor folosește pasul 6 în locul pasului 4."
+          "text": "Flux recomandat: instalare simplificată → scanare ghidată → alege ce faci cu rezultatul. Pentru API, pregătește credențiala conform secțiunii 8. Secțiunile pe distribuții și comenzile lungi sunt alternative manuale, nu pași obligatorii ai meniului."
         }
       ]
     },
@@ -185,7 +279,7 @@
     },
     {
       "id": "install",
-      "title": "3. Descarcă, verifică și pornește",
+      "title": "3. Descarcă, verifică și pornește · alternativă manuală",
       "blocks": [
         {
           "type": "paragraph",
@@ -202,7 +296,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "SCAN_BIN=\numask 077\nSCAN_WORK=$(mktemp -d \"$HOME/awarely-scan.XXXXXXXX\")\n(\nset -eu\n: \"${SCAN_WORK:?Could not create working directory}\"\nfor tool in curl tar sha256sum awk gh; do\n  command -v \"$tool\" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\\n' \"$tool\" >&2; exit 1; }\ndone\ngh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }\ncd \"$SCAN_WORK\"\nSCAN_VERSION=v0.6.0-alpha.1\ncase \"$(uname -m)\" in\n  x86_64) SCAN_ARCH=amd64 ;;\n  aarch64|arm64) SCAN_ARCH=arm64 ;;\n  *) echo \"Unsupported architecture\" >&2; exit 1 ;;\nesac\nSCAN_ARCHIVE=\"awarely-scan_${SCAN_VERSION}_linux_${SCAN_ARCH}.tar.gz\"\nSCAN_RELEASE=\"https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/${SCAN_VERSION}\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE\" -o \"$SCAN_ARCHIVE\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/SHA256SUMS\" -o SHA256SUMS\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE.sigstore.jsonl\" -o \"$SCAN_ARCHIVE.sigstore.jsonl\"\ngh attestation verify \"$SCAN_ARCHIVE\" \\\n  --bundle \"$SCAN_ARCHIVE.sigstore.jsonl\" \\\n  --repo awarelyeu/awarely-sbom-scanner \\\n  --signer-workflow awarelyeu/awarely-sbom-scanner/.github/workflows/release.yml \\\n  --source-ref \"refs/tags/$SCAN_VERSION\"\nawk -v file=\"$SCAN_ARCHIVE\" '$2 == file { print; found=1 } END { if (!found) exit 1 }' SHA256SUMS > selected-SHA256SUMS\nsha256sum --check selected-SHA256SUMS\nmkdir release\ntar -xzf \"$SCAN_ARCHIVE\" -C release\n(cd release && sha256sum --check SHA256SUMS)\n\"$SCAN_WORK/release/awarely-scan\" version\n\"$SCAN_WORK/release/awarely-scan\" help\nprintf 'Working directory: %s\\n' \"$SCAN_WORK\"\n)\nSCAN_INSTALL_STATUS=$?\nif [ \"$SCAN_INSTALL_STATUS\" -eq 0 ]; then\n  SCAN_BIN=\"$SCAN_WORK/release/awarely-scan\"\n  printf 'READY: %s\\n' \"$SCAN_BIN\"\nelse\n  SCAN_BIN=\n  printf 'STOP: installation incomplete in %s. Fix the error and rerun all of step 3. Do not scan yet.\\n' \"$SCAN_WORK\" >&2\n  (exit \"$SCAN_INSTALL_STATUS\")\nfi"
+          "code": "SCAN_BIN=\numask 077\nSCAN_WORK=$(mktemp -d \"$HOME/awarely-scan.XXXXXXXX\")\n(\nset -eu\n: \"${SCAN_WORK:?Could not create working directory}\"\nfor tool in curl tar sha256sum awk gh; do\n  command -v \"$tool\" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\\n' \"$tool\" >&2; exit 1; }\ndone\ngh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }\ncd \"$SCAN_WORK\"\nSCAN_VERSION=v0.7.0-alpha.1\ncase \"$(uname -m)\" in\n  x86_64) SCAN_ARCH=amd64 ;;\n  aarch64|arm64) SCAN_ARCH=arm64 ;;\n  *) echo \"Unsupported architecture\" >&2; exit 1 ;;\nesac\nSCAN_ARCHIVE=\"awarely-scan_${SCAN_VERSION}_linux_${SCAN_ARCH}.tar.gz\"\nSCAN_RELEASE=\"https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/${SCAN_VERSION}\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE\" -o \"$SCAN_ARCHIVE\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/SHA256SUMS\" -o SHA256SUMS\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE.sigstore.jsonl\" -o \"$SCAN_ARCHIVE.sigstore.jsonl\"\ngh attestation verify \"$SCAN_ARCHIVE\" \\\n  --bundle \"$SCAN_ARCHIVE.sigstore.jsonl\" \\\n  --repo awarelyeu/awarely-sbom-scanner \\\n  --signer-workflow awarelyeu/awarely-sbom-scanner/.github/workflows/release.yml \\\n  --source-ref \"refs/tags/$SCAN_VERSION\"\nawk -v file=\"$SCAN_ARCHIVE\" '$2 == file { print; found=1 } END { if (!found) exit 1 }' SHA256SUMS > selected-SHA256SUMS\nsha256sum --check selected-SHA256SUMS\nmkdir release\ntar -xzf \"$SCAN_ARCHIVE\" -C release\n(cd release && sha256sum --check SHA256SUMS)\n\"$SCAN_WORK/release/awarely-scan\" version\n\"$SCAN_WORK/release/awarely-scan\" help\nprintf 'Working directory: %s\\n' \"$SCAN_WORK\"\n)\nSCAN_INSTALL_STATUS=$?\nif [ \"$SCAN_INSTALL_STATUS\" -eq 0 ]; then\n  SCAN_BIN=\"$SCAN_WORK/release/awarely-scan\"\n  printf 'READY: %s\\n' \"$SCAN_BIN\"\nelse\n  SCAN_BIN=\n  printf 'STOP: installation incomplete in %s. Fix the error and rerun all of step 3. Do not scan yet.\\n' \"$SCAN_WORK\" >&2\n  (exit \"$SCAN_INSTALL_STATUS\")\nfi"
         },
         {
           "type": "paragraph",
@@ -220,7 +314,7 @@
     },
     {
       "id": "debian",
-      "title": "4. Debian",
+      "title": "4. Debian · alternativă manuală",
       "blocks": [
         {
           "type": "paragraph",
@@ -261,7 +355,7 @@
     },
     {
       "id": "ubuntu",
-      "title": "4. Ubuntu",
+      "title": "4. Ubuntu · alternativă manuală",
       "blocks": [
         {
           "type": "paragraph",
@@ -302,7 +396,7 @@
     },
     {
       "id": "rocky-linux",
-      "title": "4. Rocky Linux",
+      "title": "4. Rocky Linux · alternativă manuală",
       "blocks": [
         {
           "type": "paragraph",
@@ -343,7 +437,7 @@
     },
     {
       "id": "almalinux",
-      "title": "4. AlmaLinux",
+      "title": "4. AlmaLinux · alternativă manuală",
       "blocks": [
         {
           "type": "paragraph",
@@ -384,7 +478,7 @@
     },
     {
       "id": "amazon-linux-2023",
-      "title": "4. Amazon Linux 2023",
+      "title": "4. Amazon Linux 2023 · alternativă manuală",
       "blocks": [
         {
           "type": "paragraph",
@@ -425,7 +519,7 @@
     },
     {
       "id": "amazon-linux-2",
-      "title": "4. Amazon Linux 2",
+      "title": "4. Amazon Linux 2 · alternativă manuală",
       "blocks": [
         {
           "type": "paragraph",
@@ -466,7 +560,7 @@
     },
     {
       "id": "scope",
-      "title": "5. Alege ce colectezi",
+      "title": "5. Alege ce colectezi · alternativă manuală",
       "blocks": [
         {
           "type": "paragraph",
@@ -485,7 +579,7 @@
     },
     {
       "id": "applications",
-      "title": "6. Colectează o aplicație",
+      "title": "6. Colectează o aplicație · alternativă manuală",
       "blocks": [
         {
           "type": "paragraph",
@@ -508,11 +602,15 @@
     },
     {
       "id": "syft",
-      "title": "6b. Java și alte ecosisteme cu Syft opțional",
+      "title": "6b. Java și alte ecosisteme cu Syft opțional · alternativă manuală",
       "blocks": [
         {
           "type": "paragraph",
-          "text": "Syft este un instrument Anchore separat, Apache-2.0. Awarely nu îl descarcă și nu îl execută automat. Folosește-l pentru colectarea care lipsește din modul nativ, apoi importă fișierul CycloneDX JSON 1.4–1.7. Sunt acceptate și fișiere compatibile produse de pluginurile CycloneDX Maven/Gradle. Importul nu execută build-uri, cod Java sau arhive."
+          "text": "În meniul ghidat, Awarely pregătește și verifică Syft după acordul tău: nu ai nevoie de Cosign sau de comenzile de mai jos. Aceste instrucțiuni sunt doar pentru instalarea și utilizarea separată a Syft."
+        },
+        {
+          "type": "paragraph",
+          "text": "Syft este un instrument Anchore separat, Apache-2.0. În fluxul manual îl rulezi separat; în meniul ghidat, Awarely îl poate pregăti și rula după confirmare. Folosește-l pentru colectarea care lipsește din modul nativ, apoi importă fișierul CycloneDX JSON 1.4–1.7. Sunt acceptate și fișiere compatibile produse de pluginurile CycloneDX Maven/Gradle. Importul nu execută build-uri, cod Java sau arhive."
         },
         {
           "type": "table",
@@ -702,7 +800,7 @@
     },
     {
       "id": "check",
-      "title": "9. Verifică fără salvare",
+      "title": "9. Verifică fără salvare · alternativă manuală",
       "blocks": [
         {
           "type": "paragraph",
@@ -721,7 +819,7 @@
     },
     {
       "id": "sync",
-      "title": "10. Sincronizează o sursă",
+      "title": "10. Sincronizează o sursă · alternativă manuală",
       "blocks": [
         {
           "type": "paragraph",

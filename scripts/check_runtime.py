@@ -21,6 +21,12 @@ for arch in ["amd64", "arm64"]:
         ["go", "list", "-deps", "./cmd/awarely-scan"], text=True,
         env={**release_env, "GOARCH": arch},
     ).splitlines()
-    unexpected = {"os/exec", "plugin", "runtime/cgo"}.intersection(runtime_packages)
+    unexpected = {"plugin", "runtime/cgo"}.intersection(runtime_packages)
     assert not unexpected, (arch, sorted(unexpected))
-print("PASS: offline collector has no network dependency; executable has no external modules, subprocess or cgo")
+print("PASS: offline collector has no network dependency; native collector has no subprocess; executable has no external modules, plugin or cgo")
+
+# Only the consented producer boundary may launch a child process.
+from pathlib import Path
+for source in Path(".").glob("**/*.go"):
+    if not source.name.endswith("_test.go") and "/producer/" not in source.as_posix():
+        assert '"os/exec"' not in source.read_text(), source

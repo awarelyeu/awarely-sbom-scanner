@@ -32,3 +32,7 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## Optional Syft
+
+The guided scanner can download the original [Anchore Syft](https://github.com/anchore/syft) release after explicit approval. Syft is Apache-2.0 licensed and is not linked into or bundled with the Awarely binary. The unchanged upstream archive, including its license notices, remains in the private tool cache. Third-party dependencies retain their upstream notices.

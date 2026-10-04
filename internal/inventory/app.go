@@ -15,7 +15,16 @@ import (
 )
 
 func App(ctx context.Context, path string) (Result, error) {
+	return AppFor(ctx, path, "")
+}
+
+// AppFor limits a guided selection to one ecosystem. An empty ecosystem keeps
+// the established app command's combined manifest behavior.
+func AppFor(ctx context.Context, path, ecosystem string) (Result, error) {
 	r := Result{Scope: "selected-directory-manifests; no recursion; no installed-package claim"}
+	if ecosystem != "" && ecosystem != "npm" && ecosystem != "python" {
+		return r, errors.New("unsupported native application ecosystem")
+	}
 	root, err := os.OpenRoot(path)
 	if err != nil {
 		return r, errors.New("cannot open selected application directory")
@@ -23,6 +32,9 @@ func App(ctx context.Context, path string) (Result, error) {
 	defer root.Close()
 	foundNPM := false
 	for _, name := range []string{"npm-shrinkwrap.json", "package-lock.json", "package.json"} {
+		if ecosystem == "python" {
+			break
+		}
 		b, err := safeio.ReadRegular(ctx, root, name, MaxManifestBytes)
 		if errors.Is(err, os.ErrNotExist) {
 			continue
@@ -42,14 +54,16 @@ func App(ctx context.Context, path string) (Result, error) {
 		foundNPM = true
 		break
 	}
-	b, err := safeio.ReadRegular(ctx, root, "requirements.txt", MaxManifestBytes)
-	if err == nil {
-		if err = ParseRequirements(ctx, b, &r); err != nil {
-			return r, err
+	if ecosystem != "npm" {
+		b, err := safeio.ReadRegular(ctx, root, "requirements.txt", MaxManifestBytes)
+		if err == nil {
+			if err = ParseRequirements(ctx, b, &r); err != nil {
+				return r, err
+			}
+			r.Inputs = append(r.Inputs, "requirements.txt")
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return r, errors.New("cannot safely read requirements.txt")
 		}
-		r.Inputs = append(r.Inputs, "requirements.txt")
-	} else if !errors.Is(err, os.ErrNotExist) {
-		return r, errors.New("cannot safely read requirements.txt")
 	}
 	if !foundNPM && len(r.Inputs) == 0 {
 		return r, errors.New("no supported manifest found; select a directory containing package-lock.json, npm-shrinkwrap.json, package.json or requirements.txt")

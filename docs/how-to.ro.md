@@ -1,32 +1,85 @@
-# Awarely Scan: ghid complet pentru Linux și aplicații
+# Awarely Scan: instalare și scanare ghidată
 
-De la binarul verificat la un SBOM local, o verificare API sau inventarul salvat. Numele aplicațiilor, căile, identificatorii și credentialele din exemple sunt fictive.
+Începe cu instalarea simplificată și meniul ghidat pentru Linux, npm, Python sau Java. Alege la final fișier local, verificare API sau sincronizare. Mesajele CLI sunt în engleză. Comenzile manuale rămân mai jos pentru automatizări; numele și credențialele din exemple sunt fictive.
 
 [English](how-to.md) · [Română](how-to.ro.md)
 
-Release: `v0.6.0-alpha.1`
+Release: `v0.7.0-alpha.1`
 
+- [Start: instalare simplificată, o singură dată](#quick-install)
+- [Scanare ghidată: alegerile din meniu](#guided)
 - [1. Alege fluxul](#choose)
 - [2. Pregătește mașina Linux](#prerequisites)
-- [3. Descarcă, verifică și pornește](#install)
-- [4. Debian](#debian)
-- [4. Ubuntu](#ubuntu)
-- [4. Rocky Linux](#rocky-linux)
-- [4. AlmaLinux](#almalinux)
-- [4. Amazon Linux 2023](#amazon-linux-2023)
-- [4. Amazon Linux 2](#amazon-linux-2)
-- [5. Alege ce colectezi](#scope)
-- [6. Colectează o aplicație](#applications)
-- [6b. Java și alte ecosisteme cu Syft opțional](#syft)
+- [3. Descarcă, verifică și pornește · alternativă manuală](#install)
+- [4. Debian · alternativă manuală](#debian)
+- [4. Ubuntu · alternativă manuală](#ubuntu)
+- [4. Rocky Linux · alternativă manuală](#rocky-linux)
+- [4. AlmaLinux · alternativă manuală](#almalinux)
+- [4. Amazon Linux 2023 · alternativă manuală](#amazon-linux-2023)
+- [4. Amazon Linux 2 · alternativă manuală](#amazon-linux-2)
+- [5. Alege ce colectezi · alternativă manuală](#scope)
+- [6. Colectează o aplicație · alternativă manuală](#applications)
+- [6b. Java și alte ecosisteme cu Syft opțional · alternativă manuală](#syft)
 - [7. Importă SBOM-ul local în Monitor](#upload)
 - [8. Creează și protejează un token de mașină](#credentials)
-- [9. Verifică fără salvare](#check)
-- [10. Sincronizează o sursă](#sync)
+- [9. Verifică fără salvare · alternativă manuală](#check)
+- [10. Sincronizează o sursă · alternativă manuală](#sync)
 - [11. Citește rezultatele, exporturile și alertele](#results)
 - [12. Scanează din nou după actualizare](#after-remediation)
 - [13. Rotește, revocă și retrage o sursă](#credentials-lifecycle)
 - [14. Limite și reîncercări](#limits)
 - [15. Probleme uzuale și coduri de ieșire](#troubleshooting)
+
+<a id="quick-install"></a>
+
+## Start: instalare simplificată, o singură dată
+
+Rulează pe Linux amd64/arm64, ca utilizator obișnuit. Ai nevoie de curl, tar, coreutils (sha256sum), awk și o versiune gh cu attestation verify. Dacă lipsesc, installerul se oprește și arată ce trebuie instalat; secțiunea 2 are comenzile pentru fiecare distribuție. Acestea servesc verificării instalării, nu scanării proiectului. Nu este necesar cont sau token GitHub.
+
+Descarcă și citește installerul oficial (în less, apasă q pentru a ieși), apoi rulează-l. El verifică proveniența semnată pentru versiunea exactă și checksum-urile, apoi publică binarul în ~/.local/bin/awarely-scan. Nu suprascrie o instalare existentă; mută separat binarul vechi dacă faci upgrade. Dacă apare STOP, rezolvă cauza înainte de a rula scannerul.
+
+```sh
+curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \
+  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.7.0-alpha.1/install.sh \
+  -o awarely-install.sh
+# Review the installer before running it.
+less awarely-install.sh
+sh awarely-install.sh
+"$HOME/.local/bin/awarely-scan" guided
+```
+
+După READY, nu mai ai de copiat comenzile pentru Syft/Cosign. Deschide meniul de fiecare dată cu comanda de mai jos. Dacă binarul este deja în PATH, poți folosi doar awarely-scan. Instalarea verificată manual și transferul de pe o stație de încredere rămân disponibile în secțiunea 3.
+
+```sh
+"$HOME/.local/bin/awarely-scan" guided
+```
+
+
+<a id="guided"></a>
+
+## Scanare ghidată: alegerile din meniu
+
+| Alegere | Ce introduci | Ce verifică scannerul |
+| --- | --- | --- |
+| 1. Linux | Focused (1) / All packages (2) | Detectează distribuția și citește baza pachetelor; fără root sau instalare de unelte. |
+| 2. npm | /srv/demo-shop → 1 (native) / 2 (Syft) | Caută lockfile v2/v3 sau package.json; Node.js/npm nu este necesar pentru citire. Nu rulează npm install. |
+| 3. Python | /srv/demo-python → 1 (requirements.txt) / 2 (installed environment) | Modul 1 este parțial; modul 2 cere metadatele unei .venv existente și poate pregăti Syft. |
+| 4. Java | /srv/demo-java | Cere artefacte JAR/WAR/EAR existente; nu instalează Java/Maven și nu construiește proiectul. |
+| 5. Other ecosystems | /srv/my-app | Syft pentru NuGet/Go/Composer/RubyGems/Cargo. Inventar și sync disponibile; CVE neevaluat. |
+
+Introdu căi reale, fără ghilimele sau comenzi shell. Scannerul verifică intrările și explică lipsurile înainte de colectare. Pentru Syft, confirmă yes doar dacă dorești pregătirea și rularea lui: se descarcă o versiune fixă (~30 MB), verificată după hash-ul din release-ul Awarely. Arhiva este păstrată în ~/.awarely-scan-tools și reverificată la fiecare utilizare; nu cere gh/Cosign și nu instalează pachete în sistem. Configurația Syft dezactivează îmbogățirea prin rețea; rulează proiecte de neîncredere într-un sandbox separat.
+
+După scanare, alege un nume de aplicație și directorul părinte pentru rezultate (Enter păstrează directorul home). Scannerul creează un folder privat awarely-results-... și afișează calea completă către inventory.cdx.json. Fiecare scanare are propriul folder, deci nu trebuie să inventezi nume noi. Nu trimite încă inventarul.
+
+1. Alege 1 sau apasă Enter: păstrează fișierul local. Pentru upload, urmează secțiunea 7.
+2. Alege 2: verificare API. Creează credențiala conform secțiunii 8, transfer-o în afara proiectului, aplică chmod 600 și introdu calea fișierului. Meniul afișează destinația, aplicația și sursa; confirmă yes. Primești check-result.json în același folder și un rezumat în terminal. Inventarul salvat și alertele nu se modifică.
+3. Alege 3: sincronizare API. Este disponibilă numai pentru inventare complete. Verifică sursa afișată și confirmă yes: numai acea sursă este înlocuită imediat. Primești sync-result.json. Alertele viitoare urmează preferințele salvate; nu se trimit emailuri retroactive.
+4. Dacă lipsește tokenul sau nu dorești operația, introdu q ori răspunde no. Fișierul local deja creat rămâne disponibil. Reia oricând meniul pentru o nouă scanare.
+
+Exemplu npm: 2 → /srv/demo-shop → 1 → demo-shop → Enter → 1. Exemplu Java: 4 → /srv/demo-java → yes → demo-java → Enter → 1. Pentru Python cu pachete instalate: 3 → /srv/demo-python → 2 → yes → demo-python → Enter → 1. Linux: 1 → 1 → test-linux → Enter → 1.
+
+Exit code 3 înseamnă că s-a scris un inventar parțial, nu că s-a găsit un CVE. Codul 0 nu garantează absența vulnerabilităților. Examinează versiunile, precizia și componentele neevaluate din raport. Comenzile din secțiunile următoare sunt alternative pentru automatizări; nu trebuie rulate în plus față de meniu.
+
 
 <a id="choose"></a>
 
@@ -41,7 +94,7 @@ Release: `v0.6.0-alpha.1`
 
 Versiunea este un API preview. Același utilitar, compilat pentru amd64 sau arm64, detectează distribuțiile de mai jos. Integrarea Jenkins, containerele, imaginile AMI/VHD, Alpine și scanarea binarelor arbitrare nu sunt disponibile. Este acceptat un director cu un sistem de fișiere Linux offline; nu un fișier imagine.
 
-Citește întâi pașii 2–3. Alege o distribuție la pasul 4, apoi upload (pasul 7), verificare (pașii 8–9) sau sincronizare (pașii 8 și 10). Pentru manifestele aplicațiilor folosește pasul 6 în locul pasului 4.
+Flux recomandat: instalare simplificată → scanare ghidată → alege ce faci cu rezultatul. Pentru API, pregătește credențiala conform secțiunii 8. Secțiunile pe distribuții și comenzile lungi sunt alternative manuale, nu pași obligatorii ai meniului.
 
 
 <a id="prerequisites"></a>
@@ -173,7 +226,7 @@ Nu rula gh auth login și nu crea un token GitHub pentru această instalare. La 
 
 <a id="install"></a>
 
-## 3. Descarcă, verifică și pornește
+## 3. Descarcă, verifică și pornește · alternativă manuală
 
 Comenzile fixează versiunea preview publicată. Oprește-te la orice eroare de descărcare, atestare sau checksum. Lista externă include ambele arhitecturi; verificăm doar arhiva descărcată. Extragerea se face după verificare.
 
@@ -193,7 +246,7 @@ for tool in curl tar sha256sum awk gh; do
 done
 gh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }
 cd "$SCAN_WORK"
-SCAN_VERSION=v0.6.0-alpha.1
+SCAN_VERSION=v0.7.0-alpha.1
 case "$(uname -m)" in
   x86_64) SCAN_ARCH=amd64 ;;
   aarch64|arm64) SCAN_ARCH=arm64 ;;
@@ -238,7 +291,7 @@ Continuă la pasul 4 sau 6 numai după mesajul READY, versiunea afișată și pa
 
 <a id="debian"></a>
 
-## 4. Debian
+## 4. Debian · alternativă manuală
 
 Versiuni de inventar acceptate: 12, 13; Linux amd64/arm64. Parcurge întâi pașii 2–3. Distribuția este detectată automat; nu există opțiune --distro sau instalator separat.
 
@@ -270,7 +323,7 @@ Opțional: sync înlocuiește această sursă în inventarul salvat. Rulează do
 
 <a id="ubuntu"></a>
 
-## 4. Ubuntu
+## 4. Ubuntu · alternativă manuală
 
 Versiuni de inventar acceptate: 22.04, 24.04, 26.04 LTS; Linux amd64/arm64. Parcurge întâi pașii 2–3. Distribuția este detectată automat; nu există opțiune --distro sau instalator separat.
 
@@ -302,7 +355,7 @@ Opțional: sync înlocuiește această sursă în inventarul salvat. Rulează do
 
 <a id="rocky-linux"></a>
 
-## 4. Rocky Linux
+## 4. Rocky Linux · alternativă manuală
 
 Versiuni de inventar acceptate: 8, 9, 10; Linux amd64/arm64. Parcurge întâi pașii 2–3. Distribuția este detectată automat; nu există opțiune --distro sau instalator separat.
 
@@ -334,7 +387,7 @@ Opțional: sync înlocuiește această sursă în inventarul salvat. Rulează do
 
 <a id="almalinux"></a>
 
-## 4. AlmaLinux
+## 4. AlmaLinux · alternativă manuală
 
 Versiuni de inventar acceptate: 8, 9, 10; Linux amd64/arm64. Parcurge întâi pașii 2–3. Distribuția este detectată automat; nu există opțiune --distro sau instalator separat.
 
@@ -366,7 +419,7 @@ Opțional: sync înlocuiește această sursă în inventarul salvat. Rulează do
 
 <a id="amazon-linux-2023"></a>
 
-## 4. Amazon Linux 2023
+## 4. Amazon Linux 2023 · alternativă manuală
 
 Versiuni de inventar acceptate: 2023; Linux amd64/arm64. Parcurge întâi pașii 2–3. Distribuția este detectată automat; nu există opțiune --distro sau instalator separat.
 
@@ -398,7 +451,7 @@ Opțional: sync înlocuiește această sursă în inventarul salvat. Rulează do
 
 <a id="amazon-linux-2"></a>
 
-## 4. Amazon Linux 2
+## 4. Amazon Linux 2 · alternativă manuală
 
 Versiuni de inventar acceptate: 2; Linux amd64/arm64. Parcurge întâi pașii 2–3. Distribuția este detectată automat; nu există opțiune --distro sau instalator separat.
 
@@ -430,7 +483,7 @@ Opțional: sync înlocuiește această sursă în inventarul salvat. Rulează do
 
 <a id="scope"></a>
 
-## 5. Alege ce colectezi
+## 5. Alege ce colectezi · alternativă manuală
 
 Profilul host implicit selectează software uzual de server și dependențele instalate asociate. Nu colectează toate pachetele OS. Pentru DEB include nginx/apache2, OpenSSL, SSH, Node.js, Python, PHP, Java, baze de date și runtime-uri de containere; RPM folosește nume precum httpd. Absența unor membri opționali ai profilului implicit este acceptată.
 
@@ -450,7 +503,7 @@ Alege un singur mod: --select și --all-packages nu se combină. Un selector per
 
 <a id="applications"></a>
 
-## 6. Colectează o aplicație
+## 6. Colectează o aplicație · alternativă manuală
 
 Pe orice gazdă Linux acceptată, alege directorul proiectului cu npm-shrinkwrap.json sau package-lock.json v2/v3. Sunt citite și package.json ca fallback și requirements.txt, însă acestea sunt întotdeauna parțiale. Nu se execută npm install, pip install sau scripturi ale proiectului.
 
@@ -466,9 +519,11 @@ Pentru colectare extinsă cu Syft, vezi pasul 6b.
 
 <a id="syft"></a>
 
-## 6b. Java și alte ecosisteme cu Syft opțional
+## 6b. Java și alte ecosisteme cu Syft opțional · alternativă manuală
 
-Syft este un instrument Anchore separat, Apache-2.0. Awarely nu îl descarcă și nu îl execută automat. Folosește-l pentru colectarea care lipsește din modul nativ, apoi importă fișierul CycloneDX JSON 1.4–1.7. Sunt acceptate și fișiere compatibile produse de pluginurile CycloneDX Maven/Gradle. Importul nu execută build-uri, cod Java sau arhive.
+În meniul ghidat, Awarely pregătește și verifică Syft după acordul tău: nu ai nevoie de Cosign sau de comenzile de mai jos. Aceste instrucțiuni sunt doar pentru instalarea și utilizarea separată a Syft.
+
+Syft este un instrument Anchore separat, Apache-2.0. În fluxul manual îl rulezi separat; în meniul ghidat, Awarely îl poate pregăti și rula după confirmare. Folosește-l pentru colectarea care lipsește din modul nativ, apoi importă fișierul CycloneDX JSON 1.4–1.7. Sunt acceptate și fișiere compatibile produse de pluginurile CycloneDX Maven/Gradle. Importul nu execută build-uri, cod Java sau arhive.
 
 | Ecosistem | Inventar / sync | Verificare CVE |
 | --- | --- | --- |
@@ -678,7 +733,7 @@ Doar ilustrație: configurația de mai jos este intenționat invalidă și nu fu
 
 <a id="check"></a>
 
-## 9. Verifică fără salvare
+## 9. Verifică fără salvare · alternativă manuală
 
 Folosește un token Doar verificare sau Verificare și sincronizare. Pentru un server, înlocuiește demo-shop.cdx.json cu fișierul din secțiunea distribuției.
 
@@ -693,7 +748,7 @@ Deschide JSON-ul rezultat într-un vizualizator local. summary conține totaluri
 
 <a id="sync"></a>
 
-## 10. Sincronizează o sursă
+## 10. Sincronizează o sursă · alternativă manuală
 
 Folosește Doar sincronizare sau Verificare și sincronizare. Snapshot-ul trebuie să fie complet pentru intrările selectate. sync nu execută automat și comanda check.
 
