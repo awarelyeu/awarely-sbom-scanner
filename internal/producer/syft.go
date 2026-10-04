@@ -11,6 +11,7 @@ import (
 	"crypto/tls"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -290,7 +291,7 @@ func Scan(parent context.Context, cache, target, kind string) (inventory.Result,
 	runErr := cmd.Run()
 	closeErr := output.Close()
 	if ctx.Err() != nil {
-		return r, errors.New("Syft stopped: deadline, cancellation or output limit; choose a smaller application directory")
+		return r, fmt.Errorf("Syft stopped: deadline, cancellation or output limit; choose a smaller application directory: %w", ctx.Err())
 	}
 	if runErr != nil || closeErr != nil {
 		return r, errors.New("Syft could not inventory this directory; check read permissions and built artifacts (raw producer errors are private)")

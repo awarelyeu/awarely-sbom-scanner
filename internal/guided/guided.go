@@ -95,7 +95,7 @@ func (s *session) confirm(label string) (bool, error) {
 }
 func (s *session) fail(err error) int {
 	fmt.Fprintln(s.errOut, "STOP:", err)
-	if errors.Is(err, cancelled) || s.ctx.Err() != nil {
+	if errors.Is(err, cancelled) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) || s.ctx.Err() != nil {
 		return 5
 	}
 	return 2
