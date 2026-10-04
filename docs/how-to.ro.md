@@ -48,74 +48,127 @@ Citește întâi pașii 2–3. Alege o distribuție la pasul 4, apoi upload (pas
 
 ## 2. Pregătește mașina Linux
 
-1. Folosește contul tău Linux obișnuit. Awarely Scan nu necesită root sau serviciu în fundal. Ai nevoie de citire pentru baza de pachete ori proiectul ales și de scriere în directorul de rezultate.
-2. uname -m identifică x86_64 (amd64) sau aarch64 (arm64). Nu distribuim binare pentru alte arhitecturi.
-3. Pentru descărcare și verificare ai nevoie de curl, tar, sha256sum și o versiune GitHub CLI cu gh attestation verify. Pregătirea folosește rețeaua; colectarea locală host/app nu.
-4. Dacă utilitarele sunt deja instalate, sari peste comenzile de instalare. Altfel alege doar blocul distribuției tale de mai jos. Comenzile instalează utilitare și configurează depozitul oficial GitHub CLI, deci necesită administrator/sudo doar pentru această pregătire, nu pentru scanare.
-5. Rulează comenzile următoare în aceeași sesiune de terminal compatibilă Bash. Nu rula Awarely Scan cu sudo. Poți verifica arhiva pe o stație de lucru și o poți transfera securizat pe un server offline.
+Rulează pașii 2–3 în aceeași sesiune Bash, ca utilizator Linux obișnuit. sudo este necesar doar pentru instalarea utilitarelor; Awarely Scan nu necesită root sau serviciu în fundal. Ai nevoie de citire pentru pachete/proiect și de scriere în directorul de rezultate.
+
+Mai întâi identifică sistemul și comenzile disponibile. Acest bloc doar verifică: MISSING înseamnă că trebuie să instalezi utilitarul folosind blocul distribuției tale de mai jos.
 
 ```sh
 uname -m
 cat /etc/os-release
-command -v curl tar sha256sum gh
-gh attestation verify --help
+for tool in curl tar sha256sum awk gh; do
+  if command -v "$tool" >/dev/null 2>&1; then
+    printf 'OK: %s\n' "$tool"
+  else
+    printf 'MISSING: %s\n' "$tool"
+  fi
+done
+if command -v gh >/dev/null 2>&1; then
+  gh --version
+  gh attestation verify --help
+fi
 ```
 
-Debian 12/13 și Ubuntu 22.04/24.04/26.04 — apt:
+| Comandă / utilitar | La ce folosește și ce faci dacă lipsește |
+| --- | --- |
+| uname -m | Arhitectura: x86_64 → amd64; aarch64/arm64 → arm64. Alte arhitecturi nu au binar publicat. |
+| cat /etc/os-release | Distribuția și versiunea: ID și VERSION_ID îți arată ce bloc de instalare alegi. Dacă fișierul lipsește, nu ghici distribuția; verifică imaginea cu administratorul. |
+| curl + ca-certificates | Descarcă fișiere prin HTTPS și validează certificatul serverului. Se instalează mai jos; nu folosi curl -k. |
+| tar | Extrage arhiva verificată. Instalează pachetul tar dacă lipsește. |
+| sha256sum / coreutils | Verifică integritatea fișierelor. Comanda face parte din coreutils; acesta furnizează și uname, mktemp și chmod. |
+| awk | Selectează checksum-ul arhivei tale. Dacă lipsește, blocul distribuției instalează gawk. |
+| gh attestation verify | Verifică proveniența build-ului folosind dovada semnată descărcată public. Nu cere cont, login sau token GitHub. gh absent: instalează mai jos. unknown command/unknown flag: actualizează din depozitul oficial și repetă verificarea. |
+
+Alege un singur bloc, după distribuție. Dacă toate utilitarele există și gh attestation verify --help funcționează, sari direct la pasul 3. Comenzile configurează depozitul oficial GitHub CLI și instalează utilitarele necesare; nu instalează scannerul și nu fac un upgrade general al sistemului.
+
+Debian 12/13 și Ubuntu 22.04/24.04/26.04 — apt. apt-get update reîncarcă lista pachetelor, iar install adaugă sau actualizează numai pachetele cerute. Cheia și intrarea signed-by permit APT să verifice pachetele din depozitul GitHub CLI.
 
 ```sh
-sudo apt-get update
-sudo apt-get install -y ca-certificates curl tar coreutils
 (
 set -eu
+# Actualizează lista pachetelor și instalează uneltele de descărcare/verificare.
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl tar coreutils
+command -v awk >/dev/null || sudo apt-get install -y gawk
+# Adaugă cheia de semnare a depozitului oficial GitHub CLI.
 GH_KEY_FILE=$(mktemp)
+trap 'rm -f "$GH_KEY_FILE"' EXIT
 curl --proto '=https' --tlsv1.2 -fL \
   https://cli.github.com/packages/githubcli-archive-keyring.gpg \
   -o "$GH_KEY_FILE"
 sudo install -d -m 755 /etc/apt/keyrings
 sudo install -m 644 "$GH_KEY_FILE" /etc/apt/keyrings/githubcli-archive-keyring.gpg
 rm "$GH_KEY_FILE"
+# Configurează sursa pentru arhitectura mașinii; cheia se aplică doar acestei surse.
 printf 'deb [arch=%s signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main\n' "$(dpkg --print-architecture)" \
   | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
 sudo apt-get update
+# Instalează gh sau actualizează versiunea mai veche deja instalată.
 sudo apt-get install -y gh
 )
 ```
 
-Rocky Linux 8/9/10, AlmaLinux 8/9/10 și Amazon Linux 2023 — verifică dnf --version. Pentru DNF 4 folosește acest bloc:
+Un mesaj precum «1 upgraded» pentru gh este normal: versiunea veche a fost înlocuită. «0 newly installed» nu înseamnă eroare. Continuă dacă blocul se încheie fără eroare, apoi repetă verificarea gh de mai jos.
+
+Rocky Linux 8/9/10, AlmaLinux 8/9/10 și Amazon Linux 2023 — dnf. Utilitarele sunt instalate, config-manager adaugă depozitul oficial GitHub CLI, apoi se instalează gh. Verifică versiunea DNF și alege numai unul dintre cele două blocuri.
 
 ```sh
+dnf --version
+```
+
+Pentru DNF 4:
+
+```sh
+(
+set -eu
 command -v curl >/dev/null || sudo dnf install -y curl
 sudo dnf install -y ca-certificates tar coreutils 'dnf-command(config-manager)'
 sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+command -v awk >/dev/null || sudo dnf install -y gawk
 sudo dnf install -y gh
+sudo dnf upgrade -y gh
+)
 ```
 
-Doar dacă dnf --version indică DNF 5, folosește alternativa de mai jos în locul blocului DNF 4:
+Pentru DNF 5, în locul blocului DNF 4:
 
 ```sh
+(
+set -eu
 command -v curl >/dev/null || sudo dnf install -y curl
 sudo dnf install -y ca-certificates tar coreutils dnf5-plugins
 sudo dnf config-manager addrepo --from-repofile=https://cli.github.com/packages/rpm/gh-cli.repo
+command -v awk >/dev/null || sudo dnf install -y gawk
 sudo dnf install -y gh
+sudo dnf upgrade -y gh
+)
 ```
 
-Amazon Linux 2 — yum (doar inventar/sync; evaluarea CVE rămâne indisponibilă):
+Amazon Linux 2 — yum. yum-utils furnizează comanda pentru adăugarea depozitului GitHub CLI; restul utilitarelor au același rol. Awarely acceptă inventar/sync pentru această distribuție; evaluarea CVE rămâne indisponibilă.
 
 ```sh
+(
+set -eu
 command -v curl >/dev/null || sudo yum install -y curl
 sudo yum install -y ca-certificates tar coreutils yum-utils
 sudo yum-config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+command -v awk >/dev/null || sudo yum install -y gawk
 sudo yum install -y gh
+sudo yum update -y gh
+)
 ```
 
-Dacă GitHub CLI solicită autentificare pentru descărcarea/verificarea atestărilor publice, rulează gh auth login și urmează pașii în browser. Este autentificare GitHub, separată de Monitor. Nu introduce tokenul Awarely în GitHub. Pentru un server offline, descarcă/verifică pe o stație de încredere și transferă securizat fișierele verificate.
+Acum verifică versiunea și suportul pentru atestări. Dacă încă apare unknown command, verifică command -v gh: este posibil să rulezi o altă instalare mai veche din PATH.
 
 ```sh
+command -v gh
+gh --version
 gh attestation verify --help
 ```
 
-- [Instalare oficială GitHub CLI pentru Debian, Ubuntu și sisteme RPM](https://github.com/cli/cli/blob/trunk/docs/install_linux.md)
+Nu rula gh auth login și nu crea un token GitHub pentru această instalare. La pasul 3, gh primește dovada semnată prin --bundle și o verifică fără autentificare. Descărcarea și actualizarea rădăcinilor de încredere folosesc internetul; colectarea locală host/app nu. Pentru un server offline, verifică pe o stație de încredere și transferă securizat fișierele verificate.
+
+- [Instalare oficială GitHub CLI](https://github.com/cli/cli/blob/trunk/docs/install_linux.md)
+- [Verificarea unei dovezi locale cu --bundle](https://cli.github.com/manual/gh_attestation_verify)
 
 
 <a id="install"></a>
@@ -124,12 +177,21 @@ gh attestation verify --help
 
 Comenzile fixează versiunea preview publicată. Oprește-te la orice eroare de descărcare, atestare sau checksum. Lista externă include ambele arhitecturi; verificăm doar arhiva descărcată. Extragerea se face după verificare.
 
+Fără cont GitHub și fără token. Descărcăm arhiva originală și dovada semnată din același release public. Dovada este verificată criptografic pentru arhiva exactă, repo-ul Awarely, workflow-ul de release și tag-ul ales, înainte de extragere.
+
+umask 077 și mktemp creează un director privat nou; SCAN_WORK păstrează calea acestuia. Înainte de descărcare se verifică utilitarele. Nu ai nevoie de autentificare GitHub. curl descarcă arhiva și dovada semnată, gh --bundle validează proveniența pentru repo/workflow/tag, awk selectează checksum-ul potrivit, sha256sum verifică integritatea, iar tar extrage numai după verificări. version și help confirmă că binarul pornește. SCAN_BIN este setat numai dacă întregul bloc reușește.
+
 ```sh
+SCAN_BIN=
 umask 077
 SCAN_WORK=$(mktemp -d "$HOME/awarely-scan.XXXXXXXX")
-SCAN_BIN="$SCAN_WORK/release/awarely-scan"
 (
 set -eu
+: "${SCAN_WORK:?Could not create working directory}"
+for tool in curl tar sha256sum awk gh; do
+  command -v "$tool" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\n' "$tool" >&2; exit 1; }
+done
+gh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }
 cd "$SCAN_WORK"
 SCAN_VERSION=v0.6.0-alpha.1
 case "$(uname -m)" in
@@ -141,7 +203,9 @@ SCAN_ARCHIVE="awarely-scan_${SCAN_VERSION}_linux_${SCAN_ARCH}.tar.gz"
 SCAN_RELEASE="https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/${SCAN_VERSION}"
 curl --proto '=https' --tlsv1.2 -fL "$SCAN_RELEASE/$SCAN_ARCHIVE" -o "$SCAN_ARCHIVE"
 curl --proto '=https' --tlsv1.2 -fL "$SCAN_RELEASE/SHA256SUMS" -o SHA256SUMS
+curl --proto '=https' --tlsv1.2 -fL "$SCAN_RELEASE/$SCAN_ARCHIVE.sigstore.jsonl" -o "$SCAN_ARCHIVE.sigstore.jsonl"
 gh attestation verify "$SCAN_ARCHIVE" \
+  --bundle "$SCAN_ARCHIVE.sigstore.jsonl" \
   --repo awarelyeu/awarely-sbom-scanner \
   --signer-workflow awarelyeu/awarely-sbom-scanner/.github/workflows/release.yml \
   --source-ref "refs/tags/$SCAN_VERSION"
@@ -150,15 +214,26 @@ sha256sum --check selected-SHA256SUMS
 mkdir release
 tar -xzf "$SCAN_ARCHIVE" -C release
 (cd release && sha256sum --check SHA256SUMS)
-"$SCAN_BIN" version
-"$SCAN_BIN" help
+"$SCAN_WORK/release/awarely-scan" version
+"$SCAN_WORK/release/awarely-scan" help
 printf 'Working directory: %s\n' "$SCAN_WORK"
 )
+SCAN_INSTALL_STATUS=$?
+if [ "$SCAN_INSTALL_STATUS" -eq 0 ]; then
+  SCAN_BIN="$SCAN_WORK/release/awarely-scan"
+  printf 'READY: %s\n' "$SCAN_BIN"
+else
+  SCAN_BIN=
+  printf 'STOP: installation incomplete in %s. Fix the error and rerun all of step 3. Do not scan yet.\n' "$SCAN_WORK" >&2
+  (exit "$SCAN_INSTALL_STATUS")
+fi
 ```
 
 Păstrează SCAN_WORK și SCAN_BIN pentru pașii următori. Fiecare cale de rezultat trebuie să fie nouă: scannerul nu suprascrie rapoarte. Folosește un director privat nou la următoarea rulare. O versiune viitoare se descarcă și se verifică explicit; nu există actualizare automată.
 
 Dacă deschizi ulterior alt terminal, setează calea reală afișată mai sus: SCAN_WORK=/home/utilizator/awarely-scan.DIRECTORUL_TAU și SCAN_BIN="$SCAN_WORK/release/awarely-scan". Înlocuiește calea exemplu; nu crea altă sursă doar pentru că s-a schimbat sesiunea de terminal.
+
+Continuă la pasul 4 sau 6 numai după mesajul READY, versiunea afișată și pagina de ajutor. Dacă apare STOP, nu rula host/app/check/sync. După remediere, copiază din nou TOT blocul de la pasul 3: acesta creează un director nou, păstrează fișierele vechi și actualizează variabilele. Doar fișierele .tar.gz și SHA256SUMS într-un director înseamnă că instalarea nu a ajuns la extragere.
 
 
 <a id="debian"></a>
@@ -635,6 +710,10 @@ Sync citește revizia și folosește o cheie de idempotență. Reîncercările 
 
 | Simptom | Acțiune |
 | --- | --- |
+| MISSING / command not found | Revino la pasul 2, instalează utilitarul din blocul distribuției tale și repetă verificarea. |
+| gh: unknown command / unknown flag | Actualizează GitHub CLI din depozitul oficial (pasul 2), apoi verifică gh --version și gh attestation verify --help. |
+| To get started with GitHub CLI / gh auth login | Ai folosit comenzile vechi, fără --bundle. Nu te autentifica: copiază întregul bloc actualizat de la pasul 3, care descarcă dovada publică și verifică fără cont. |
+| release/awarely-scan: No such file or directory / command not found | Instalarea nu s-a încheiat sau ai pierdut variabilele terminalului. Caută prima eroare de la pasul 3, remediază și reia întregul bloc. Nu extrage manual pentru a ocoli atestarea. Dacă instalarea reușise, restabilește SCAN_WORK și SCAN_BIN conform pasului 3. |
 | Exit 0 | Operația s-a încheiat; verifică matches și coverage. Nu înseamnă fără vulnerabilități. |
 | Exit 2 | Verifică argumentele, formatul, distribuția acceptată, proprietarul/permisiunile credentialelor și accesul la citire. |
 | Exit 3 | S-a scris un inventar local parțial. Analizează avertismentele; poți importa/verifica pentru analiză, dar nu sincroniza. |

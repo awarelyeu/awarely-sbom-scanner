@@ -48,74 +48,127 @@ Read steps 2–3 first. Choose one distribution in step 4, then either upload (s
 
 ## 2. Prepare the Linux machine
 
-1. Use your regular Linux account. Awarely Scan needs neither root nor a background service. You need read access to the package database or the selected project and write access to your output directory.
-2. Use uname -m to identify x86_64 (amd64) or aarch64 (arm64). Other binary architectures are not supplied.
-3. For downloading and verification, have curl, tar, sha256sum and a current GitHub CLI with gh attestation verify. These preparation tools use the network; local host/app collection does not.
-4. If the preparation tools are already installed, skip the installation commands. Otherwise choose only the block for your distribution below. These commands install tools and configure the official GitHub CLI repository, so an administrator/sudo is needed for this one-time preparation, not for scanning.
-5. Run the following commands in the same Bash-compatible terminal session. Never run Awarely Scan with sudo. You may verify the archive on a workstation and transfer it securely to an offline host.
+Run steps 2–3 in the same Bash session as your regular Linux user. sudo is only needed to install prerequisites; Awarely Scan needs neither root nor a background service. You need read access to packages/project and write access to your output directory.
+
+First identify the system and available commands. This block only checks: MISSING means you need to install that tool using your distribution block below.
 
 ```sh
 uname -m
 cat /etc/os-release
-command -v curl tar sha256sum gh
-gh attestation verify --help
+for tool in curl tar sha256sum awk gh; do
+  if command -v "$tool" >/dev/null 2>&1; then
+    printf 'OK: %s\n' "$tool"
+  else
+    printf 'MISSING: %s\n' "$tool"
+  fi
+done
+if command -v gh >/dev/null 2>&1; then
+  gh --version
+  gh attestation verify --help
+fi
 ```
 
-Debian 12/13 and Ubuntu 22.04/24.04/26.04 — apt:
+| Command / tool | Purpose and what to do if missing |
+| --- | --- |
+| uname -m | Architecture: x86_64 → amd64; aarch64/arm64 → arm64. No binary is published for other architectures. |
+| cat /etc/os-release | Distribution and version: ID and VERSION_ID identify the installation block. If the file is absent, check the image with its administrator instead of guessing. |
+| curl + ca-certificates | Download files over HTTPS and validate the server certificate. Install below; do not use curl -k. |
+| tar | Extract the verified archive. Install the tar package if missing. |
+| sha256sum / coreutils | Verify file integrity. The command is supplied by coreutils, which also provides uname, mktemp and chmod. |
+| awk | Select the checksum for your archive. If missing, the distribution block installs gawk. |
+| gh attestation verify | Verify build provenance using the publicly downloaded signed bundle. No GitHub account, login or token is required. Missing gh: install below. unknown command/unknown flag: update from the official repository and repeat the check. |
+
+Choose only the block for your distribution. If every tool exists and gh attestation verify --help works, skip straight to step 3. These commands configure the official GitHub CLI repository and install prerequisites; they do not install the scanner or upgrade the whole system.
+
+Debian 12/13 and Ubuntu 22.04/24.04/26.04 — apt. apt-get update refreshes package metadata; install adds or updates the requested packages. The key and signed-by entry let APT verify packages from the GitHub CLI repository.
 
 ```sh
-sudo apt-get update
-sudo apt-get install -y ca-certificates curl tar coreutils
 (
 set -eu
+# Refresh package metadata and install download/verification tools.
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl tar coreutils
+command -v awk >/dev/null || sudo apt-get install -y gawk
+# Add the signing key for the official GitHub CLI package repository.
 GH_KEY_FILE=$(mktemp)
+trap 'rm -f "$GH_KEY_FILE"' EXIT
 curl --proto '=https' --tlsv1.2 -fL \
   https://cli.github.com/packages/githubcli-archive-keyring.gpg \
   -o "$GH_KEY_FILE"
 sudo install -d -m 755 /etc/apt/keyrings
 sudo install -m 644 "$GH_KEY_FILE" /etc/apt/keyrings/githubcli-archive-keyring.gpg
 rm "$GH_KEY_FILE"
+# Configure the source for this machine architecture; its key is scoped to this source.
 printf 'deb [arch=%s signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main\n' "$(dpkg --print-architecture)" \
   | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
 sudo apt-get update
+# Install gh or upgrade an older installed version.
 sudo apt-get install -y gh
 )
 ```
 
-Rocky Linux 8/9/10, AlmaLinux 8/9/10 and Amazon Linux 2023 — check dnf --version. For DNF 4 use this block:
+A message such as “1 upgraded” for gh is normal: the older version was replaced. “0 newly installed” is not an error. Continue if the block finishes successfully, then repeat the gh check below.
+
+Rocky Linux 8/9/10, AlmaLinux 8/9/10 and Amazon Linux 2023 — dnf. Install the tools, add the official GitHub CLI repository with config-manager, then install gh. Check the DNF version and choose only one of the two blocks.
 
 ```sh
+dnf --version
+```
+
+For DNF 4:
+
+```sh
+(
+set -eu
 command -v curl >/dev/null || sudo dnf install -y curl
 sudo dnf install -y ca-certificates tar coreutils 'dnf-command(config-manager)'
 sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+command -v awk >/dev/null || sudo dnf install -y gawk
 sudo dnf install -y gh
+sudo dnf upgrade -y gh
+)
 ```
 
-Only if dnf --version reports DNF 5, use this alternative instead of the DNF 4 block:
+For DNF 5, instead of the DNF 4 block:
 
 ```sh
+(
+set -eu
 command -v curl >/dev/null || sudo dnf install -y curl
 sudo dnf install -y ca-certificates tar coreutils dnf5-plugins
 sudo dnf config-manager addrepo --from-repofile=https://cli.github.com/packages/rpm/gh-cli.repo
+command -v awk >/dev/null || sudo dnf install -y gawk
 sudo dnf install -y gh
+sudo dnf upgrade -y gh
+)
 ```
 
-Amazon Linux 2 — yum (inventory/sync only; CVE assessment remains unavailable):
+Amazon Linux 2 — yum. yum-utils provides the repository configuration command; the other tools serve the same purposes. Awarely supports inventory/sync for this distribution; CVE assessment remains unavailable.
 
 ```sh
+(
+set -eu
 command -v curl >/dev/null || sudo yum install -y curl
 sudo yum install -y ca-certificates tar coreutils yum-utils
 sudo yum-config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+command -v awk >/dev/null || sudo yum install -y gawk
 sudo yum install -y gh
+sudo yum update -y gh
+)
 ```
 
-If GitHub CLI requests authentication for downloading/verifying public attestations, run gh auth login and follow its browser flow. This is GitHub authentication, separate from Monitor. Never paste an Awarely token into GitHub. On an offline server, do the download/verification on a trusted workstation and securely transfer the verified files.
+Now check the version and attestation support. If unknown command persists, inspect command -v gh: an older installation may take precedence in PATH.
 
 ```sh
+command -v gh
+gh --version
 gh attestation verify --help
 ```
 
-- [Official GitHub CLI installation for Debian, Ubuntu and RPM systems](https://github.com/cli/cli/blob/trunk/docs/install_linux.md)
+Do not run gh auth login or create a GitHub token for this installation. In step 3, gh receives the signed proof through --bundle and verifies it without authentication. Downloading and trust-root updates use the internet; local host/app collection does not. For an offline server, verify on a trusted workstation and securely transfer the verified files.
+
+- [Official GitHub CLI installation](https://github.com/cli/cli/blob/trunk/docs/install_linux.md)
+- [Verifying a local proof with --bundle](https://cli.github.com/manual/gh_attestation_verify)
 
 
 <a id="install"></a>
@@ -124,12 +177,21 @@ gh attestation verify --help
 
 This pins the published preview release instead of silently downloading a changing latest version. Stop on any download, attestation or checksum failure. The outer checksum list contains both architectures; select only the archive you downloaded. Extraction happens only after verification.
 
+No GitHub account or token. Download the original archive and signed proof from the same public release. The proof is cryptographically verified for the exact archive, Awarely repository, release workflow and selected tag before extraction.
+
+umask 077 and mktemp create a new private directory; SCAN_WORK stores its path. Tools are checked before downloading. GitHub authentication is not required. curl downloads the archive and signed proof, gh --bundle validates provenance for the repository/workflow/tag, awk selects the matching checksum, sha256sum checks integrity, and tar extracts only after verification. version and help confirm that the binary starts. SCAN_BIN is set only if the whole block succeeds.
+
 ```sh
+SCAN_BIN=
 umask 077
 SCAN_WORK=$(mktemp -d "$HOME/awarely-scan.XXXXXXXX")
-SCAN_BIN="$SCAN_WORK/release/awarely-scan"
 (
 set -eu
+: "${SCAN_WORK:?Could not create working directory}"
+for tool in curl tar sha256sum awk gh; do
+  command -v "$tool" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\n' "$tool" >&2; exit 1; }
+done
+gh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }
 cd "$SCAN_WORK"
 SCAN_VERSION=v0.6.0-alpha.1
 case "$(uname -m)" in
@@ -141,7 +203,9 @@ SCAN_ARCHIVE="awarely-scan_${SCAN_VERSION}_linux_${SCAN_ARCH}.tar.gz"
 SCAN_RELEASE="https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/${SCAN_VERSION}"
 curl --proto '=https' --tlsv1.2 -fL "$SCAN_RELEASE/$SCAN_ARCHIVE" -o "$SCAN_ARCHIVE"
 curl --proto '=https' --tlsv1.2 -fL "$SCAN_RELEASE/SHA256SUMS" -o SHA256SUMS
+curl --proto '=https' --tlsv1.2 -fL "$SCAN_RELEASE/$SCAN_ARCHIVE.sigstore.jsonl" -o "$SCAN_ARCHIVE.sigstore.jsonl"
 gh attestation verify "$SCAN_ARCHIVE" \
+  --bundle "$SCAN_ARCHIVE.sigstore.jsonl" \
   --repo awarelyeu/awarely-sbom-scanner \
   --signer-workflow awarelyeu/awarely-sbom-scanner/.github/workflows/release.yml \
   --source-ref "refs/tags/$SCAN_VERSION"
@@ -150,15 +214,26 @@ sha256sum --check selected-SHA256SUMS
 mkdir release
 tar -xzf "$SCAN_ARCHIVE" -C release
 (cd release && sha256sum --check SHA256SUMS)
-"$SCAN_BIN" version
-"$SCAN_BIN" help
+"$SCAN_WORK/release/awarely-scan" version
+"$SCAN_WORK/release/awarely-scan" help
 printf 'Working directory: %s\n' "$SCAN_WORK"
 )
+SCAN_INSTALL_STATUS=$?
+if [ "$SCAN_INSTALL_STATUS" -eq 0 ]; then
+  SCAN_BIN="$SCAN_WORK/release/awarely-scan"
+  printf 'READY: %s\n' "$SCAN_BIN"
+else
+  SCAN_BIN=
+  printf 'STOP: installation incomplete in %s. Fix the error and rerun all of step 3. Do not scan yet.\n' "$SCAN_WORK" >&2
+  (exit "$SCAN_INSTALL_STATUS")
+fi
 ```
 
 Keep SCAN_WORK and SCAN_BIN for the next steps. Each output path must be new: the scanner never overwrites an existing report. Choose a new private directory for the next run. A future release is an explicit download and verification, not an automatic update.
 
 If you open a new terminal later, restore the actual directory printed above: SCAN_WORK=/home/your-user/awarely-scan.YOUR_DIRECTORY and SCAN_BIN="$SCAN_WORK/release/awarely-scan". Replace the example path; do not create a new source just because the terminal session changed.
+
+Continue to step 4 or 6 only after the READY message, version output and help. If STOP appears, do not run host/app/check/sync. After fixing the error, copy ALL of step 3 again: it creates a fresh directory, preserves earlier files and updates the variables. A directory containing only .tar.gz and SHA256SUMS means installation did not reach extraction.
 
 
 <a id="debian"></a>
@@ -635,6 +710,10 @@ Sync reads a revision and uses an idempotency key. Bounded transport/503 retries
 
 | Symptom | Action |
 | --- | --- |
+| MISSING / command not found | Return to step 2, install the tool using your distribution block and repeat the check. |
+| gh: unknown command / unknown flag | Update GitHub CLI from the official repository (step 2), then check gh --version and gh attestation verify --help. |
+| To get started with GitHub CLI / gh auth login | You used the older commands without --bundle. Do not log in: copy the entire updated step-3 block, which downloads the public proof and verifies without an account. |
+| release/awarely-scan: No such file or directory / command not found | Installation did not finish or terminal variables were lost. Find and fix the first step-3 error, then rerun the entire block. Do not manually extract to bypass attestation. If installation succeeded earlier, restore SCAN_WORK and SCAN_BIN as described in step 3. |
 | Exit 0 | Operation completed; inspect matches and coverage. It is not a no-vulnerabilities status. |
 | Exit 2 | Check arguments, file format, supported distribution, credentials ownership/permissions and read access. |
 | Exit 3 | Partial local inventory was written. Review warnings; upload/check for review, but do not sync. |
