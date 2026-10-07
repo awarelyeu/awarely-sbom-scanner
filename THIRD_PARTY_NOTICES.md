@@ -36,3 +36,7 @@ SOFTWARE.
 ## Optional Syft
 
 The guided scanner can download the original [Anchore Syft](https://github.com/anchore/syft) release after explicit approval. Syft is Apache-2.0 licensed and is not linked into or bundled with the Awarely binary. The unchanged upstream archive, including its license notices, remains in the private tool cache. Third-party dependencies retain their upstream notices.
+
+## Temporary installation verifier
+
+If an appropriate system GitHub CLI is unavailable, the installer offers to download the original [GitHub CLI](https://github.com/cli/cli) 2.102.0 archive after explicit consent. It verifies a maintainer-pinned SHA-256 before extraction and execution, keeps the upstream MIT license beside the temporary executable, and deletes the temporary files on exit. GitHub CLI is not bundled or linked into the scanner. It verifies Awarely build provenance before Awarely is executed. Bootstrap trust depends on obtaining and reviewing the authentic installer.

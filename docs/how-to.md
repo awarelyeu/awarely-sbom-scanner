@@ -4,13 +4,14 @@ Follow the simple path: prepare Linux, install the scanner, choose from its menu
 
 [English](how-to.md) · [Română](how-to.ro.md)
 
-Release: `v0.8.0-alpha.1`
+Release: `v0.8.0-alpha.2`
 
 - [Start here: your first scan in 4 steps](#start-here)
 - [Start: simplified one-time installation](#quick-install)
 - [Guided scanning: menu choices](#guided)
 - [1. Choose your workflow](#choose)
 - [2. Prepare the Linux machine](#prerequisites)
+- [Optional system GitHub CLI · manual alternative](#manual-verifier)
 - [3. Download, verify and run · manual alternative](#install)
 - [4. Debian · manual alternative](#debian)
 - [4. Ubuntu · manual alternative](#ubuntu)
@@ -38,7 +39,7 @@ Release: `v0.8.0-alpha.1`
 An SBOM is a list of software components and their versions. A local scan creates this list; Check looks for vulnerabilities, while Sync saves the list in Monitor. For your first try, choose Linux and keep the local file: no account or API credential is needed.
 
 1. Open a terminal on the Linux machine you want to scan. For a remote server, connect through SSH first. Do not run the Linux installer in a macOS or Windows terminal.
-2. Prepare the tools: open section 2 and run only the commands for your distribution. Ubuntu/Debian use apt; Amazon Linux/Rocky/AlmaLinux use dnf/yum. GitHub login is not required.
+2. Check the basic tools in section 2. The simplified installer can prepare its temporary verifier automatically: you do not need to install GitHub CLI (gh) or log in to GitHub.
 3. Install once using the simplified installation section. Continue only after READY appears. On later runs, open the menu directly.
 4. Run the command below. Choose 1 for Linux, Enter for the recommended scope, a name for the inventory, Enter for the results directory and 1 for local output. Keep the path shown after Saved local SBOM.
 
@@ -53,13 +54,15 @@ The longer sections marked “manual alternative” are for automation. You do n
 
 ## Start: simplified one-time installation
 
-Run on Linux amd64/arm64 as a regular user. You need curl, tar, coreutils (sha256sum), awk and gh with attestation verify support. If missing, the installer stops and explains what to install; section 2 has commands for each distribution. These tools verify the installation, not the project scan. No GitHub account or token is needed.
+Run on Linux amd64/arm64 as a regular user. Basic tools: curl, tar, gzip, coreutils and awk. No system gh installation is required. When gh is missing or too old, answer yes to Prepare the temporary verifier: the installer downloads pinned GitHub CLI 2.102.0 from its official release, verifies its embedded SHA-256 and removes the temporary files on exit. No root, repository configuration, account or token is needed for this preparation.
+
+If a basic tool is missing, the installer names it and shows installation commands for your distribution. Run those commands in another terminal, then press Enter in the installer to check again. It does not run sudo or modify system packages for you. q quits. If curl itself is missing, install it before downloading the installer.
 
 Download and review the official installer (press q to exit less), then run it. It verifies signed provenance for the exact version and checksums, then publishes the binary at ~/.local/bin/awarely-scan. It refuses to overwrite an existing installation; move the old binary aside when upgrading. If it prints STOP, resolve the cause before starting the scanner.
 
 ```sh
 curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \
-  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.8.0-alpha.1/install.sh \
+  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.8.0-alpha.2/install.sh \
   -o awarely-install.sh
 # Review the installer before running it.
 less awarely-install.sh
@@ -106,6 +109,8 @@ A successful Check creates check-result.json with complete evidence and check-su
 
 If the credential file is wrong, enter another path without rescanning. After a Check error, you can retry with a new confirmation. After a Sync error, inspect the source in Settings → Assets before retrying: the request might already have committed. The scanner never automatically repeats an uncertain sync. To continue later, choose option 6 and your saved SBOM.
 
+The scanner itself does not need gh, Cosign, Node.js, Java or Python to read supported files. Missing manifests/artifacts return you to the path prompt. If the approved Syft download temporarily fails, restore HTTPS access and choose Retry preparation to keep your selected application. Integrity or unsafe-cache failures stop: no unverified tool is executed.
+
 
 <a id="choose"></a>
 
@@ -126,6 +131,52 @@ Recommended workflow: simplified installation → guided scan → choose what ha
 <a id="prerequisites"></a>
 
 ## 2. Prepare the Linux machine
+
+Run these checks on the Linux machine you will scan. sudo is needed only if basic tools are missing. The Awarely binary runs as a regular user. curl downloads over HTTPS; ca-certificates validates certificates; tar/gzip extract archives; coreutils and awk verify checksums. gh is handled by the simplified installer.
+
+```sh
+uname -m
+cat /etc/os-release
+for tool in curl tar gzip sha256sum awk mktemp; do
+  if command -v "$tool" >/dev/null 2>&1; then
+    printf "OK: %s\n" "$tool"
+  else
+    printf "MISSING: %s\n" "$tool"
+  fi
+done
+```
+
+If tools are missing, choose only your distribution below. If all checks say OK, continue to simplified installation. No gh package installation or GitHub login is required.
+
+Debian / Ubuntu:
+
+```sh
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl tar gzip coreutils gawk
+```
+
+Amazon Linux 2023 / Rocky Linux / AlmaLinux:
+
+```sh
+sudo dnf install -y ca-certificates tar gzip coreutils gawk
+command -v curl >/dev/null || sudo dnf install -y curl
+```
+
+Amazon Linux 2:
+
+```sh
+sudo yum install -y ca-certificates tar gzip coreutils gawk
+command -v curl >/dev/null || sudo yum install -y curl
+```
+
+Manual verification only: see Optional system GitHub CLI below to install gh yourself. This is unnecessary for the recommended installer.
+
+
+<a id="manual-verifier"></a>
+
+## Optional system GitHub CLI · manual alternative
+
+Skip this section for simplified installation. Use it only if you prefer a system gh installation or the manual verification commands. Amazon Linux does support gh through the official GitHub repository; its default repositories may not contain it.
 
 Run steps 2–3 in the same Bash session as your regular Linux user. sudo is only needed to install prerequisites; Awarely Scan needs neither root nor a background service. You need read access to packages/project and write access to your output directory.
 
@@ -272,7 +323,7 @@ for tool in curl tar sha256sum awk gh; do
 done
 gh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }
 cd "$SCAN_WORK"
-SCAN_VERSION=v0.8.0-alpha.1
+SCAN_VERSION=v0.8.0-alpha.2
 case "$(uname -m)" in
   x86_64) SCAN_ARCH=amd64 ;;
   aarch64|arm64) SCAN_ARCH=arm64 ;;

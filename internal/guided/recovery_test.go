@@ -14,6 +14,7 @@ import (
 
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/api"
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/inventory"
+	"github.com/awarelyeu/awarely-sbom-scanner/internal/producer"
 )
 
 func TestCorrectPathsAndPreflightWithoutExiting(t *testing.T) {
@@ -188,5 +189,43 @@ func TestColorOnlyStylesTrustedHeadings(t *testing.T) {
 	Run(context.Background(), strings.NewReader("q\n"), &out, &out, "test")
 	if strings.Contains(out.String(), "\x1b") {
 		t.Fatal("redirected output contains color")
+	}
+}
+
+func TestToolPreparationRecovery(t *testing.T) {
+	for _, tc := range []struct {
+		name, answers string
+		failure       error
+		calls         int
+		want          error
+	}{
+		{"retry", "1\n", producer.ErrDownloadUnavailable, 2, nil},
+		{"back", "2\n", producer.ErrDownloadUnavailable, 1, back},
+		{"quit", "3\n", producer.ErrDownloadUnavailable, 1, cancelled},
+		{"eof", "", producer.ErrDownloadUnavailable, 1, cancelled},
+		{"integrity", "1\n", errors.New("archive failed verification"), 1, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var out bytes.Buffer
+			s := &session{ctx: context.Background(), reader: bufio.NewScanner(strings.NewReader(tc.answers)), out: &out, errOut: &out}
+			calls := 0
+			err := s.prepareTool(func() error {
+				calls++
+				if calls == 1 {
+					return tc.failure
+				}
+				return nil
+			})
+			if tc.name == "integrity" {
+				if !errors.Is(err, tc.failure) || strings.Contains(out.String(), "Retry") {
+					t.Fatal(err, out.String())
+				}
+			} else if !errors.Is(err, tc.want) {
+				t.Fatal(err, tc.want)
+			}
+			if calls != tc.calls {
+				t.Fatal(calls)
+			}
+		})
 	}
 }

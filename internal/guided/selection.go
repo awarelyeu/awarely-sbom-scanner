@@ -213,7 +213,11 @@ func (s *session) collect() (inventory.Result, string, string, bool, string, err
 					fmt.Fprintln(s.out, "Cancelled. No tool was downloaded and no scan was run.")
 					return result, kind, target, syft, resume, declined
 				}
-				if e := producer.Prepare(s.ctx, cache, !ready); e != nil {
+				if e := s.prepareTool(func() error { return producer.Prepare(s.ctx, cache, !ready) }); e != nil {
+					if errors.Is(e, back) {
+						stage = "path"
+						continue
+					}
 					return result, kind, target, syft, resume, e
 				}
 				fmt.Fprintln(s.out, "Scanning with verified Syft...")
@@ -249,6 +253,31 @@ func (s *session) collect() (inventory.Result, string, string, bool, string, err
 				return result, kind, target, syft, resume, e
 			}
 			return result, kind, target, syft, resume, err
+		}
+	}
+}
+
+// A failed integrity check must never become a download retry prompt.
+func (s *session) prepareTool(prepare func() error) error {
+	for {
+		err := prepare()
+		if err == nil || !errors.Is(err, producer.ErrDownloadUnavailable) {
+			return err
+		}
+		if s.ctx.Err() != nil {
+			return cancelled
+		}
+		s.issue(err)
+		fmt.Fprintln(s.out, "No tool was executed. Restore HTTPS access, then choose Retry; your selected application is kept.")
+		answer, e := s.choice("1. Retry preparation / 2. Go back / 3. Quit", "2", "1", "2", "3")
+		if e != nil {
+			return e
+		}
+		if answer == "2" {
+			return back
+		}
+		if answer == "3" {
+			return cancelled
 		}
 	}
 }

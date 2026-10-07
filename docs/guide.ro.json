@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "v0.8.0-alpha.1",
+  "version": "v0.8.0-alpha.2",
   "title": "Awarely Scan: de la instalare la primul rezultat",
   "intro": "Urmează traseul simplu: pregătești Linux, instalezi scannerul, alegi din meniu și citești rezultatul. Nu trebuie să știi Python sau să editezi JSON. Mesajele și comenzile CLI sunt în engleză. Exemplele sunt fictive și trebuie adaptate la calculatorul tău.",
   "sections": [
@@ -16,7 +16,7 @@
           "type": "list",
           "items": [
             "Deschide terminalul pe mașina Linux de scanat. Dacă e un server, conectează-te prin SSH înainte. Nu rula instalarea Linux în terminalul macOS sau Windows.",
-            "Pregătește uneltele: deschide secțiunea 2 și rulează numai comenzile distribuției tale. Ubuntu/Debian folosesc apt; Amazon Linux/Rocky/AlmaLinux folosesc dnf/yum. Nu este necesară autentificarea GitHub.",
+            "Verifică uneltele de bază din secțiunea 2. Installerul simplificat își poate pregăti singur verificatorul temporar: nu trebuie să instalezi GitHub CLI (gh) sau să te autentifici în GitHub.",
             "Instalează o singură dată folosind secțiunea de instalare simplificată. Continuă numai după mesajul READY. La fiecare utilizare ulterioară deschizi direct meniul.",
             "Rulează comanda de mai jos. Alege 1 pentru Linux, Enter pentru selecția recomandată, un nume pentru inventar, Enter pentru director și 1 pentru fișier local. Păstrează calea afișată la Saved local SBOM."
           ]
@@ -38,7 +38,11 @@
       "blocks": [
         {
           "type": "paragraph",
-          "text": "Rulează pe Linux amd64/arm64, ca utilizator obișnuit. Ai nevoie de curl, tar, coreutils (sha256sum), awk și o versiune gh cu attestation verify. Dacă lipsesc, installerul se oprește și arată ce trebuie instalat; secțiunea 2 are comenzile pentru fiecare distribuție. Acestea servesc verificării instalării, nu scanării proiectului. Nu este necesar cont sau token GitHub."
+          "text": "Rulează pe Linux amd64/arm64 ca utilizator obișnuit. Unelte de bază: curl, tar, gzip, coreutils și awk. Nu trebuie să instalezi gh în sistem. Dacă lipsește sau este prea vechi, răspunde yes la Prepare the temporary verifier: installerul descarcă GitHub CLI 2.102.0 din release-ul oficial, verifică SHA-256 fixat în script și șterge fișierele temporare la ieșire. Pregătirea nu necesită root, configurarea unui repository, cont sau token."
+        },
+        {
+          "type": "paragraph",
+          "text": "Dacă lipsește o unealtă de bază, installerul o numește și afișează comenzile distribuției tale. Rulează-le într-un alt terminal, apoi apasă Enter în installer pentru reverificare. Acesta nu rulează sudo și nu modifică pachetele sistemului în locul tău. q închide procesul. Dacă lipsește curl, instalează-l înainte să descarci installerul."
         },
         {
           "type": "paragraph",
@@ -47,7 +51,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \\\n  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.8.0-alpha.1/install.sh \\\n  -o awarely-install.sh\n# Review the installer before running it.\nless awarely-install.sh\nsh awarely-install.sh\n\"$HOME/.local/bin/awarely-scan\" guided"
+          "code": "curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \\\n  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.8.0-alpha.2/install.sh \\\n  -o awarely-install.sh\n# Review the installer before running it.\nless awarely-install.sh\nsh awarely-install.sh\n\"$HOME/.local/bin/awarely-scan\" guided"
         },
         {
           "type": "paragraph",
@@ -140,6 +144,10 @@
         {
           "type": "paragraph",
           "text": "Dacă fișierul de acces este greșit, introdu altă cale fără să rescanezi. După o eroare Check poți reîncerca cu o nouă confirmare. După o eroare Sync, verifică sursa în Setări → Active înainte de reluare: cererea ar putea fi deja aplicată. Scannerul nu repetă automat o sincronizare incertă. Pentru reluare mai târziu, alege opțiunea 6 și SBOM-ul salvat."
+        },
+        {
+          "type": "paragraph",
+          "text": "Binarul nu are nevoie de gh, Cosign, Node.js, Java sau Python pentru a citi fișierele suportate. Dacă lipsesc manifestele/artefactele, poți corecta directorul în același meniu. Dacă descărcarea Syft aprobată eșuează temporar, restabilește accesul HTTPS și alege Retry preparation: aplicația selectată se păstrează. Erorile de integritate sau cache nesigur opresc fluxul: nu se execută un instrument neverificat."
         }
       ]
     },
@@ -191,6 +199,60 @@
       "id": "prerequisites",
       "title": "2. Pregătește mașina Linux",
       "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Rulează verificările pe mașina Linux de scanat. sudo este necesar numai dacă lipsesc unelte de bază. Binarul Awarely rulează ca utilizator obișnuit. curl descarcă prin HTTPS; ca-certificates validează certificatele; tar/gzip extrag arhive; coreutils și awk verifică sumele de control. Installerul simplificat se ocupă de gh."
+        },
+        {
+          "type": "code",
+          "language": "sh",
+          "code": "uname -m\ncat /etc/os-release\nfor tool in curl tar gzip sha256sum awk mktemp; do\n  if command -v \"$tool\" >/dev/null 2>&1; then\n    printf \"OK: %s\\n\" \"$tool\"\n  else\n    printf \"MISSING: %s\\n\" \"$tool\"\n  fi\ndone"
+        },
+        {
+          "type": "paragraph",
+          "text": "Dacă lipsesc unelte, alege numai distribuția ta de mai jos. Dacă toate verificările spun OK, continuă la instalarea simplificată. Nu este necesară instalarea pachetului gh sau autentificarea GitHub."
+        },
+        {
+          "type": "paragraph",
+          "text": "Debian / Ubuntu:"
+        },
+        {
+          "type": "code",
+          "language": "sh",
+          "code": "sudo apt-get update\nsudo apt-get install -y ca-certificates curl tar gzip coreutils gawk"
+        },
+        {
+          "type": "paragraph",
+          "text": "Amazon Linux 2023 / Rocky Linux / AlmaLinux:"
+        },
+        {
+          "type": "code",
+          "language": "sh",
+          "code": "sudo dnf install -y ca-certificates tar gzip coreutils gawk\ncommand -v curl >/dev/null || sudo dnf install -y curl"
+        },
+        {
+          "type": "paragraph",
+          "text": "Amazon Linux 2:"
+        },
+        {
+          "type": "code",
+          "language": "sh",
+          "code": "sudo yum install -y ca-certificates tar gzip coreutils gawk\ncommand -v curl >/dev/null || sudo yum install -y curl"
+        },
+        {
+          "type": "paragraph",
+          "text": "Numai pentru verificarea manuală: secțiunea GitHub CLI în sistem, opțional de mai jos explică instalarea gh. Nu este necesară pentru installerul recomandat."
+        }
+      ]
+    },
+    {
+      "id": "manual-verifier",
+      "title": "GitHub CLI în sistem, opțional · alternativă manuală",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Sari peste această secțiune pentru instalarea simplificată. Folosește-o numai dacă preferi gh instalat în sistem sau verificarea manuală. Amazon Linux suportă gh prin repository-ul oficial GitHub; repository-urile implicite pot să nu îl conțină."
+        },
         {
           "type": "paragraph",
           "text": "Rulează pașii 2–3 în aceeași sesiune Bash, ca utilizator Linux obișnuit. sudo este necesar doar pentru instalarea utilitarelor; Awarely Scan nu necesită root sau serviciu în fundal. Ai nevoie de citire pentru pachete/proiect și de scriere în directorul de rezultate."
@@ -341,7 +403,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "SCAN_BIN=\numask 077\nSCAN_WORK=$(mktemp -d \"$HOME/awarely-scan.XXXXXXXX\")\n(\nset -eu\n: \"${SCAN_WORK:?Could not create working directory}\"\nfor tool in curl tar sha256sum awk gh; do\n  command -v \"$tool\" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\\n' \"$tool\" >&2; exit 1; }\ndone\ngh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }\ncd \"$SCAN_WORK\"\nSCAN_VERSION=v0.8.0-alpha.1\ncase \"$(uname -m)\" in\n  x86_64) SCAN_ARCH=amd64 ;;\n  aarch64|arm64) SCAN_ARCH=arm64 ;;\n  *) echo \"Unsupported architecture\" >&2; exit 1 ;;\nesac\nSCAN_ARCHIVE=\"awarely-scan_${SCAN_VERSION}_linux_${SCAN_ARCH}.tar.gz\"\nSCAN_RELEASE=\"https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/${SCAN_VERSION}\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE\" -o \"$SCAN_ARCHIVE\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/SHA256SUMS\" -o SHA256SUMS\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE.sigstore.jsonl\" -o \"$SCAN_ARCHIVE.sigstore.jsonl\"\ngh attestation verify \"$SCAN_ARCHIVE\" \\\n  --bundle \"$SCAN_ARCHIVE.sigstore.jsonl\" \\\n  --repo awarelyeu/awarely-sbom-scanner \\\n  --signer-workflow awarelyeu/awarely-sbom-scanner/.github/workflows/release.yml \\\n  --source-ref \"refs/tags/$SCAN_VERSION\"\nawk -v file=\"$SCAN_ARCHIVE\" '$2 == file { print; found=1 } END { if (!found) exit 1 }' SHA256SUMS > selected-SHA256SUMS\nsha256sum --check selected-SHA256SUMS\nmkdir release\ntar -xzf \"$SCAN_ARCHIVE\" -C release\n(cd release && sha256sum --check SHA256SUMS)\n\"$SCAN_WORK/release/awarely-scan\" version\n\"$SCAN_WORK/release/awarely-scan\" help\nprintf 'Working directory: %s\\n' \"$SCAN_WORK\"\n)\nSCAN_INSTALL_STATUS=$?\nif [ \"$SCAN_INSTALL_STATUS\" -eq 0 ]; then\n  SCAN_BIN=\"$SCAN_WORK/release/awarely-scan\"\n  printf 'READY: %s\\n' \"$SCAN_BIN\"\nelse\n  SCAN_BIN=\n  printf 'STOP: installation incomplete in %s. Fix the error and rerun all of step 3. Do not scan yet.\\n' \"$SCAN_WORK\" >&2\n  (exit \"$SCAN_INSTALL_STATUS\")\nfi"
+          "code": "SCAN_BIN=\numask 077\nSCAN_WORK=$(mktemp -d \"$HOME/awarely-scan.XXXXXXXX\")\n(\nset -eu\n: \"${SCAN_WORK:?Could not create working directory}\"\nfor tool in curl tar sha256sum awk gh; do\n  command -v \"$tool\" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\\n' \"$tool\" >&2; exit 1; }\ndone\ngh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }\ncd \"$SCAN_WORK\"\nSCAN_VERSION=v0.8.0-alpha.2\ncase \"$(uname -m)\" in\n  x86_64) SCAN_ARCH=amd64 ;;\n  aarch64|arm64) SCAN_ARCH=arm64 ;;\n  *) echo \"Unsupported architecture\" >&2; exit 1 ;;\nesac\nSCAN_ARCHIVE=\"awarely-scan_${SCAN_VERSION}_linux_${SCAN_ARCH}.tar.gz\"\nSCAN_RELEASE=\"https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/${SCAN_VERSION}\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE\" -o \"$SCAN_ARCHIVE\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/SHA256SUMS\" -o SHA256SUMS\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE.sigstore.jsonl\" -o \"$SCAN_ARCHIVE.sigstore.jsonl\"\ngh attestation verify \"$SCAN_ARCHIVE\" \\\n  --bundle \"$SCAN_ARCHIVE.sigstore.jsonl\" \\\n  --repo awarelyeu/awarely-sbom-scanner \\\n  --signer-workflow awarelyeu/awarely-sbom-scanner/.github/workflows/release.yml \\\n  --source-ref \"refs/tags/$SCAN_VERSION\"\nawk -v file=\"$SCAN_ARCHIVE\" '$2 == file { print; found=1 } END { if (!found) exit 1 }' SHA256SUMS > selected-SHA256SUMS\nsha256sum --check selected-SHA256SUMS\nmkdir release\ntar -xzf \"$SCAN_ARCHIVE\" -C release\n(cd release && sha256sum --check SHA256SUMS)\n\"$SCAN_WORK/release/awarely-scan\" version\n\"$SCAN_WORK/release/awarely-scan\" help\nprintf 'Working directory: %s\\n' \"$SCAN_WORK\"\n)\nSCAN_INSTALL_STATUS=$?\nif [ \"$SCAN_INSTALL_STATUS\" -eq 0 ]; then\n  SCAN_BIN=\"$SCAN_WORK/release/awarely-scan\"\n  printf 'READY: %s\\n' \"$SCAN_BIN\"\nelse\n  SCAN_BIN=\n  printf 'STOP: installation incomplete in %s. Fix the error and rerun all of step 3. Do not scan yet.\\n' \"$SCAN_WORK\" >&2\n  (exit \"$SCAN_INSTALL_STATUS\")\nfi"
         },
         {
           "type": "paragraph",

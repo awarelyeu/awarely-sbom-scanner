@@ -59,7 +59,7 @@ Choose **Linux, npm, Python, Java, or other application ecosystems**. The scanne
 - npm reads a resolved lockfile without Node.js/npm. Optional Syft inspection is also available.
 - Python offers requirements.txt (partial) or an existing virtual environment through Syft.
 - Java inspects built JAR/WAR/EAR artifacts with Syft; it does not build the application.
-- Managed Syft uses a pinned archive, verified on every run, with an isolated environment and fixed offline configuration. No gh/Cosign commands are needed for this step. The initial Awarely installer uses gh for signed build provenance, without GitHub authentication.
+- Managed Syft uses a pinned archive, verified on every run, with an isolated environment and fixed offline configuration. No gh/Cosign commands are needed for this step. The initial installer can prepare a temporary, pinned and digest-verified GitHub CLI when gh is missing or too old, then remove it. Signed build provenance is still required; no root, system gh package or GitHub login is needed.
 - API requests need your explicitly selected private credential file and confirmation. Check preserves saved inventory; sync replaces only the credential's source. Partial inventories cannot sync.
 
 Correct a mistyped path without restarting. Use `b` to go back and `q` to quit; quoted paths and `~/` are accepted. Option **6** reopens a saved Awarely SBOM for check or sync without scanning again. Terminal colors respect `NO_COLOR` and disappear from redirected output.
