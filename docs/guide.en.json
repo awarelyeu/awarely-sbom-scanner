@@ -1,9 +1,37 @@
 {
   "schemaVersion": 1,
-  "version": "v0.7.0-alpha.2",
-  "title": "Awarely Scan: installation and guided scanning",
-  "intro": "Start with the simplified installer and guided menu for Linux, npm, Python or Java. Finish with a local file, API check or synchronization. CLI messages are in English. Manual commands remain below for automation; example names and credentials are fictional.",
+  "version": "v0.8.0-alpha.1",
+  "title": "Awarely Scan: from installation to your first result",
+  "intro": "Follow the simple path: prepare Linux, install the scanner, choose from its menu and read the result. No Python commands or JSON editing are needed. CLI messages and commands are in English. Examples are fictional; replace them with paths and names from your machine.",
   "sections": [
+    {
+      "id": "start-here",
+      "title": "Start here: your first scan in 4 steps",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "An SBOM is a list of software components and their versions. A local scan creates this list; Check looks for vulnerabilities, while Sync saves the list in Monitor. For your first try, choose Linux and keep the local file: no account or API credential is needed."
+        },
+        {
+          "type": "list",
+          "items": [
+            "Open a terminal on the Linux machine you want to scan. For a remote server, connect through SSH first. Do not run the Linux installer in a macOS or Windows terminal.",
+            "Prepare the tools: open section 2 and run only the commands for your distribution. Ubuntu/Debian use apt; Amazon Linux/Rocky/AlmaLinux use dnf/yum. GitHub login is not required.",
+            "Install once using the simplified installation section. Continue only after READY appears. On later runs, open the menu directly.",
+            "Run the command below. Choose 1 for Linux, Enter for the recommended scope, a name for the inventory, Enter for the results directory and 1 for local output. Keep the path shown after Saved local SBOM."
+          ]
+        },
+        {
+          "type": "code",
+          "language": "sh",
+          "code": "\"$HOME/.local/bin/awarely-scan\" guided"
+        },
+        {
+          "type": "paragraph",
+          "text": "The longer sections marked “manual alternative” are for automation. You do not need to run them after the guided menu. The scanner does not create /srv/demo-shop, /srv/demo-python or /srv/demo-java: use your own application directories."
+        }
+      ]
+    },
     {
       "id": "quick-install",
       "title": "Start: simplified one-time installation",
@@ -19,7 +47,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \\\n  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.7.0-alpha.2/install.sh \\\n  -o awarely-install.sh\n# Review the installer before running it.\nless awarely-install.sh\nsh awarely-install.sh\n\"$HOME/.local/bin/awarely-scan\" guided"
+          "code": "curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \\\n  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.8.0-alpha.1/install.sh \\\n  -o awarely-install.sh\n# Review the installer before running it.\nless awarely-install.sh\nsh awarely-install.sh\n\"$HOME/.local/bin/awarely-scan\" guided"
         },
         {
           "type": "paragraph",
@@ -68,12 +96,21 @@
               "5. Other ecosystems",
               "/srv/my-app",
               "Syft for NuGet/Go/Composer/RubyGems/Cargo. Inventory and sync supported; CVE assessment unevaluated."
+            ],
+            [
+              "6. Existing SBOM",
+              "/home/demo-user/awarely-results-EXAMPLE/inventory.cdx.json",
+              "Open a saved Awarely inventory for Check/Sync, without rescanning."
             ]
           ]
         },
         {
           "type": "paragraph",
-          "text": "Enter real paths without quotes or shell commands. The scanner checks inputs and explains missing items before collection. For Syft, type yes only to approve preparation and execution: it downloads a fixed version (~30 MB), verified against the hash pinned in the Awarely release. The archive is kept in ~/.awarely-scan-tools and rechecked on every use; no gh/Cosign or system package installation is needed. Syft configuration disables network enrichment; use a separate sandbox for untrusted projects."
+          "text": "The menu has 3 stages: choose a scan, save locally and choose an action. Enter accepts the value in [brackets]. b goes back; q quits and keeps completed exports. Colors appear only in a terminal; every message also works without color. Disable colors with: NO_COLOR=1 \"$HOME/.local/bin/awarely-scan\" guided."
+        },
+        {
+          "type": "paragraph",
+          "text": "Enter an existing path. ~/my-app, relative paths and quoted paths are accepted. A wrong path or a file selected instead of a directory produces an explanation and another prompt. Typed shell commands are never executed. For Syft, yes approves preparation of the pinned version (~30 MB), verification and local execution. Its private cache is reverified on every use; no Cosign or GitHub login is required. It does not install dependencies or build the project."
         },
         {
           "type": "paragraph",
@@ -85,7 +122,7 @@
             "Choose 1 or press Enter: keep the local file. For browser upload, follow section 7.",
             "Choose 2: API check. Create a credential using section 8, transfer it outside the project, apply chmod 600 and enter its file path. The menu shows the destination, application and source; confirm yes. You receive check-result.json in the same folder and a terminal summary. Saved inventory and alerts are unchanged.",
             "Choose 3: API sync. Available only for complete inventories. Review the displayed source and confirm yes: only that source is immediately replaced. You receive sync-result.json. Future alerts follow saved preferences; no retrospective email is sent.",
-            "If no credential is ready or you do not want the operation, enter q or answer no. A completed local export remains available. Restart the menu any time for a fresh scan."
+            "If no credential is ready or you do not want the operation, enter q or answer no. A completed local export remains available. Use option 6 to reopen the saved file without rescanning."
           ]
         },
         {
@@ -95,6 +132,14 @@
         {
           "type": "paragraph",
           "text": "Exit code 3 means a partial inventory was written, not that a CVE was found. Code 0 does not guarantee absence of vulnerabilities. Review versions, precision and unevaluated components in the report. Commands in the following sections are alternatives for automation; they are not extra steps after the menu."
+        },
+        {
+          "type": "paragraph",
+          "text": "A successful Check creates check-result.json with complete evidence and check-summary.txt, a readable text file containing all matches and unevaluated components. The terminal previews the first 10 component–CVE matches. Open the text file with less /path/to/check-summary.txt; q closes the viewer. Zero matches does not mean the application is secure; review coverage and unevaluated components too."
+        },
+        {
+          "type": "paragraph",
+          "text": "If the credential file is wrong, enter another path without rescanning. After a Check error, you can retry with a new confirmation. After a Sync error, inspect the source in Settings → Assets before retrying: the request might already have committed. The scanner never automatically repeats an uncertain sync. To continue later, choose option 6 and your saved SBOM."
         }
       ]
     },
@@ -296,7 +341,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "SCAN_BIN=\numask 077\nSCAN_WORK=$(mktemp -d \"$HOME/awarely-scan.XXXXXXXX\")\n(\nset -eu\n: \"${SCAN_WORK:?Could not create working directory}\"\nfor tool in curl tar sha256sum awk gh; do\n  command -v \"$tool\" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\\n' \"$tool\" >&2; exit 1; }\ndone\ngh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }\ncd \"$SCAN_WORK\"\nSCAN_VERSION=v0.7.0-alpha.2\ncase \"$(uname -m)\" in\n  x86_64) SCAN_ARCH=amd64 ;;\n  aarch64|arm64) SCAN_ARCH=arm64 ;;\n  *) echo \"Unsupported architecture\" >&2; exit 1 ;;\nesac\nSCAN_ARCHIVE=\"awarely-scan_${SCAN_VERSION}_linux_${SCAN_ARCH}.tar.gz\"\nSCAN_RELEASE=\"https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/${SCAN_VERSION}\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE\" -o \"$SCAN_ARCHIVE\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/SHA256SUMS\" -o SHA256SUMS\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE.sigstore.jsonl\" -o \"$SCAN_ARCHIVE.sigstore.jsonl\"\ngh attestation verify \"$SCAN_ARCHIVE\" \\\n  --bundle \"$SCAN_ARCHIVE.sigstore.jsonl\" \\\n  --repo awarelyeu/awarely-sbom-scanner \\\n  --signer-workflow awarelyeu/awarely-sbom-scanner/.github/workflows/release.yml \\\n  --source-ref \"refs/tags/$SCAN_VERSION\"\nawk -v file=\"$SCAN_ARCHIVE\" '$2 == file { print; found=1 } END { if (!found) exit 1 }' SHA256SUMS > selected-SHA256SUMS\nsha256sum --check selected-SHA256SUMS\nmkdir release\ntar -xzf \"$SCAN_ARCHIVE\" -C release\n(cd release && sha256sum --check SHA256SUMS)\n\"$SCAN_WORK/release/awarely-scan\" version\n\"$SCAN_WORK/release/awarely-scan\" help\nprintf 'Working directory: %s\\n' \"$SCAN_WORK\"\n)\nSCAN_INSTALL_STATUS=$?\nif [ \"$SCAN_INSTALL_STATUS\" -eq 0 ]; then\n  SCAN_BIN=\"$SCAN_WORK/release/awarely-scan\"\n  printf 'READY: %s\\n' \"$SCAN_BIN\"\nelse\n  SCAN_BIN=\n  printf 'STOP: installation incomplete in %s. Fix the error and rerun all of step 3. Do not scan yet.\\n' \"$SCAN_WORK\" >&2\n  (exit \"$SCAN_INSTALL_STATUS\")\nfi"
+          "code": "SCAN_BIN=\numask 077\nSCAN_WORK=$(mktemp -d \"$HOME/awarely-scan.XXXXXXXX\")\n(\nset -eu\n: \"${SCAN_WORK:?Could not create working directory}\"\nfor tool in curl tar sha256sum awk gh; do\n  command -v \"$tool\" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\\n' \"$tool\" >&2; exit 1; }\ndone\ngh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }\ncd \"$SCAN_WORK\"\nSCAN_VERSION=v0.8.0-alpha.1\ncase \"$(uname -m)\" in\n  x86_64) SCAN_ARCH=amd64 ;;\n  aarch64|arm64) SCAN_ARCH=arm64 ;;\n  *) echo \"Unsupported architecture\" >&2; exit 1 ;;\nesac\nSCAN_ARCHIVE=\"awarely-scan_${SCAN_VERSION}_linux_${SCAN_ARCH}.tar.gz\"\nSCAN_RELEASE=\"https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/${SCAN_VERSION}\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE\" -o \"$SCAN_ARCHIVE\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/SHA256SUMS\" -o SHA256SUMS\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE.sigstore.jsonl\" -o \"$SCAN_ARCHIVE.sigstore.jsonl\"\ngh attestation verify \"$SCAN_ARCHIVE\" \\\n  --bundle \"$SCAN_ARCHIVE.sigstore.jsonl\" \\\n  --repo awarelyeu/awarely-sbom-scanner \\\n  --signer-workflow awarelyeu/awarely-sbom-scanner/.github/workflows/release.yml \\\n  --source-ref \"refs/tags/$SCAN_VERSION\"\nawk -v file=\"$SCAN_ARCHIVE\" '$2 == file { print; found=1 } END { if (!found) exit 1 }' SHA256SUMS > selected-SHA256SUMS\nsha256sum --check selected-SHA256SUMS\nmkdir release\ntar -xzf \"$SCAN_ARCHIVE\" -C release\n(cd release && sha256sum --check SHA256SUMS)\n\"$SCAN_WORK/release/awarely-scan\" version\n\"$SCAN_WORK/release/awarely-scan\" help\nprintf 'Working directory: %s\\n' \"$SCAN_WORK\"\n)\nSCAN_INSTALL_STATUS=$?\nif [ \"$SCAN_INSTALL_STATUS\" -eq 0 ]; then\n  SCAN_BIN=\"$SCAN_WORK/release/awarely-scan\"\n  printf 'READY: %s\\n' \"$SCAN_BIN\"\nelse\n  SCAN_BIN=\n  printf 'STOP: installation incomplete in %s. Fix the error and rerun all of step 3. Do not scan yet.\\n' \"$SCAN_WORK\" >&2\n  (exit \"$SCAN_INSTALL_STATUS\")\nfi"
         },
         {
           "type": "paragraph",
@@ -340,7 +385,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "\"$SCAN_BIN\" check --input \"$SCAN_WORK/debian-13-web-01.cdx.json\" \\\n  --credentials \"$SCAN_WORK/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/debian-13-web-01.check.json\""
+          "code": "\"$SCAN_BIN\" check --input \"$SCAN_WORK/debian-13-web-01.cdx.json\" \\\n  --credentials \"$HOME/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/debian-13-web-01.check.json\""
         },
         {
           "type": "paragraph",
@@ -349,7 +394,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "\"$SCAN_BIN\" sync --input \"$SCAN_WORK/debian-13-web-01.cdx.json\" \\\n  --credentials \"$SCAN_WORK/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/debian-13-web-01.receipt.json\""
+          "code": "\"$SCAN_BIN\" sync --input \"$SCAN_WORK/debian-13-web-01.cdx.json\" \\\n  --credentials \"$HOME/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/debian-13-web-01.receipt.json\""
         }
       ]
     },
@@ -381,7 +426,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "\"$SCAN_BIN\" check --input \"$SCAN_WORK/ubuntu-24-04-web-01.cdx.json\" \\\n  --credentials \"$SCAN_WORK/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/ubuntu-24-04-web-01.check.json\""
+          "code": "\"$SCAN_BIN\" check --input \"$SCAN_WORK/ubuntu-24-04-web-01.cdx.json\" \\\n  --credentials \"$HOME/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/ubuntu-24-04-web-01.check.json\""
         },
         {
           "type": "paragraph",
@@ -390,7 +435,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "\"$SCAN_BIN\" sync --input \"$SCAN_WORK/ubuntu-24-04-web-01.cdx.json\" \\\n  --credentials \"$SCAN_WORK/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/ubuntu-24-04-web-01.receipt.json\""
+          "code": "\"$SCAN_BIN\" sync --input \"$SCAN_WORK/ubuntu-24-04-web-01.cdx.json\" \\\n  --credentials \"$HOME/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/ubuntu-24-04-web-01.receipt.json\""
         }
       ]
     },
@@ -422,7 +467,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "\"$SCAN_BIN\" check --input \"$SCAN_WORK/rocky-9-web-01.cdx.json\" \\\n  --credentials \"$SCAN_WORK/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/rocky-9-web-01.check.json\""
+          "code": "\"$SCAN_BIN\" check --input \"$SCAN_WORK/rocky-9-web-01.cdx.json\" \\\n  --credentials \"$HOME/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/rocky-9-web-01.check.json\""
         },
         {
           "type": "paragraph",
@@ -431,7 +476,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "\"$SCAN_BIN\" sync --input \"$SCAN_WORK/rocky-9-web-01.cdx.json\" \\\n  --credentials \"$SCAN_WORK/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/rocky-9-web-01.receipt.json\""
+          "code": "\"$SCAN_BIN\" sync --input \"$SCAN_WORK/rocky-9-web-01.cdx.json\" \\\n  --credentials \"$HOME/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/rocky-9-web-01.receipt.json\""
         }
       ]
     },
@@ -463,7 +508,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "\"$SCAN_BIN\" check --input \"$SCAN_WORK/alma-9-web-01.cdx.json\" \\\n  --credentials \"$SCAN_WORK/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/alma-9-web-01.check.json\""
+          "code": "\"$SCAN_BIN\" check --input \"$SCAN_WORK/alma-9-web-01.cdx.json\" \\\n  --credentials \"$HOME/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/alma-9-web-01.check.json\""
         },
         {
           "type": "paragraph",
@@ -472,7 +517,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "\"$SCAN_BIN\" sync --input \"$SCAN_WORK/alma-9-web-01.cdx.json\" \\\n  --credentials \"$SCAN_WORK/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/alma-9-web-01.receipt.json\""
+          "code": "\"$SCAN_BIN\" sync --input \"$SCAN_WORK/alma-9-web-01.cdx.json\" \\\n  --credentials \"$HOME/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/alma-9-web-01.receipt.json\""
         }
       ]
     },
@@ -504,7 +549,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "\"$SCAN_BIN\" check --input \"$SCAN_WORK/al2023-web-01.cdx.json\" \\\n  --credentials \"$SCAN_WORK/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/al2023-web-01.check.json\""
+          "code": "\"$SCAN_BIN\" check --input \"$SCAN_WORK/al2023-web-01.cdx.json\" \\\n  --credentials \"$HOME/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/al2023-web-01.check.json\""
         },
         {
           "type": "paragraph",
@@ -513,7 +558,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "\"$SCAN_BIN\" sync --input \"$SCAN_WORK/al2023-web-01.cdx.json\" \\\n  --credentials \"$SCAN_WORK/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/al2023-web-01.receipt.json\""
+          "code": "\"$SCAN_BIN\" sync --input \"$SCAN_WORK/al2023-web-01.cdx.json\" \\\n  --credentials \"$HOME/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/al2023-web-01.receipt.json\""
         }
       ]
     },
@@ -545,7 +590,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "\"$SCAN_BIN\" check --input \"$SCAN_WORK/al2-legacy-01.cdx.json\" \\\n  --credentials \"$SCAN_WORK/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/al2-legacy-01.check.json\""
+          "code": "\"$SCAN_BIN\" check --input \"$SCAN_WORK/al2-legacy-01.cdx.json\" \\\n  --credentials \"$HOME/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/al2-legacy-01.check.json\""
         },
         {
           "type": "paragraph",
@@ -554,7 +599,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "\"$SCAN_BIN\" sync --input \"$SCAN_WORK/al2-legacy-01.cdx.json\" \\\n  --credentials \"$SCAN_WORK/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/al2-legacy-01.receipt.json\""
+          "code": "\"$SCAN_BIN\" sync --input \"$SCAN_WORK/al2-legacy-01.cdx.json\" \\\n  --credentials \"$HOME/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/al2-legacy-01.receipt.json\""
         }
       ]
     },
@@ -771,17 +816,21 @@
         },
         {
           "type": "paragraph",
-          "text": "Example transfer, run on the workstation that downloaded the configuration. Replace the fictional user, host and directory with your host and the exact SCAN_WORK directory printed on it. Skip the transfer when browser and CLI run on the same machine; move the downloaded file into SCAN_WORK instead."
+          "text": "Run the transfer on the computer where the browser downloaded the file, NOT inside the server’s SSH session. Replace demo-user and demo-host.example.invalid with your server’s login and address. The file goes into that Linux user’s home directory. If the browser and scanner run on the same machine, skip scp and use the downloaded file’s path."
         },
         {
           "type": "code",
           "language": "sh",
-          "code": "scp ./awarely-credentials.json \\\n  demo-user@demo-host.example.invalid:/home/demo-user/awarely-scan.REPLACE/awarely-credentials.json"
+          "code": "scp \"$HOME/Downloads/awarely-credentials.json\" \\\n  demo-user@demo-host.example.invalid:/home/demo-user/awarely-credentials.json"
+        },
+        {
+          "type": "paragraph",
+          "text": "After the transfer, return to the Linux terminal (SSH session) and run the chmod/ls commands below. At Credential JSON file, enter the full path, for example /home/demo-user/awarely-credentials.json. Do not enter the token stored in the file."
         },
         {
           "type": "code",
           "language": "sh",
-          "code": "chmod 600 \"$SCAN_WORK/awarely-credentials.json\"\nls -l \"$SCAN_WORK/awarely-credentials.json\""
+          "code": "chmod 600 \"$HOME/awarely-credentials.json\"\nls -l \"$HOME/awarely-credentials.json\""
         },
         {
           "type": "paragraph",
@@ -809,7 +858,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "\"$SCAN_BIN\" check --input \"$SCAN_WORK/demo-shop.cdx.json\" \\\n  --credentials \"$SCAN_WORK/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/demo-shop.check.json\""
+          "code": "\"$SCAN_BIN\" check --input \"$SCAN_WORK/demo-shop.cdx.json\" \\\n  --credentials \"$HOME/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/demo-shop.check.json\""
         },
         {
           "type": "paragraph",
@@ -828,7 +877,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "\"$SCAN_BIN\" sync --input \"$SCAN_WORK/demo-shop.cdx.json\" \\\n  --credentials \"$SCAN_WORK/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/demo-shop.receipt.json\""
+          "code": "\"$SCAN_BIN\" sync --input \"$SCAN_WORK/demo-shop.cdx.json\" \\\n  --credentials \"$HOME/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/demo-shop.receipt.json\""
         },
         {
           "type": "list",
@@ -873,7 +922,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "\"$SCAN_BIN\" host --name demo-web \\\n  --output \"$SCAN_WORK/demo-web-after.cdx.json\"\n\"$SCAN_BIN\" check --input \"$SCAN_WORK/demo-web-after.cdx.json\" \\\n  --credentials \"$SCAN_WORK/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/demo-web-after.check.json\"\n\"$SCAN_BIN\" sync --input \"$SCAN_WORK/demo-web-after.cdx.json\" \\\n  --credentials \"$SCAN_WORK/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/demo-web-after.receipt.json\""
+          "code": "\"$SCAN_BIN\" host --name demo-web \\\n  --output \"$SCAN_WORK/demo-web-after.cdx.json\"\n\"$SCAN_BIN\" check --input \"$SCAN_WORK/demo-web-after.cdx.json\" \\\n  --credentials \"$HOME/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/demo-web-after.check.json\"\n\"$SCAN_BIN\" sync --input \"$SCAN_WORK/demo-web-after.cdx.json\" \\\n  --credentials \"$HOME/awarely-credentials.json\" \\\n  --output \"$SCAN_WORK/demo-web-after.receipt.json\""
         },
         {
           "type": "paragraph",
@@ -959,6 +1008,35 @@
       "id": "troubleshooting",
       "title": "15. Troubleshooting and exit codes",
       "blocks": [
+        {
+          "type": "table",
+          "headers": [
+            "Message / situation",
+            "What to do"
+          ],
+          "rows": [
+            [
+              "Directory does not exist",
+              "Correct the path at the same prompt; b changes the scan type. /src and /srv are different directories."
+            ],
+            [
+              "No JAR/WAR/EAR found",
+              "Choose the directory containing the built Java application. Ask your team for the artifact if you only have source code."
+            ],
+            [
+              "Credential file rejected",
+              "Check the filename and chmod 600; never paste the token into the terminal. Enter the path again."
+            ],
+            [
+              "ECOSYSTEM_NOT_EVALUATED",
+              "Inventory is available, but CVE assessment for this ecosystem is not implemented."
+            ],
+            [
+              "Synchronization was not confirmed",
+              "Inspect the source inventory in the app before retrying. Your local file is preserved."
+            ]
+          ]
+        },
         {
           "type": "table",
           "headers": [

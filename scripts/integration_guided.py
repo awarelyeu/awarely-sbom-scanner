@@ -28,6 +28,7 @@ with tempfile.TemporaryDirectory(prefix='awarely-guided-test-') as directory:
  run('declined',['4',str(app),'no'])
  assert not list(root.glob('.awarely-scan-tools/*.tar.gz'))
  run('npm',['2',str(app),'1','demo',str(root),'1'],isolated=True)
+ run('recovery',['3','b','2','/missing/awarely-demo',str(app/'package-lock.json'), '"'+str(app)+'"','1','demo',str(app/'package-lock.json'),str(root),'1'])
  run('python',['3',str(app),'1','demo',str(root),'1'],expected=3,isolated=True)
  run('java-download',['4',str(app),'yes','java-demo',str(root),'1'])
  run('java-offline',['4',str(app),'yes','java-demo',str(root),'1'],isolated=True)

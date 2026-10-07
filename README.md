@@ -62,6 +62,10 @@ Choose **Linux, npm, Python, Java, or other application ecosystems**. The scanne
 - Managed Syft uses a pinned archive, verified on every run, with an isolated environment and fixed offline configuration. No gh/Cosign commands are needed for this step. The initial Awarely installer uses gh for signed build provenance, without GitHub authentication.
 - API requests need your explicitly selected private credential file and confirmation. Check preserves saved inventory; sync replaces only the credential's source. Partial inventories cannot sync.
 
+Correct a mistyped path without restarting. Use `b` to go back and `q` to quit; quoted paths and `~/` are accepted. Option **6** reopens a saved Awarely SBOM for check or sync without scanning again. Terminal colors respect `NO_COLOR` and disappear from redirected output.
+
+Checks save both the complete `check-result.json` and a readable `check-summary.txt`, including matches and unevaluated components. Check retries require confirmation. An uncertain sync is never automatically repeated; inspect the source in Monitor before retrying.
+
 See the complete [English](docs/how-to.md) or [Romanian](docs/how-to.ro.md) walkthrough. Existing commands below remain available for scripts and CI.
 
 ## Noninteractive commands

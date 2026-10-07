@@ -76,7 +76,12 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 			fmt.Fprintln(errOut, "Guided mode accepts no arguments. Use host/app/import/check/sync for automation.")
 			return 2
 		}
-		return guided.Run(parent, os.Stdin, out, errOut, version)
+		_, noColor := os.LookupEnv("NO_COLOR")
+		color := false
+		if f, ok := out.(*os.File); ok {
+			color = fileTerminal(f) && !noColor && os.Getenv("TERM") != "dumb"
+		}
+		return guided.RunWithColor(parent, os.Stdin, out, errOut, version, color)
 	}
 	if args[0] == "version" {
 		fmt.Fprintln(out, "awarely-scan", version)

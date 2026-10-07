@@ -1,9 +1,9 @@
-# Guided Linux and application scans
+# A clearer guided scanning experience
 
-Start `awarely-scan` in a terminal, or run `awarely-scan guided`. Choose Linux, npm, Python, Java or other application ecosystems. The scanner checks inputs, explains missing prerequisites, creates a private SBOM and offers local export, API check or scoped API sync.
+The guided menu now lets you correct paths, labels, result directories and credential files without restarting. Use `b` to go back, `q` to quit, and option 6 to reopen a saved Awarely SBOM for check or sync. Relative paths, `~/` and quoted paths are supported without shell execution.
 
-Optional Syft preparation uses a fixed, digest-verified archive and requires confirmation. It needs no separately installed Cosign, gh, Java or Python runtime to inspect existing artifacts. The initial Awarely installer verifies release provenance using public bundles without GitHub login. Project builds and dependency installation remain under your control.
+Terminal-only colors respect `NO_COLOR` and `TERM=dumb`. API checks include a readable `check-summary.txt` alongside the complete JSON evidence. Check retries need a new confirmation; uncertain syncs are never retried automatically. Report-saving recovery does not repeat an API request.
 
-API transmission requires a separate confirmation showing its destination and source. Partial inventories cannot sync. Native host/app/import commands retain their offline behavior; existing automation commands remain supported.
+Local-first defaults, private files, verification of optional Syft, explicit transmission consent and partial-inventory sync restrictions remain in place. Noninteractive command contracts and ecosystem assessment coverage are unchanged.
 
-See the [English guide](https://github.com/awarelyeu/awarely-sbom-scanner/blob/v0.7.0-alpha.2/docs/how-to.md) and [Romanian guide](https://github.com/awarelyeu/awarely-sbom-scanner/blob/v0.7.0-alpha.2/docs/how-to.ro.md). This remains a prerelease pending the user walkthrough. Jenkins is a later stage. Ecosystem CVE coverage is unchanged; inventory support is not a vulnerability verdict.
+See the [English guide](https://github.com/awarelyeu/awarely-sbom-scanner/blob/main/docs/how-to.md) or [Romanian guide](https://github.com/awarelyeu/awarely-sbom-scanner/blob/main/docs/how-to.ro.md). This is a prerelease.

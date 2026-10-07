@@ -1,11 +1,12 @@
-# Awarely Scan: instalare și scanare ghidată
+# Awarely Scan: de la instalare la primul rezultat
 
-Începe cu instalarea simplificată și meniul ghidat pentru Linux, npm, Python sau Java. Alege la final fișier local, verificare API sau sincronizare. Mesajele CLI sunt în engleză. Comenzile manuale rămân mai jos pentru automatizări; numele și credențialele din exemple sunt fictive.
+Urmează traseul simplu: pregătești Linux, instalezi scannerul, alegi din meniu și citești rezultatul. Nu trebuie să știi Python sau să editezi JSON. Mesajele și comenzile CLI sunt în engleză. Exemplele sunt fictive și trebuie adaptate la calculatorul tău.
 
 [English](how-to.md) · [Română](how-to.ro.md)
 
-Release: `v0.7.0-alpha.2`
+Release: `v0.8.0-alpha.1`
 
+- [Începe aici: prima scanare în 4 pași](#start-here)
 - [Start: instalare simplificată, o singură dată](#quick-install)
 - [Scanare ghidată: alegerile din meniu](#guided)
 - [1. Alege fluxul](#choose)
@@ -30,6 +31,24 @@ Release: `v0.7.0-alpha.2`
 - [14. Limite și reîncercări](#limits)
 - [15. Probleme uzuale și coduri de ieșire](#troubleshooting)
 
+<a id="start-here"></a>
+
+## Începe aici: prima scanare în 4 pași
+
+Un SBOM este lista componentelor software și a versiunilor lor. Scanarea locală creează această listă; Check caută vulnerabilități, iar Sync salvează lista în Monitor. Pentru prima încercare, alege scanare Linux și păstrarea fișierului local: nu ai nevoie de cont sau cheie API.
+
+1. Deschide terminalul pe mașina Linux de scanat. Dacă e un server, conectează-te prin SSH înainte. Nu rula instalarea Linux în terminalul macOS sau Windows.
+2. Pregătește uneltele: deschide secțiunea 2 și rulează numai comenzile distribuției tale. Ubuntu/Debian folosesc apt; Amazon Linux/Rocky/AlmaLinux folosesc dnf/yum. Nu este necesară autentificarea GitHub.
+3. Instalează o singură dată folosind secțiunea de instalare simplificată. Continuă numai după mesajul READY. La fiecare utilizare ulterioară deschizi direct meniul.
+4. Rulează comanda de mai jos. Alege 1 pentru Linux, Enter pentru selecția recomandată, un nume pentru inventar, Enter pentru director și 1 pentru fișier local. Păstrează calea afișată la Saved local SBOM.
+
+```sh
+"$HOME/.local/bin/awarely-scan" guided
+```
+
+Comenzile lungi marcate „alternativă manuală” sunt pentru automatizări. Nu trebuie executate după meniul ghidat. Nici directoarele /srv/demo-shop, /srv/demo-python sau /srv/demo-java nu sunt create de scanner: folosește directoarele aplicațiilor tale.
+
+
 <a id="quick-install"></a>
 
 ## Start: instalare simplificată, o singură dată
@@ -40,7 +59,7 @@ Descarcă și citește installerul oficial (în less, apasă q pentru a ieși), 
 
 ```sh
 curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \
-  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.7.0-alpha.2/install.sh \
+  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.8.0-alpha.1/install.sh \
   -o awarely-install.sh
 # Review the installer before running it.
 less awarely-install.sh
@@ -66,8 +85,11 @@ După READY, nu mai ai de copiat comenzile pentru Syft/Cosign. Deschide meniul d
 | 3. Python | /srv/demo-python → 1 (requirements.txt) / 2 (installed environment) | Modul 1 este parțial; modul 2 cere metadatele unei .venv existente și poate pregăti Syft. |
 | 4. Java | /srv/demo-java | Cere artefacte JAR/WAR/EAR existente; nu instalează Java/Maven și nu construiește proiectul. |
 | 5. Other ecosystems | /srv/my-app | Syft pentru NuGet/Go/Composer/RubyGems/Cargo. Inventar și sync disponibile; CVE neevaluat. |
+| 6. SBOM existent | /home/demo-user/awarely-results-EXAMPLE/inventory.cdx.json | Deschide un inventar Awarely salvat pentru Check/Sync; fără o nouă scanare. |
 
-Introdu căi reale, fără ghilimele sau comenzi shell. Scannerul verifică intrările și explică lipsurile înainte de colectare. Pentru Syft, confirmă yes doar dacă dorești pregătirea și rularea lui: se descarcă o versiune fixă (~30 MB), verificată după hash-ul din release-ul Awarely. Arhiva este păstrată în ~/.awarely-scan-tools și reverificată la fiecare utilizare; nu cere gh/Cosign și nu instalează pachete în sistem. Configurația Syft dezactivează îmbogățirea prin rețea; rulează proiecte de neîncredere într-un sandbox separat.
+Meniul are 3 etape: alegerea scanării, salvarea locală și alegerea acțiunii. Enter acceptă valoarea dintre [paranteze]. b revine la pasul anterior; q închide păstrând fișierele deja salvate. Culorile apar numai în terminal; mesajele rămân lizibile și fără culori. Pentru dezactivare: NO_COLOR=1 "$HOME/.local/bin/awarely-scan" guided.
+
+Introdu o cale existentă. Sunt acceptate ~/my-app, căile relative și căile între ghilimele. Dacă greșești calea sau alegi un fișier în locul directorului, scannerul explică problema și cere o nouă cale. Nu execută comenzile introduse. Pentru Syft, yes aprobă descărcarea versiunii fixate (~30 MB), verificarea și rularea locală. Cache-ul privat este reverificat la fiecare utilizare; nu sunt necesare Cosign sau autentificare GitHub. Nu instalează dependențe și nu construiește proiectul.
 
 După scanare, alege un nume de aplicație și directorul părinte pentru rezultate (Enter păstrează directorul home). Scannerul creează un folder privat awarely-results-... și afișează calea completă către inventory.cdx.json. Fiecare scanare are propriul folder, deci nu trebuie să inventezi nume noi. Nu trimite încă inventarul.
 
@@ -79,6 +101,10 @@ După scanare, alege un nume de aplicație și directorul părinte pentru rezult
 Exemplu npm: 2 → /srv/demo-shop → 1 → demo-shop → Enter → 1. Exemplu Java: 4 → /srv/demo-java → yes → demo-java → Enter → 1. Pentru Python cu pachete instalate: 3 → /srv/demo-python → 2 → yes → demo-python → Enter → 1. Linux: 1 → 1 → test-linux → Enter → 1.
 
 Exit code 3 înseamnă că s-a scris un inventar parțial, nu că s-a găsit un CVE. Codul 0 nu garantează absența vulnerabilităților. Examinează versiunile, precizia și componentele neevaluate din raport. Comenzile din secțiunile următoare sunt alternative pentru automatizări; nu trebuie rulate în plus față de meniu.
+
+Un Check reușit creează check-result.json cu dovezile complete și check-summary.txt, un rezumat text cu toate potrivirile și componentele neevaluate. Terminalul arată primele 10 potriviri componentă–CVE. Deschide fișierul text cu less /cale/catre/check-summary.txt; q închide vizualizarea. Zero potriviri nu înseamnă că aplicația este sigură; verifică și acoperirea și componentele neevaluate.
+
+Dacă fișierul de acces este greșit, introdu altă cale fără să rescanezi. După o eroare Check poți reîncerca cu o nouă confirmare. După o eroare Sync, verifică sursa în Setări → Active înainte de reluare: cererea ar putea fi deja aplicată. Scannerul nu repetă automat o sincronizare incertă. Pentru reluare mai târziu, alege opțiunea 6 și SBOM-ul salvat.
 
 
 <a id="choose"></a>
@@ -246,7 +272,7 @@ for tool in curl tar sha256sum awk gh; do
 done
 gh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }
 cd "$SCAN_WORK"
-SCAN_VERSION=v0.7.0-alpha.2
+SCAN_VERSION=v0.8.0-alpha.1
 case "$(uname -m)" in
   x86_64) SCAN_ARCH=amd64 ;;
   aarch64|arm64) SCAN_ARCH=arm64 ;;
@@ -308,7 +334,7 @@ Doar verificare (fără modificarea inventarului salvat):
 
 ```sh
 "$SCAN_BIN" check --input "$SCAN_WORK/debian-13-web-01.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/debian-13-web-01.check.json"
 ```
 
@@ -316,7 +342,7 @@ Opțional: sync înlocuiește această sursă în inventarul salvat. Rulează do
 
 ```sh
 "$SCAN_BIN" sync --input "$SCAN_WORK/debian-13-web-01.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/debian-13-web-01.receipt.json"
 ```
 
@@ -340,7 +366,7 @@ Doar verificare (fără modificarea inventarului salvat):
 
 ```sh
 "$SCAN_BIN" check --input "$SCAN_WORK/ubuntu-24-04-web-01.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/ubuntu-24-04-web-01.check.json"
 ```
 
@@ -348,7 +374,7 @@ Opțional: sync înlocuiește această sursă în inventarul salvat. Rulează do
 
 ```sh
 "$SCAN_BIN" sync --input "$SCAN_WORK/ubuntu-24-04-web-01.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/ubuntu-24-04-web-01.receipt.json"
 ```
 
@@ -372,7 +398,7 @@ Doar verificare (fără modificarea inventarului salvat):
 
 ```sh
 "$SCAN_BIN" check --input "$SCAN_WORK/rocky-9-web-01.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/rocky-9-web-01.check.json"
 ```
 
@@ -380,7 +406,7 @@ Opțional: sync înlocuiește această sursă în inventarul salvat. Rulează do
 
 ```sh
 "$SCAN_BIN" sync --input "$SCAN_WORK/rocky-9-web-01.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/rocky-9-web-01.receipt.json"
 ```
 
@@ -404,7 +430,7 @@ Doar verificare (fără modificarea inventarului salvat):
 
 ```sh
 "$SCAN_BIN" check --input "$SCAN_WORK/alma-9-web-01.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/alma-9-web-01.check.json"
 ```
 
@@ -412,7 +438,7 @@ Opțional: sync înlocuiește această sursă în inventarul salvat. Rulează do
 
 ```sh
 "$SCAN_BIN" sync --input "$SCAN_WORK/alma-9-web-01.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/alma-9-web-01.receipt.json"
 ```
 
@@ -436,7 +462,7 @@ Doar verificare (fără modificarea inventarului salvat):
 
 ```sh
 "$SCAN_BIN" check --input "$SCAN_WORK/al2023-web-01.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/al2023-web-01.check.json"
 ```
 
@@ -444,7 +470,7 @@ Opțional: sync înlocuiește această sursă în inventarul salvat. Rulează do
 
 ```sh
 "$SCAN_BIN" sync --input "$SCAN_WORK/al2023-web-01.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/al2023-web-01.receipt.json"
 ```
 
@@ -468,7 +494,7 @@ Doar verificare (fără modificarea inventarului salvat):
 
 ```sh
 "$SCAN_BIN" check --input "$SCAN_WORK/al2-legacy-01.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/al2-legacy-01.check.json"
 ```
 
@@ -476,7 +502,7 @@ Opțional: sync înlocuiește această sursă în inventarul salvat. Rulează do
 
 ```sh
 "$SCAN_BIN" sync --input "$SCAN_WORK/al2-legacy-01.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/al2-legacy-01.receipt.json"
 ```
 
@@ -704,16 +730,18 @@ Acoperirea completă înseamnă că toate componentele software acceptate din fi
 4. Apasă Creează token, apoi imediat Descarcă configurația secretă. Secretul este disponibil o singură dată și nu poate fi recuperat ulterior. Copiază securizat fișierul descărcat pe Linux, în afara proiectului, la calea de mai jos.
 5. Pentru alt server sau proiect întreținut independent creează altă sursă. Dacă folosești aceeași sursă pe servere diferite, fiecare sync înlocuiește snapshot-ul precedent. Aplicația/sursa/mediul sunt fixate de server; --name nu schimbă asocierea.
 
-Exemplu de transfer, rulat pe stația unde ai descărcat configurația. Înlocuiește utilizatorul, gazda și directorul fictiv cu gazda ta și calea SCAN_WORK de pe ea. Dacă browserul și CLI-ul rulează pe aceeași mașină, mută direct fișierul descărcat în SCAN_WORK.
+Transferul se rulează pe calculatorul unde browserul a descărcat fișierul, NU în sesiunea SSH a serverului. În exemplu, schimbă demo-user și demo-host.example.invalid cu utilizatorul și adresa serverului tău. Fișierul ajunge în directorul personal al utilizatorului Linux. Dacă browserul și scannerul sunt pe aceeași mașină, nu ai nevoie de scp; folosește calea fișierului descărcat.
 
 ```sh
-scp ./awarely-credentials.json \
-  demo-user@demo-host.example.invalid:/home/demo-user/awarely-scan.REPLACE/awarely-credentials.json
+scp "$HOME/Downloads/awarely-credentials.json" \
+  demo-user@demo-host.example.invalid:/home/demo-user/awarely-credentials.json
 ```
 
+După transfer, revino în terminalul Linux (sesiunea SSH) și rulează comenzile chmod/ls de mai jos. În meniul Credential JSON file introdu calea completă, de exemplu /home/demo-user/awarely-credentials.json. Nu introduce tokenul din fișier.
+
 ```sh
-chmod 600 "$SCAN_WORK/awarely-credentials.json"
-ls -l "$SCAN_WORK/awarely-credentials.json"
+chmod 600 "$HOME/awarely-credentials.json"
+ls -l "$HOME/awarely-credentials.json"
 ```
 
 Fișierul trebuie să fie obișnuit, deținut de utilizatorul CLI și fără permisiuni pentru grup/alții. Nu îl include în Git, nu pune tokenul în argumente, loguri sau SBOM. Păstrează adresa API din configurația furnizată de Monitor; nu o înlocui cu adresa site-ului de prezentare.
@@ -739,7 +767,7 @@ Folosește un token Doar verificare sau Verificare și sincronizare. Pentru un s
 
 ```sh
 "$SCAN_BIN" check --input "$SCAN_WORK/demo-shop.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/demo-shop.check.json"
 ```
 
@@ -754,7 +782,7 @@ Folosește Doar sincronizare sau Verificare și sincronizare. Snapshot-ul trebui
 
 ```sh
 "$SCAN_BIN" sync --input "$SCAN_WORK/demo-shop.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/demo-shop.receipt.json"
 ```
 
@@ -788,10 +816,10 @@ Secvența completă de mai jos necesită permisiuni Verificare și sincronizare.
 "$SCAN_BIN" host --name demo-web \
   --output "$SCAN_WORK/demo-web-after.cdx.json"
 "$SCAN_BIN" check --input "$SCAN_WORK/demo-web-after.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/demo-web-after.check.json"
 "$SCAN_BIN" sync --input "$SCAN_WORK/demo-web-after.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/demo-web-after.receipt.json"
 ```
 
@@ -832,6 +860,14 @@ Sync citește revizia și folosește o cheie de idempotență. Reîncercările 
 <a id="troubleshooting"></a>
 
 ## 15. Probleme uzuale și coduri de ieșire
+
+| Mesaj / situație | Ce faci |
+| --- | --- |
+| Directory does not exist | Corectează calea la aceeași întrebare; b schimbă tipul scanării. Nu folosi /src dacă aplicația e în /srv. |
+| No JAR/WAR/EAR found | Alege directorul cu aplicația Java deja construită. Cere echipei artefactul dacă ai numai codul sursă. |
+| Credential file rejected | Verifică numele fișierului și chmod 600; nu lipi tokenul în terminal. Reintrodu calea. |
+| ECOSYSTEM_NOT_EVALUATED | Inventarul este disponibil, dar evaluarea CVE pentru acel ecosistem nu este implementată. |
+| Synchronization was not confirmed | Verifică inventarul sursei în aplicație înainte de reluare. Fișierul local este păstrat. |
 
 | Simptom | Acțiune |
 | --- | --- |

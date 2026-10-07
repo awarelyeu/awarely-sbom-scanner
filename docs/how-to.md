@@ -1,11 +1,12 @@
-# Awarely Scan: installation and guided scanning
+# Awarely Scan: from installation to your first result
 
-Start with the simplified installer and guided menu for Linux, npm, Python or Java. Finish with a local file, API check or synchronization. CLI messages are in English. Manual commands remain below for automation; example names and credentials are fictional.
+Follow the simple path: prepare Linux, install the scanner, choose from its menu and read the result. No Python commands or JSON editing are needed. CLI messages and commands are in English. Examples are fictional; replace them with paths and names from your machine.
 
 [English](how-to.md) · [Română](how-to.ro.md)
 
-Release: `v0.7.0-alpha.2`
+Release: `v0.8.0-alpha.1`
 
+- [Start here: your first scan in 4 steps](#start-here)
 - [Start: simplified one-time installation](#quick-install)
 - [Guided scanning: menu choices](#guided)
 - [1. Choose your workflow](#choose)
@@ -30,6 +31,24 @@ Release: `v0.7.0-alpha.2`
 - [14. Limits and safe retries](#limits)
 - [15. Troubleshooting and exit codes](#troubleshooting)
 
+<a id="start-here"></a>
+
+## Start here: your first scan in 4 steps
+
+An SBOM is a list of software components and their versions. A local scan creates this list; Check looks for vulnerabilities, while Sync saves the list in Monitor. For your first try, choose Linux and keep the local file: no account or API credential is needed.
+
+1. Open a terminal on the Linux machine you want to scan. For a remote server, connect through SSH first. Do not run the Linux installer in a macOS or Windows terminal.
+2. Prepare the tools: open section 2 and run only the commands for your distribution. Ubuntu/Debian use apt; Amazon Linux/Rocky/AlmaLinux use dnf/yum. GitHub login is not required.
+3. Install once using the simplified installation section. Continue only after READY appears. On later runs, open the menu directly.
+4. Run the command below. Choose 1 for Linux, Enter for the recommended scope, a name for the inventory, Enter for the results directory and 1 for local output. Keep the path shown after Saved local SBOM.
+
+```sh
+"$HOME/.local/bin/awarely-scan" guided
+```
+
+The longer sections marked “manual alternative” are for automation. You do not need to run them after the guided menu. The scanner does not create /srv/demo-shop, /srv/demo-python or /srv/demo-java: use your own application directories.
+
+
 <a id="quick-install"></a>
 
 ## Start: simplified one-time installation
@@ -40,7 +59,7 @@ Download and review the official installer (press q to exit less), then run it. 
 
 ```sh
 curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \
-  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.7.0-alpha.2/install.sh \
+  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.8.0-alpha.1/install.sh \
   -o awarely-install.sh
 # Review the installer before running it.
 less awarely-install.sh
@@ -66,19 +85,26 @@ After READY, there are no Syft/Cosign commands to copy. Open the menu on each ru
 | 3. Python | /srv/demo-python → 1 (requirements.txt) / 2 (installed environment) | Mode 1 is partial; mode 2 requires metadata from an existing virtual environment and can prepare Syft. |
 | 4. Java | /srv/demo-java | Requires existing JAR/WAR/EAR artifacts; does not install Java/Maven or build the project. |
 | 5. Other ecosystems | /srv/my-app | Syft for NuGet/Go/Composer/RubyGems/Cargo. Inventory and sync supported; CVE assessment unevaluated. |
+| 6. Existing SBOM | /home/demo-user/awarely-results-EXAMPLE/inventory.cdx.json | Open a saved Awarely inventory for Check/Sync, without rescanning. |
 
-Enter real paths without quotes or shell commands. The scanner checks inputs and explains missing items before collection. For Syft, type yes only to approve preparation and execution: it downloads a fixed version (~30 MB), verified against the hash pinned in the Awarely release. The archive is kept in ~/.awarely-scan-tools and rechecked on every use; no gh/Cosign or system package installation is needed. Syft configuration disables network enrichment; use a separate sandbox for untrusted projects.
+The menu has 3 stages: choose a scan, save locally and choose an action. Enter accepts the value in [brackets]. b goes back; q quits and keeps completed exports. Colors appear only in a terminal; every message also works without color. Disable colors with: NO_COLOR=1 "$HOME/.local/bin/awarely-scan" guided.
+
+Enter an existing path. ~/my-app, relative paths and quoted paths are accepted. A wrong path or a file selected instead of a directory produces an explanation and another prompt. Typed shell commands are never executed. For Syft, yes approves preparation of the pinned version (~30 MB), verification and local execution. Its private cache is reverified on every use; no Cosign or GitHub login is required. It does not install dependencies or build the project.
 
 After scanning, enter an application label and results parent directory (Enter keeps your home directory). The scanner creates a private awarely-results-... folder and prints the full inventory.cdx.json path. Each scan gets its own folder, so you do not need to invent filenames. No inventory has been sent yet.
 
 1. Choose 1 or press Enter: keep the local file. For browser upload, follow section 7.
 2. Choose 2: API check. Create a credential using section 8, transfer it outside the project, apply chmod 600 and enter its file path. The menu shows the destination, application and source; confirm yes. You receive check-result.json in the same folder and a terminal summary. Saved inventory and alerts are unchanged.
 3. Choose 3: API sync. Available only for complete inventories. Review the displayed source and confirm yes: only that source is immediately replaced. You receive sync-result.json. Future alerts follow saved preferences; no retrospective email is sent.
-4. If no credential is ready or you do not want the operation, enter q or answer no. A completed local export remains available. Restart the menu any time for a fresh scan.
+4. If no credential is ready or you do not want the operation, enter q or answer no. A completed local export remains available. Use option 6 to reopen the saved file without rescanning.
 
 npm example: 2 → /srv/demo-shop → 1 → demo-shop → Enter → 1. Java: 4 → /srv/demo-java → yes → demo-java → Enter → 1. Installed Python: 3 → /srv/demo-python → 2 → yes → demo-python → Enter → 1. Linux: 1 → 1 → test-linux → Enter → 1.
 
 Exit code 3 means a partial inventory was written, not that a CVE was found. Code 0 does not guarantee absence of vulnerabilities. Review versions, precision and unevaluated components in the report. Commands in the following sections are alternatives for automation; they are not extra steps after the menu.
+
+A successful Check creates check-result.json with complete evidence and check-summary.txt, a readable text file containing all matches and unevaluated components. The terminal previews the first 10 component–CVE matches. Open the text file with less /path/to/check-summary.txt; q closes the viewer. Zero matches does not mean the application is secure; review coverage and unevaluated components too.
+
+If the credential file is wrong, enter another path without rescanning. After a Check error, you can retry with a new confirmation. After a Sync error, inspect the source in Settings → Assets before retrying: the request might already have committed. The scanner never automatically repeats an uncertain sync. To continue later, choose option 6 and your saved SBOM.
 
 
 <a id="choose"></a>
@@ -246,7 +272,7 @@ for tool in curl tar sha256sum awk gh; do
 done
 gh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }
 cd "$SCAN_WORK"
-SCAN_VERSION=v0.7.0-alpha.2
+SCAN_VERSION=v0.8.0-alpha.1
 case "$(uname -m)" in
   x86_64) SCAN_ARCH=amd64 ;;
   aarch64|arm64) SCAN_ARCH=arm64 ;;
@@ -308,7 +334,7 @@ Check only (no saved-inventory change):
 
 ```sh
 "$SCAN_BIN" check --input "$SCAN_WORK/debian-13-web-01.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/debian-13-web-01.check.json"
 ```
 
@@ -316,7 +342,7 @@ Optional: sync replaces this source in the saved inventory. Run only when that i
 
 ```sh
 "$SCAN_BIN" sync --input "$SCAN_WORK/debian-13-web-01.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/debian-13-web-01.receipt.json"
 ```
 
@@ -340,7 +366,7 @@ Check only (no saved-inventory change):
 
 ```sh
 "$SCAN_BIN" check --input "$SCAN_WORK/ubuntu-24-04-web-01.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/ubuntu-24-04-web-01.check.json"
 ```
 
@@ -348,7 +374,7 @@ Optional: sync replaces this source in the saved inventory. Run only when that i
 
 ```sh
 "$SCAN_BIN" sync --input "$SCAN_WORK/ubuntu-24-04-web-01.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/ubuntu-24-04-web-01.receipt.json"
 ```
 
@@ -372,7 +398,7 @@ Check only (no saved-inventory change):
 
 ```sh
 "$SCAN_BIN" check --input "$SCAN_WORK/rocky-9-web-01.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/rocky-9-web-01.check.json"
 ```
 
@@ -380,7 +406,7 @@ Optional: sync replaces this source in the saved inventory. Run only when that i
 
 ```sh
 "$SCAN_BIN" sync --input "$SCAN_WORK/rocky-9-web-01.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/rocky-9-web-01.receipt.json"
 ```
 
@@ -404,7 +430,7 @@ Check only (no saved-inventory change):
 
 ```sh
 "$SCAN_BIN" check --input "$SCAN_WORK/alma-9-web-01.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/alma-9-web-01.check.json"
 ```
 
@@ -412,7 +438,7 @@ Optional: sync replaces this source in the saved inventory. Run only when that i
 
 ```sh
 "$SCAN_BIN" sync --input "$SCAN_WORK/alma-9-web-01.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/alma-9-web-01.receipt.json"
 ```
 
@@ -436,7 +462,7 @@ Check only (no saved-inventory change):
 
 ```sh
 "$SCAN_BIN" check --input "$SCAN_WORK/al2023-web-01.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/al2023-web-01.check.json"
 ```
 
@@ -444,7 +470,7 @@ Optional: sync replaces this source in the saved inventory. Run only when that i
 
 ```sh
 "$SCAN_BIN" sync --input "$SCAN_WORK/al2023-web-01.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/al2023-web-01.receipt.json"
 ```
 
@@ -468,7 +494,7 @@ Check only (no saved-inventory change):
 
 ```sh
 "$SCAN_BIN" check --input "$SCAN_WORK/al2-legacy-01.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/al2-legacy-01.check.json"
 ```
 
@@ -476,7 +502,7 @@ Optional: sync replaces this source in the saved inventory. Run only when that i
 
 ```sh
 "$SCAN_BIN" sync --input "$SCAN_WORK/al2-legacy-01.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/al2-legacy-01.receipt.json"
 ```
 
@@ -704,16 +730,18 @@ Complete coverage means the supported software components in the selected file w
 4. Click Create token, then Download secret configuration immediately. The secret is shown/downloadable once and cannot be recovered later. Copy the downloaded file securely to the Linux host, outside your project, at the path below.
 5. For a second host or project that must be maintained independently, create a different source. Reusing one source across different hosts makes each sync replace the previous host snapshot. The server binds application/source/environment; changing --name does not change that binding.
 
-Example transfer, run on the workstation that downloaded the configuration. Replace the fictional user, host and directory with your host and the exact SCAN_WORK directory printed on it. Skip the transfer when browser and CLI run on the same machine; move the downloaded file into SCAN_WORK instead.
+Run the transfer on the computer where the browser downloaded the file, NOT inside the server’s SSH session. Replace demo-user and demo-host.example.invalid with your server’s login and address. The file goes into that Linux user’s home directory. If the browser and scanner run on the same machine, skip scp and use the downloaded file’s path.
 
 ```sh
-scp ./awarely-credentials.json \
-  demo-user@demo-host.example.invalid:/home/demo-user/awarely-scan.REPLACE/awarely-credentials.json
+scp "$HOME/Downloads/awarely-credentials.json" \
+  demo-user@demo-host.example.invalid:/home/demo-user/awarely-credentials.json
 ```
 
+After the transfer, return to the Linux terminal (SSH session) and run the chmod/ls commands below. At Credential JSON file, enter the full path, for example /home/demo-user/awarely-credentials.json. Do not enter the token stored in the file.
+
 ```sh
-chmod 600 "$SCAN_WORK/awarely-credentials.json"
-ls -l "$SCAN_WORK/awarely-credentials.json"
+chmod 600 "$HOME/awarely-credentials.json"
+ls -l "$HOME/awarely-credentials.json"
 ```
 
 The file must be a regular file owned by the account running the CLI, with no group/other permissions. Do not commit it, put the token in command arguments, echo it into logs or paste it into an SBOM. Keep the API origin supplied by Monitor; do not substitute a marketing URL.
@@ -739,7 +767,7 @@ Use a Check only or Check and sync credential. Replace demo-shop.cdx.json with t
 
 ```sh
 "$SCAN_BIN" check --input "$SCAN_WORK/demo-shop.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/demo-shop.check.json"
 ```
 
@@ -754,7 +782,7 @@ Use Sync only or Check and sync. The snapshot must be complete for the selected 
 
 ```sh
 "$SCAN_BIN" sync --input "$SCAN_WORK/demo-shop.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/demo-shop.receipt.json"
 ```
 
@@ -788,10 +816,10 @@ The complete sequence below requires Check and sync permissions. Keep only the o
 "$SCAN_BIN" host --name demo-web \
   --output "$SCAN_WORK/demo-web-after.cdx.json"
 "$SCAN_BIN" check --input "$SCAN_WORK/demo-web-after.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/demo-web-after.check.json"
 "$SCAN_BIN" sync --input "$SCAN_WORK/demo-web-after.cdx.json" \
-  --credentials "$SCAN_WORK/awarely-credentials.json" \
+  --credentials "$HOME/awarely-credentials.json" \
   --output "$SCAN_WORK/demo-web-after.receipt.json"
 ```
 
@@ -832,6 +860,14 @@ Sync reads a revision and uses an idempotency key. Bounded transport/503 retries
 <a id="troubleshooting"></a>
 
 ## 15. Troubleshooting and exit codes
+
+| Message / situation | What to do |
+| --- | --- |
+| Directory does not exist | Correct the path at the same prompt; b changes the scan type. /src and /srv are different directories. |
+| No JAR/WAR/EAR found | Choose the directory containing the built Java application. Ask your team for the artifact if you only have source code. |
+| Credential file rejected | Check the filename and chmod 600; never paste the token into the terminal. Enter the path again. |
+| ECOSYSTEM_NOT_EVALUATED | Inventory is available, but CVE assessment for this ecosystem is not implemented. |
+| Synchronization was not confirmed | Inspect the source inventory in the app before retrying. Your local file is preserved. |
 
 | Symptom | Action |
 | --- | --- |
