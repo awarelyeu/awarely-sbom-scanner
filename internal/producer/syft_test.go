@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -109,5 +110,17 @@ func TestProducerOutputBoundCancels(t *testing.T) {
 	w := &boundedWriter{&b, 3, cancel}
 	if _, e := w.Write([]byte("secret too long")); e == nil || ctx.Err() == nil || b.Len() != 0 {
 		t.Fatal("unbounded output")
+	}
+}
+
+func TestDownloadRetryClassification(t *testing.T) {
+	for _, status := range []int{200, 404, 429, 503} {
+		client := &http.Client{Transport: transportFunc(func(r *http.Request) (*http.Response, error) {
+			return &http.Response{StatusCode: status, Body: io.NopCloser(strings.NewReader("untrusted"))}, nil
+		})}
+		_, err := download(context.Background(), client, "https://github.com/fixture", strings.Repeat("0", 64))
+		if errors.Is(err, ErrDownloadUnavailable) != (status == 429 || status == 503) {
+			t.Fatal(status, err)
+		}
 	}
 }

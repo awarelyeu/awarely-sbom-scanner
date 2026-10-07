@@ -30,6 +30,10 @@ const Version = "1.54.0"
 const maxArchive = 40 << 20
 const maxExecutable = 200 << 20
 
+// Only transport/availability failures are eligible for an explicit retry.
+// Integrity, cache permissions and size-limit errors remain fatal.
+var ErrDownloadUnavailable = errors.New("Syft download unavailable; check HTTPS access to GitHub and retry")
+
 // Maintainer-verified against the upstream Sigstore-signed checksum list.
 // Trust in these pins comes from the verified Awarely release containing them.
 var digests = map[string]string{
@@ -132,9 +136,12 @@ func download(ctx context.Context, client *http.Client, address, digest string) 
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, errors.New("Syft download failed; check HTTPS access to GitHub and retry")
+		return nil, ErrDownloadUnavailable
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500 {
+		return nil, ErrDownloadUnavailable
+	}
 	if resp.StatusCode != http.StatusOK || resp.ContentLength > maxArchive {
 		return nil, errors.New("Syft download rejected or exceeds size limit")
 	}

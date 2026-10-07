@@ -4,13 +4,14 @@ Urmează traseul simplu: pregătești Linux, instalezi scannerul, alegi din meni
 
 [English](how-to.md) · [Română](how-to.ro.md)
 
-Release: `v0.8.0-alpha.1`
+Release: `v0.8.0-alpha.2`
 
 - [Începe aici: prima scanare în 4 pași](#start-here)
 - [Start: instalare simplificată, o singură dată](#quick-install)
 - [Scanare ghidată: alegerile din meniu](#guided)
 - [1. Alege fluxul](#choose)
 - [2. Pregătește mașina Linux](#prerequisites)
+- [GitHub CLI în sistem, opțional · alternativă manuală](#manual-verifier)
 - [3. Descarcă, verifică și pornește · alternativă manuală](#install)
 - [4. Debian · alternativă manuală](#debian)
 - [4. Ubuntu · alternativă manuală](#ubuntu)
@@ -38,7 +39,7 @@ Release: `v0.8.0-alpha.1`
 Un SBOM este lista componentelor software și a versiunilor lor. Scanarea locală creează această listă; Check caută vulnerabilități, iar Sync salvează lista în Monitor. Pentru prima încercare, alege scanare Linux și păstrarea fișierului local: nu ai nevoie de cont sau cheie API.
 
 1. Deschide terminalul pe mașina Linux de scanat. Dacă e un server, conectează-te prin SSH înainte. Nu rula instalarea Linux în terminalul macOS sau Windows.
-2. Pregătește uneltele: deschide secțiunea 2 și rulează numai comenzile distribuției tale. Ubuntu/Debian folosesc apt; Amazon Linux/Rocky/AlmaLinux folosesc dnf/yum. Nu este necesară autentificarea GitHub.
+2. Verifică uneltele de bază din secțiunea 2. Installerul simplificat își poate pregăti singur verificatorul temporar: nu trebuie să instalezi GitHub CLI (gh) sau să te autentifici în GitHub.
 3. Instalează o singură dată folosind secțiunea de instalare simplificată. Continuă numai după mesajul READY. La fiecare utilizare ulterioară deschizi direct meniul.
 4. Rulează comanda de mai jos. Alege 1 pentru Linux, Enter pentru selecția recomandată, un nume pentru inventar, Enter pentru director și 1 pentru fișier local. Păstrează calea afișată la Saved local SBOM.
 
@@ -53,13 +54,15 @@ Comenzile lungi marcate „alternativă manuală” sunt pentru automatizări. N
 
 ## Start: instalare simplificată, o singură dată
 
-Rulează pe Linux amd64/arm64, ca utilizator obișnuit. Ai nevoie de curl, tar, coreutils (sha256sum), awk și o versiune gh cu attestation verify. Dacă lipsesc, installerul se oprește și arată ce trebuie instalat; secțiunea 2 are comenzile pentru fiecare distribuție. Acestea servesc verificării instalării, nu scanării proiectului. Nu este necesar cont sau token GitHub.
+Rulează pe Linux amd64/arm64 ca utilizator obișnuit. Unelte de bază: curl, tar, gzip, coreutils și awk. Nu trebuie să instalezi gh în sistem. Dacă lipsește sau este prea vechi, răspunde yes la Prepare the temporary verifier: installerul descarcă GitHub CLI 2.102.0 din release-ul oficial, verifică SHA-256 fixat în script și șterge fișierele temporare la ieșire. Pregătirea nu necesită root, configurarea unui repository, cont sau token.
+
+Dacă lipsește o unealtă de bază, installerul o numește și afișează comenzile distribuției tale. Rulează-le într-un alt terminal, apoi apasă Enter în installer pentru reverificare. Acesta nu rulează sudo și nu modifică pachetele sistemului în locul tău. q închide procesul. Dacă lipsește curl, instalează-l înainte să descarci installerul.
 
 Descarcă și citește installerul oficial (în less, apasă q pentru a ieși), apoi rulează-l. El verifică proveniența semnată pentru versiunea exactă și checksum-urile, apoi publică binarul în ~/.local/bin/awarely-scan. Nu suprascrie o instalare existentă; mută separat binarul vechi dacă faci upgrade. Dacă apare STOP, rezolvă cauza înainte de a rula scannerul.
 
 ```sh
 curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \
-  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.8.0-alpha.1/install.sh \
+  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.8.0-alpha.2/install.sh \
   -o awarely-install.sh
 # Review the installer before running it.
 less awarely-install.sh
@@ -106,6 +109,8 @@ Un Check reușit creează check-result.json cu dovezile complete și check-summa
 
 Dacă fișierul de acces este greșit, introdu altă cale fără să rescanezi. După o eroare Check poți reîncerca cu o nouă confirmare. După o eroare Sync, verifică sursa în Setări → Active înainte de reluare: cererea ar putea fi deja aplicată. Scannerul nu repetă automat o sincronizare incertă. Pentru reluare mai târziu, alege opțiunea 6 și SBOM-ul salvat.
 
+Binarul nu are nevoie de gh, Cosign, Node.js, Java sau Python pentru a citi fișierele suportate. Dacă lipsesc manifestele/artefactele, poți corecta directorul în același meniu. Dacă descărcarea Syft aprobată eșuează temporar, restabilește accesul HTTPS și alege Retry preparation: aplicația selectată se păstrează. Erorile de integritate sau cache nesigur opresc fluxul: nu se execută un instrument neverificat.
+
 
 <a id="choose"></a>
 
@@ -126,6 +131,52 @@ Flux recomandat: instalare simplificată → scanare ghidată → alege ce faci 
 <a id="prerequisites"></a>
 
 ## 2. Pregătește mașina Linux
+
+Rulează verificările pe mașina Linux de scanat. sudo este necesar numai dacă lipsesc unelte de bază. Binarul Awarely rulează ca utilizator obișnuit. curl descarcă prin HTTPS; ca-certificates validează certificatele; tar/gzip extrag arhive; coreutils și awk verifică sumele de control. Installerul simplificat se ocupă de gh.
+
+```sh
+uname -m
+cat /etc/os-release
+for tool in curl tar gzip sha256sum awk mktemp; do
+  if command -v "$tool" >/dev/null 2>&1; then
+    printf "OK: %s\n" "$tool"
+  else
+    printf "MISSING: %s\n" "$tool"
+  fi
+done
+```
+
+Dacă lipsesc unelte, alege numai distribuția ta de mai jos. Dacă toate verificările spun OK, continuă la instalarea simplificată. Nu este necesară instalarea pachetului gh sau autentificarea GitHub.
+
+Debian / Ubuntu:
+
+```sh
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl tar gzip coreutils gawk
+```
+
+Amazon Linux 2023 / Rocky Linux / AlmaLinux:
+
+```sh
+sudo dnf install -y ca-certificates tar gzip coreutils gawk
+command -v curl >/dev/null || sudo dnf install -y curl
+```
+
+Amazon Linux 2:
+
+```sh
+sudo yum install -y ca-certificates tar gzip coreutils gawk
+command -v curl >/dev/null || sudo yum install -y curl
+```
+
+Numai pentru verificarea manuală: secțiunea GitHub CLI în sistem, opțional de mai jos explică instalarea gh. Nu este necesară pentru installerul recomandat.
+
+
+<a id="manual-verifier"></a>
+
+## GitHub CLI în sistem, opțional · alternativă manuală
+
+Sari peste această secțiune pentru instalarea simplificată. Folosește-o numai dacă preferi gh instalat în sistem sau verificarea manuală. Amazon Linux suportă gh prin repository-ul oficial GitHub; repository-urile implicite pot să nu îl conțină.
 
 Rulează pașii 2–3 în aceeași sesiune Bash, ca utilizator Linux obișnuit. sudo este necesar doar pentru instalarea utilitarelor; Awarely Scan nu necesită root sau serviciu în fundal. Ai nevoie de citire pentru pachete/proiect și de scriere în directorul de rezultate.
 
@@ -272,7 +323,7 @@ for tool in curl tar sha256sum awk gh; do
 done
 gh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }
 cd "$SCAN_WORK"
-SCAN_VERSION=v0.8.0-alpha.1
+SCAN_VERSION=v0.8.0-alpha.2
 case "$(uname -m)" in
   x86_64) SCAN_ARCH=amd64 ;;
   aarch64|arm64) SCAN_ARCH=arm64 ;;

@@ -1,9 +1,7 @@
-# A clearer guided scanning experience
+# Installation without a system GitHub CLI
 
-The guided menu now lets you correct paths, labels, result directories and credential files without restarting. Use `b` to go back, `q` to quit, and option 6 to reopen a saved Awarely SBOM for check or sync. Relative paths, `~/` and quoted paths are supported without shell execution.
+The installer can prepare a temporary pinned GitHub CLI verifier when gh is missing or too old, after explicit consent. It checks the upstream archive digest before execution and still requires signed provenance for the exact Awarely release. No GitHub account, root access or repository setup is needed for the verifier; temporary files are removed afterward.
 
-Terminal-only colors respect `NO_COLOR` and `TERM=dumb`. API checks include a readable `check-summary.txt` alongside the complete JSON evidence. Check retries need a new confirmation; uncertain syncs are never retried automatically. Report-saving recovery does not repeat an API request.
+Missing basic tools now show distribution-specific guidance and can be rechecked without restarting. Guided scans can explicitly retry temporary Syft download failures while keeping the selected directory. Integrity and unsafe-cache errors still stop.
 
-Local-first defaults, private files, verification of optional Syft, explicit transmission consent and partial-inventory sync restrictions remain in place. Noninteractive command contracts and ecosystem assessment coverage are unchanged.
-
-See the [English guide](https://github.com/awarelyeu/awarely-sbom-scanner/blob/main/docs/how-to.md) or [Romanian guide](https://github.com/awarelyeu/awarely-sbom-scanner/blob/main/docs/how-to.ro.md). This is a prerelease.
+The English and Romanian guides distinguish installation tools from scanner requirements. The scanner itself does not require gh. This remains a prerelease; ecosystem CVE coverage is unchanged.
