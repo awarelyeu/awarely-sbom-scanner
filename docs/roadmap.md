@@ -1,6 +1,6 @@
 # Roadmap
 
-## Current API preview
+## Current stable release
 
 - Local CycloneDX 1.6 collection for documented npm/Python/DEB/RPM inputs.
 - Explicit HTTPS checks with complete component-level JSON and coverage.
@@ -14,4 +14,4 @@ Build a dedicated plugin using this same CLI after the CLI/API test gates pass. 
 
 ## Future coverage
 
-Distribution-specific advisory evaluation, additional package managers and container inventories require separate evidence and tests. They are not implied by this release's coverage.
+Additional distribution and ecosystem CVE coverage, package managers and container inventories require separate evidence and tests. They are not implied by this release's coverage.
