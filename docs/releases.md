@@ -31,4 +31,12 @@ Workflow permissions are read-only except the release job's explicit artifact/at
 
 ## Simplified installation
 
-The public `install.sh` asset automates the same archive provenance and checksum checks, without GitHub authentication. Review the script before running it. It checks prerequisites, stops on missing tools and publishes to `~/.local/bin/awarely-scan` without replacing an existing binary. It does not install system packages or run as root. See [guided installation](how-to.md#quick-install).
+The public `install.sh` asset automates the same archive provenance and checksum checks, without GitHub authentication. Review the script before running it. It checks prerequisites, stops on missing tools and publishes to `~/.local/bin/awarely-scan`. For an older installation, the authenticated candidate asks before performing an atomic upgrade with a private rollback backup. It does not install system packages or run as root. See [guided installation](how-to.md#quick-install).
+
+## Explicit updates and rollback
+
+From v0.9.0-alpha.1, `awarely-scan update --check` discovers eligible releases without changing files. `update` requires confirmation, verifies the archive against its public provenance bundle (repository, workflow, tag and GitHub-hosted runner), validates the binary checksum and startup, and replaces only the installed executable. It downloads a pinned temporary GitHub CLI verifier; no account or installed gh is needed. Stable installations stay stable unless `--prerelease` is explicitly requested; existing previews include newer previews. `--version TAG` selects an exact newer release and `--yes` enables approved automation.
+
+`update --rollback` restores one previous local binary after confirmation. Backups are private and tied to the replacement digest. No remote inventory or credentials are changed. See the [user walkthrough](how-to.md#scanner-updates), including how to upgrade older CLIs with the installer.
+
+Managed Syft versions and architecture digests are changed only in an Awarely release. Maintainers verify upstream signed checksum metadata and both archives, then run native/import/guided and offline interoperability checks on both architectures before publishing. The guided scanner has no arbitrary Syft version or latest-download setting. Previous tool cache entries remain available for rollback.

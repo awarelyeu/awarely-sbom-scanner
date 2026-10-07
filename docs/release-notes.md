@@ -1,7 +1,9 @@
-# Installation without a system GitHub CLI
+# Verified updates and rollback
 
-The installer can prepare a temporary pinned GitHub CLI verifier when gh is missing or too old, after explicit consent. It checks the upstream archive digest before execution and still requires signed provenance for the exact Awarely release. No GitHub account, root access or repository setup is needed for the verifier; temporary files are removed afterward.
+Check for a newer release with `awarely-scan update --check`, then run `awarely-scan update` and confirm. The updater verifies signed release provenance, the binary digest and startup before atomic replacement, and keeps one private rollback backup. `awarely-scan update --rollback` restores the previous binary without network access. Scans never trigger updates.
 
-Missing basic tools now show distribution-specific guidance and can be rechecked without restarting. Guided scans can explicitly retry temporary Syft download failures while keeping the selected directory. Integrity and unsafe-cache errors still stop.
+Older installations can upgrade through this release's installer after verification and confirmation, without manually moving the old binary. Stable installations stay on stable releases; prerelease installations also see newer previews. No GitHub login, system gh or root access is needed.
 
-The English and Romanian guides distinguish installation tools from scanner requirements. The scanner itself does not require gh. This remains a prerelease; ecosystem CVE coverage is unchanged.
+Managed Syft is now **1.54.1**, with verified architecture-specific digests. It changes only through a tested Awarely release. `awarely-scan version --tools` shows both versions; the next Syft scan requests consent if the new tool is not cached.
+
+The English and Romanian walkthroughs include initial upgrade, subsequent updates, troubleshooting and rollback. This remains a prerelease; ecosystem CVE coverage is unchanged.

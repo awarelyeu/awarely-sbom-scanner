@@ -25,8 +25,8 @@ for arch in ["amd64", "arm64"]:
     assert not unexpected, (arch, sorted(unexpected))
 print("PASS: offline collector has no network dependency; native collector has no subprocess; executable has no external modules, plugin or cgo")
 
-# Only the consented producer boundary may launch a child process.
+# Only the consented producer/update boundaries may launch child processes.
 from pathlib import Path
 for source in Path(".").glob("**/*.go"):
-    if not source.name.endswith("_test.go") and "/producer/" not in source.as_posix():
+    if not source.name.endswith("_test.go") and "/producer/" not in source.as_posix() and "/update/" not in source.as_posix():
         assert '"os/exec"' not in source.read_text(), source

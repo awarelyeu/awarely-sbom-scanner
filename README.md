@@ -15,6 +15,7 @@ Built for [Awarely Monitor](https://monitor.awarely.ro/en), with a standalone lo
 | Local SBOM file | Yes |
 | CVE check through the Awarely API | Yes, without changing saved inventory |
 | Inventory synchronization through the Awarely API | Yes, replaces one configured source |
+| Verified CLI updates and local rollback | Yes; Syft follows the tested CLI release |
 | Jenkins plugin using the same CLI | Planned |
 
 ## Complete walkthroughs
@@ -67,6 +68,20 @@ Correct a mistyped path without restarting. Use `b` to go back and `q` to quit; 
 Checks save both the complete `check-result.json` and a readable `check-summary.txt`, including matches and unevaluated components. Check retries require confirmation. An uncertain sync is never automatically repeated; inspect the source in Monitor before retrying.
 
 See the complete [English](docs/how-to.md) or [Romanian](docs/how-to.ro.md) walkthrough. Existing commands below remain available for scripts and CI.
+
+## Keep the scanner current
+
+From v0.9.0-alpha.1:
+
+```sh
+"$HOME/.local/bin/awarely-scan" update --check
+"$HOME/.local/bin/awarely-scan" update
+"$HOME/.local/bin/awarely-scan" version --tools
+```
+
+Updates require confirmation and verified release provenance. One private backup supports `update --rollback`. Stable installations stay stable; prerelease installations also see newer prereleases. Scanning never triggers an update. Managed **Syft 1.54.1** changes only with a tested Awarely release, and its first use still asks before downloading. No arbitrary Syft version or automatic `latest` is executed.
+
+Upgrading an older CLI? Run the current [simplified installer](docs/how-to.md#quick-install); it can upgrade an existing installation after verification and confirmation. Do not move the old binary aside. See [update and rollback steps](docs/how-to.md#scanner-updates).
 
 ## Noninteractive commands
 

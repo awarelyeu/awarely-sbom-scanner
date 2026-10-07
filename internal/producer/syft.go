@@ -26,7 +26,7 @@ import (
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/safeio"
 )
 
-const Version = "1.54.0"
+const Version = "1.54.1"
 const maxArchive = 40 << 20
 const maxExecutable = 200 << 20
 
@@ -37,8 +37,8 @@ var ErrDownloadUnavailable = errors.New("Syft download unavailable; check HTTPS 
 // Maintainer-verified against the upstream Sigstore-signed checksum list.
 // Trust in these pins comes from the verified Awarely release containing them.
 var digests = map[string]string{
-	"amd64": "54a87372498168b2d033e876fd41fa4e8035b872699e525a57046e1f2f09c860",
-	"arm64": "ee6d4566373a05b344bc6b5f1706f14419bf9338ba39ff686e247deefe9b8818",
+	"amd64": "c069905b391cc4c20a5ba65ad5c10be2a7ba074f8ea6ad203e24d14e303dad47",
+	"arm64": "dfdf0537610113edbefe1f1fc6548bc957b2d77439636ec824fcf0e10d46d054",
 }
 
 const offlineConfig = `check-for-app-update: false

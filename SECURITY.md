@@ -2,7 +2,7 @@
 
 ## Scope of this preview
 
-Local collection never uses the network. Explicit `check` and `sync` commands use an HTTPS client. Guided mode adds consented tool preparation and optional API actions. There is no credential discovery, auto-update or plugin loading; subprocess execution is isolated to the optional Syft runner. The server treats every client and inventory as untrusted; owning a signed binary grants no API authority.
+Local collection never uses the network. Explicit `check` and `sync` commands use an HTTPS client. Guided mode adds consented tool preparation and optional API actions. There is no credential discovery, background auto-update or plugin loading. Subprocess execution is isolated to the optional Syft runner and explicit verified-update boundary (temporary pinned verifier and authenticated candidate startup check). The server treats every client and inventory as untrusted; owning a signed binary grants no API authority.
 
 Use a non-privileged account and select a directory or root filesystem you are authorized to inspect. Only Linux amd64/arm64 release binaries are supported. macOS is used for development tests.
 
@@ -57,3 +57,9 @@ An approved download uses HTTPS with certificate verification, fixed release URL
 Syft receives a fixed offline configuration, selected catalogers, an isolated working directory and a minimal environment without cloud/API credentials, user configuration or executable search paths. Output and execution time are bounded; cancellation kills the process group. These controls are **not an OS sandbox or a memory limit**. Do not scan hostile projects outside a separate sandbox with memory/filesystem/network restrictions. CI additionally verifies offline behavior under a network namespace and syscall tracing.
 
 The wizard defaults to a local export. Download/execution and API transmission require separate explicit choices. It displays the credential's destination/application/source before confirmation; partial snapshots cannot sync. An empty inventory cannot clear a source in guided mode. Existing noninteractive commands retain their contracts. API credential acquisition, package-manager changes and project builds remain operator-controlled.
+
+## Explicit release updates
+
+Update discovery is a hint, not authentication. An update must verify the release archive's public provenance against the expected repository, workflow and exact tag before extracting or executing the candidate. The temporary verifier has an embedded upstream SHA-256 pin and receives no user credentials or configuration. Downloads, expanded archives and subprocess output are bounded. A failed trust check cannot replace the installed binary.
+
+Updates require a regular non-root user, a trusted owned installation path and an exclusive lock. Staging and backup writes are flushed before atomic replacement. Rollback restores the matching private local backup; it is not an arbitrary remote downgrade. Same-user modification of the installed binary or backup is outside the local trust boundary. Managed Syft remains pinned per Awarely release; update checks never run during ordinary scans.

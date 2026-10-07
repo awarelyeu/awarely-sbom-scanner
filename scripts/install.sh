@@ -3,7 +3,7 @@
 # No root, GitHub login, project execution or automatic prerequisite installation.
 set -eu
 umask 077
-SCAN_VERSION=v0.8.0-alpha.2
+SCAN_VERSION=v0.9.0-alpha.1
 SCAN_REPO=awarelyeu/awarely-sbom-scanner
 SCAN_DEST="${HOME:?HOME is required}/.local/bin/awarely-scan"
 # Shell input is never evaluated. Only fixed commands are suggested for the OS.
@@ -45,10 +45,6 @@ case "$(uname -m)" in
   *) echo 'STOP: only Linux amd64 and arm64 are supported.' >&2; exit 2 ;;
 esac
 [ "$(uname -s)" = Linux ] || { echo 'STOP: run this installer on Linux.' >&2; exit 2; }
-if [ -e "$SCAN_DEST" ] || [ -L "$SCAN_DEST" ]; then
-  echo 'STOP: ~/.local/bin/awarely-scan already exists. Keep it for rollback or move it before installing this version.' >&2
-  exit 2
-fi
 SCAN_TEMP=$(mktemp -d "${TMPDIR:-/tmp}/awarely-install.XXXXXXXX")
 trap 'rm -rf "$SCAN_TEMP"' EXIT HUP INT TERM
 cd "$SCAN_TEMP"
@@ -93,13 +89,19 @@ done
 "$SCAN_GH" attestation verify "$SCAN_ARCHIVE" --bundle "$SCAN_ARCHIVE.sigstore.jsonl" \
   --repo "$SCAN_REPO" \
   --signer-workflow "$SCAN_REPO/.github/workflows/release.yml" \
-  --source-ref "refs/tags/$SCAN_VERSION"
+  --source-ref "refs/tags/$SCAN_VERSION" --deny-self-hosted-runners
 awk -v file="$SCAN_ARCHIVE" '$2 == file {print; found++} END {if (found != 1) exit 1}' SHA256SUMS > selected.sha256
 sha256sum --check selected.sha256
 mkdir release
 tar -xzf "$SCAN_ARCHIVE" -C release
 (cd release && sha256sum --check SHA256SUMS)
 ./release/awarely-scan version
+if [ -e "$SCAN_DEST" ] || [ -L "$SCAN_DEST" ]; then
+  # This candidate was authenticated above. It performs a protected atomic
+  # upgrade with a rollback backup, after the user's separate confirmation.
+  ./release/awarely-scan install
+  exit $?
+fi
 mkdir -p "$HOME/.local/bin"
 # Copy into a private file on the destination filesystem, then publish without
 # replacing an existing file or following a destination symlink.

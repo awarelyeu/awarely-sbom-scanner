@@ -14,11 +14,11 @@ import tempfile
 import urllib.request
 import zipfile
 
-VERSION = '1.54.0'
+VERSION = '1.54.1'
 # Verified against Anchore's Sigstore-signed release checksums before pinning.
 HASHES = {
-    'x86_64': ('amd64', '54a87372498168b2d033e876fd41fa4e8035b872699e525a57046e1f2f09c860'),
-    'aarch64': ('arm64', 'ee6d4566373a05b344bc6b5f1706f14419bf9338ba39ff686e247deefe9b8818'),
+    'x86_64': ('amd64', 'c069905b391cc4c20a5ba65ad5c10be2a7ba074f8ea6ad203e24d14e303dad47'),
+    'aarch64': ('arm64', 'dfdf0537610113edbefe1f1fc6548bc957b2d77439636ec824fcf0e10d46d054'),
 }
 binary = Path(sys.argv[1]).resolve(strict=True)
 arch, digest = HASHES[platform.machine()]
