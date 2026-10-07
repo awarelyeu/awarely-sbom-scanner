@@ -4,7 +4,7 @@ Follow the simple path: prepare Linux, install the scanner, choose from its menu
 
 [English](how-to.md) · [Română](how-to.ro.md)
 
-Release: `v0.9.0-alpha.1`
+Release: `v0.9.0`
 
 - [Start here: your first scan in 4 steps](#start-here)
 - [Start: simplified one-time installation](#quick-install)
@@ -63,7 +63,7 @@ Download and review the official installer (press q to exit less), then run it. 
 
 ```sh
 curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \
-  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.9.0-alpha.1/install.sh \
+  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.9.0/install.sh \
   -o awarely-install.sh
 # Review the installer before running it.
 less awarely-install.sh
@@ -111,7 +111,7 @@ If the new scanner causes a problem, restore the single previous binary with the
 "$HOME/.local/bin/awarely-scan" update --rollback
 ```
 
-Stable installations stay on stable releases. An existing prerelease also receives newer prereleases. Advanced choices: update --version v0.9.0-alpha.1 selects an exact newer published release; update --prerelease explicitly includes previews; update --yes skips the confirmation for trusted automation. Downgrades require rollback. update --help lists the options.
+Stable installations stay on stable releases. An existing prerelease also receives newer prereleases. Advanced choices: update --version v0.9.0 selects an exact newer published release; update --prerelease explicitly includes previews; update --yes skips the confirmation for trusted automation. Downgrades require rollback. update --help lists the options.
 
 On a download, verification, permission or startup failure, resolve the reported cause and retry; do not bypass verification. Exit code 7 identifies an update failure. If another update is running, wait for it. A message saying the binary was replaced but a directory flush failed requires checking version before retrying. Update requires a real executable named awarely-scan in a user-owned directory with trusted, non-writable parent directories; symlink installations are refused.
 
@@ -162,7 +162,7 @@ The scanner itself does not need gh, Cosign, Node.js, Java or Python to read sup
 | API check | Pro access + Check only credential | Returns a local JSON report. Does not save inventory or send alerts. |
 | API sync | Pro access + Sync only or Check and sync credential | Immediately replaces only the authorized source in saved inventory. |
 
-The release is an API preview. The same Linux binary supports amd64 and arm64 builds across the distributions below. Jenkins integration, containers, AMI/VHD images, Alpine and arbitrary binary scanning are not available. An offline Linux root directory is supported; an image file is not.
+This is a stable release for the documented scope. The same Linux binary supports amd64 and arm64 builds across the distributions below. Jenkins integration, containers, AMI/VHD images, Alpine and arbitrary binary scanning are not available. An offline Linux root directory is supported; an image file is not.
 
 Recommended workflow: simplified installation → guided scan → choose what happens to the result. For API operations, prepare a credential using section 8. Distribution sections and long commands are manual alternatives, not mandatory steps in the menu.
 
@@ -344,7 +344,7 @@ Do not run gh auth login or create a GitHub token for this installation. In step
 
 ## 3. Download, verify and run · manual alternative
 
-This pins the published preview release instead of silently downloading a changing latest version. Stop on any download, attestation or checksum failure. The outer checksum list contains both architectures; select only the archive you downloaded. Extraction happens only after verification.
+These commands select the published stable release explicitly. Stop on any download, attestation or checksum failure. The outer checksum list contains both architectures; select only the archive you downloaded. Extraction happens only after verification.
 
 No GitHub account or token. Download the original archive and signed proof from the same public release. The proof is cryptographically verified for the exact archive, Awarely repository, release workflow and selected tag before extraction.
 
@@ -362,7 +362,7 @@ for tool in curl tar sha256sum awk gh; do
 done
 gh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }
 cd "$SCAN_WORK"
-SCAN_VERSION=v0.9.0-alpha.1
+SCAN_VERSION=v0.9.0
 case "$(uname -m)" in
   x86_64) SCAN_ARCH=amd64 ;;
   aarch64|arm64) SCAN_ARCH=arm64 ;;

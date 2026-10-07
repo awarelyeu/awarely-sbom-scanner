@@ -4,7 +4,7 @@ Urmează traseul simplu: pregătești Linux, instalezi scannerul, alegi din meni
 
 [English](how-to.md) · [Română](how-to.ro.md)
 
-Release: `v0.9.0-alpha.1`
+Release: `v0.9.0`
 
 - [Începe aici: prima scanare în 4 pași](#start-here)
 - [Start: instalare simplificată, o singură dată](#quick-install)
@@ -63,7 +63,7 @@ Descarcă și citește installerul oficial (în less, apasă q pentru a ieși), 
 
 ```sh
 curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \
-  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.9.0-alpha.1/install.sh \
+  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.9.0/install.sh \
   -o awarely-install.sh
 # Review the installer before running it.
 less awarely-install.sh
@@ -111,7 +111,7 @@ Dacă noul scanner creează o problemă, revino la unicul binar anterior cu coma
 "$HOME/.local/bin/awarely-scan" update --rollback
 ```
 
-Instalările stabile primesc doar versiuni stabile. O instalare prerelease vede și prerelease-uri mai noi. Opțiuni avansate: update --version v0.9.0-alpha.1 alege un release publicat mai nou, exact; update --prerelease include explicit preview-uri; update --yes elimină confirmarea pentru automatizări controlate. Revenirea la o versiune mai veche se face prin rollback. update --help afișează opțiunile.
+Instalările stabile primesc doar versiuni stabile. O instalare prerelease vede și prerelease-uri mai noi. Opțiuni avansate: update --version v0.9.0 alege un release publicat mai nou, exact; update --prerelease include explicit preview-uri; update --yes elimină confirmarea pentru automatizări controlate. Revenirea la o versiune mai veche se face prin rollback. update --help afișează opțiunile.
 
 La o eroare de descărcare, verificare, permisiuni sau pornire, rezolvă cauza afișată și reîncearcă; nu ocoli verificarea. Codul de ieșire 7 indică o eroare de actualizare. Dacă rulează alt update, așteaptă. Dacă mesajul spune că binarul a fost înlocuit, dar scrierea directorului pe disc a eșuat, verifică version înainte de a reîncerca. Actualizarea cere un executabil real numit awarely-scan, într-un director deținut de utilizator, cu directoare părinte de încredere, fără drepturi de scriere pentru alți utilizatori; instalările prin link simbolic sunt refuzate.
 
@@ -162,7 +162,7 @@ Binarul nu are nevoie de gh, Cosign, Node.js, Java sau Python pentru a citi fiș
 | Verificare API | Acces Pro + token Doar verificare | Primești un raport JSON local. Nu salvează inventarul și nu trimite alerte. |
 | Sincronizare API | Acces Pro + token Doar sincronizare sau ambele | Înlocuiește imediat doar sursa autorizată din inventarul salvat. |
 
-Versiunea este un API preview. Același utilitar, compilat pentru amd64 sau arm64, detectează distribuțiile de mai jos. Integrarea Jenkins, containerele, imaginile AMI/VHD, Alpine și scanarea binarelor arbitrare nu sunt disponibile. Este acceptat un director cu un sistem de fișiere Linux offline; nu un fișier imagine.
+Aceasta este o versiune stabilă pentru funcțiile și limitele documentate. Același utilitar, compilat pentru amd64 sau arm64, detectează distribuțiile de mai jos. Integrarea Jenkins, containerele, imaginile AMI/VHD, Alpine și scanarea binarelor arbitrare nu sunt disponibile. Este acceptat un director cu un sistem de fișiere Linux offline; nu un fișier imagine.
 
 Flux recomandat: instalare simplificată → scanare ghidată → alege ce faci cu rezultatul. Pentru API, pregătește credențiala conform secțiunii 8. Secțiunile pe distribuții și comenzile lungi sunt alternative manuale, nu pași obligatorii ai meniului.
 
@@ -344,7 +344,7 @@ Nu rula gh auth login și nu crea un token GitHub pentru această instalare. La 
 
 ## 3. Descarcă, verifică și pornește · alternativă manuală
 
-Comenzile fixează versiunea preview publicată. Oprește-te la orice eroare de descărcare, atestare sau checksum. Lista externă include ambele arhitecturi; verificăm doar arhiva descărcată. Extragerea se face după verificare.
+Comenzile fixează versiunea stabilă publicată. Oprește-te la orice eroare de descărcare, atestare sau checksum. Lista externă include ambele arhitecturi; verificăm doar arhiva descărcată. Extragerea se face după verificare.
 
 Fără cont GitHub și fără token. Descărcăm arhiva originală și dovada semnată din același release public. Dovada este verificată criptografic pentru arhiva exactă, repo-ul Awarely, workflow-ul de release și tag-ul ales, înainte de extragere.
 
@@ -362,7 +362,7 @@ for tool in curl tar sha256sum awk gh; do
 done
 gh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }
 cd "$SCAN_WORK"
-SCAN_VERSION=v0.9.0-alpha.1
+SCAN_VERSION=v0.9.0
 case "$(uname -m)" in
   x86_64) SCAN_ARCH=amd64 ;;
   aarch64|arm64) SCAN_ARCH=arm64 ;;
