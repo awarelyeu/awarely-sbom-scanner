@@ -6,8 +6,10 @@ import (
 	"unsafe"
 )
 
-func stdinTerminal() bool {
+func stdinTerminal() bool { return fileTerminal(os.Stdin) }
+
+func fileTerminal(file *os.File) bool {
 	var state syscall.Termios
-	_, _, err := syscall.Syscall(syscall.SYS_IOCTL, os.Stdin.Fd(), syscall.TCGETS, uintptr(unsafe.Pointer(&state)))
+	_, _, err := syscall.Syscall(syscall.SYS_IOCTL, file.Fd(), syscall.TCGETS, uintptr(unsafe.Pointer(&state)))
 	return err == 0
 }

@@ -3,7 +3,7 @@
 # No root, GitHub login, project execution or automatic prerequisite installation.
 set -eu
 umask 077
-SCAN_VERSION=v0.7.0-alpha.2
+SCAN_VERSION=v0.8.0-alpha.1
 SCAN_REPO=awarelyeu/awarely-sbom-scanner
 SCAN_DEST="${HOME:?HOME is required}/.local/bin/awarely-scan"
 case "$(uname -m)" in
