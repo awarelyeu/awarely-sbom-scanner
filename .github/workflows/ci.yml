@@ -39,6 +39,7 @@ jobs:
           python3 scripts/check_runtime.py
           python3 scripts/render_guides.py --check
           python3 scripts/test_install.py
+          python3 scripts/integration_update.py
       - name: Bounded parser fuzzing
         run: |
           for target in FuzzJSON FuzzLock FuzzRequirements FuzzDPKG FuzzRPMDatabase FuzzRPMHeader FuzzRPMWAL FuzzRPMDependency; do

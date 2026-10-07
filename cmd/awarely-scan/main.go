@@ -13,7 +13,9 @@ import (
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/api"
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/guided"
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/inventory"
+	"github.com/awarelyeu/awarely-sbom-scanner/internal/producer"
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/safeio"
+	"github.com/awarelyeu/awarely-sbom-scanner/internal/update"
 )
 
 var version = "dev"
@@ -27,7 +29,8 @@ Usage:
   awarely-scan host --output FILE [--select 'nginx*,openssl'] [--name NAME]
   awarely-scan host --all-packages --output FILE
   awarely-scan import --input FILE --output FILE [--name NAME]
-  awarely-scan version
+  awarely-scan version [--tools]
+  awarely-scan update [--check | --rollback] [--version TAG] [--yes]
   awarely-scan check --input FILE --credentials FILE --output REPORT.json
   awarely-scan sync --input FILE --credentials FILE --output RECEIPT.json
 
@@ -44,7 +47,7 @@ Options:
   --all-packages    Include all installed packages (explicit opt-in)
 
 Exit codes: 0 selected inputs processed; 2 invalid input/error; 3 partial coverage;
-            4 output error; 5 interrupted/deadline; 6 API operation failed.
+            4 output error; 5 interrupted/deadline; 6 API operation failed; 7 update failed.
 Native host/app/import: no network, installation, project execution, credentials or telemetry.
 Guided mode: optional verified Syft preparation/execution after explicit consent.
 Local collection never uses network or credentials. API operations are explicit.
@@ -71,6 +74,12 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 		fmt.Fprint(out, help)
 		return 0
 	}
+	if args[0] == "update" {
+		return update.Run(parent, args[1:], version, os.Stdin, out, errOut)
+	}
+	if args[0] == "install" && len(args) == 1 {
+		return update.Install(parent, version, os.Stdin, out, errOut)
+	}
 	if args[0] == "guided" {
 		if len(args) != 1 {
 			fmt.Fprintln(errOut, "Guided mode accepts no arguments. Use host/app/import/check/sync for automation.")
@@ -84,7 +93,14 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 		return guided.RunWithColor(parent, os.Stdin, out, errOut, version, color)
 	}
 	if args[0] == "version" {
+		if len(args) > 2 || (len(args) == 2 && args[1] != "--tools") {
+			fmt.Fprintln(errOut, "Usage: awarely-scan version [--tools]")
+			return 2
+		}
 		fmt.Fprintln(out, "awarely-scan", version)
+		if len(args) == 2 {
+			fmt.Fprintln(out, "Managed Syft:", producer.Version, "(pinned to this Awarely release)")
+		}
 		return 0
 	}
 	if args[0] == "check" || args[0] == "sync" {

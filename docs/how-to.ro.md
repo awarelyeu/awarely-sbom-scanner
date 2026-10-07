@@ -4,10 +4,11 @@ Urmează traseul simplu: pregătești Linux, instalezi scannerul, alegi din meni
 
 [English](how-to.md) · [Română](how-to.ro.md)
 
-Release: `v0.8.0-alpha.2`
+Release: `v0.9.0-alpha.1`
 
 - [Începe aici: prima scanare în 4 pași](#start-here)
 - [Start: instalare simplificată, o singură dată](#quick-install)
+- [Actualizează Awarely și Syft gestionat de el](#scanner-updates)
 - [Scanare ghidată: alegerile din meniu](#guided)
 - [1. Alege fluxul](#choose)
 - [2. Pregătește mașina Linux](#prerequisites)
@@ -58,11 +59,11 @@ Rulează pe Linux amd64/arm64 ca utilizator obișnuit. Unelte de bază: curl, ta
 
 Dacă lipsește o unealtă de bază, installerul o numește și afișează comenzile distribuției tale. Rulează-le într-un alt terminal, apoi apasă Enter în installer pentru reverificare. Acesta nu rulează sudo și nu modifică pachetele sistemului în locul tău. q închide procesul. Dacă lipsește curl, instalează-l înainte să descarci installerul.
 
-Descarcă și citește installerul oficial (în less, apasă q pentru a ieși), apoi rulează-l. El verifică proveniența semnată pentru versiunea exactă și checksum-urile, apoi publică binarul în ~/.local/bin/awarely-scan. Nu suprascrie o instalare existentă; mută separat binarul vechi dacă faci upgrade. Dacă apare STOP, rezolvă cauza înainte de a rula scannerul.
+Descarcă și citește installerul oficial (în less, apasă q pentru a ieși), apoi rulează-l. El verifică proveniența semnată pentru versiunea exactă și checksum-urile, apoi publică binarul în ~/.local/bin/awarely-scan. Dacă există o instalare mai veche, cere confirmarea actualizării și păstrează un backup privat pentru revenire. Nu muta și nu șterge binarul vechi. Un installer cu aceeași versiune sau una mai veche este refuzat. Dacă apare STOP, rezolvă cauza înainte de a rula scannerul.
 
 ```sh
 curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \
-  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.8.0-alpha.2/install.sh \
+  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.9.0-alpha.1/install.sh \
   -o awarely-install.sh
 # Review the installer before running it.
 less awarely-install.sh
@@ -75,6 +76,44 @@ După READY, nu mai ai de copiat comenzile pentru Syft/Cosign. Deschide meniul d
 ```sh
 "$HOME/.local/bin/awarely-scan" guided
 ```
+
+
+<a id="scanner-updates"></a>
+
+## Actualizează Awarely și Syft gestionat de el
+
+Disponibil din v0.9.0-alpha.1. Dacă scannerul tău nu recunoaște comanda update, rulează o dată installerul simplificat de mai sus și aprobă actualizarea. El verifică noul release înainte de a înlocui binarul existent. Rulează actualizarea cu utilizatorul care a instalat scannerul, fără sudo.
+
+Verifică mai întâi ce versiune este disponibilă. Această comandă explicită contactează GitHub; nu instalează nimic, nu trimite inventarul și nu folosește o cheie API.
+
+```sh
+"$HOME/.local/bin/awarely-scan" update --check
+```
+
+Pentru instalare, rulează comanda următoare și scrie yes la Continue. Scannerul descarcă un verificator temporar cu versiune fixată, verifică proveniența semnată pentru repository-ul, workflow-ul și tagul exact, verifică amprenta și pornirea binarului, apoi înlocuiește atomic executabilul. Nu ai nevoie de cont GitHub sau gh instalat în sistem. Lasă terminalul deschis până la final.
+
+```sh
+"$HOME/.local/bin/awarely-scan" update
+```
+
+După mesajul Updated to, verifică ambele versiuni și continuă cu meniul ghidat. Scanările obișnuite nu caută actualizări și nu schimbă scannerul în fundal.
+
+```sh
+"$HOME/.local/bin/awarely-scan" version --tools
+"$HOME/.local/bin/awarely-scan" guided
+```
+
+Syft se actualizează doar printr-un release Awarely testat. Acest release gestionează Syft 1.54.1; în meniul ghidat nu poți alege o versiune arbitrară sau latest. La următoarea scanare Syft, scannerul explică descărcarea și cere acordul. Arhiva este verificată față de SHA-256 inclus în binar la fiecare utilizare. Versiunile existente din cache sunt păstrate pentru revenirea la versiunea anterioară. Poți importa în continuare SBOM-uri produse separat, dar acestea nu intră în garanția verificării utilitarului gestionat.
+
+Dacă noul scanner creează o problemă, revino la unicul binar anterior cu comanda de mai jos și răspunde yes. Revenirea folosește backupul privat local, fără descărcare. Restaurează CLI-ul anterior și versiunea Syft asociată; inventarele, rapoartele și credentialele rămân intacte. O versiune mai veche de v0.9.0-alpha.1 nu are comanda update: folosește installerul oficial curent pentru a actualiza din nou.
+
+```sh
+"$HOME/.local/bin/awarely-scan" update --rollback
+```
+
+Instalările stabile primesc doar versiuni stabile. O instalare prerelease vede și prerelease-uri mai noi. Opțiuni avansate: update --version v0.9.0-alpha.1 alege un release publicat mai nou, exact; update --prerelease include explicit preview-uri; update --yes elimină confirmarea pentru automatizări controlate. Revenirea la o versiune mai veche se face prin rollback. update --help afișează opțiunile.
+
+La o eroare de descărcare, verificare, permisiuni sau pornire, rezolvă cauza afișată și reîncearcă; nu ocoli verificarea. Codul de ieșire 7 indică o eroare de actualizare. Dacă rulează alt update, așteaptă. Dacă mesajul spune că binarul a fost înlocuit, dar scrierea directorului pe disc a eșuat, verifică version înainte de a reîncerca. Actualizarea cere un executabil real numit awarely-scan, într-un director deținut de utilizator, cu directoare părinte de încredere, fără drepturi de scriere pentru alți utilizatori; instalările prin link simbolic sunt refuzate.
 
 
 <a id="guided"></a>
@@ -323,7 +362,7 @@ for tool in curl tar sha256sum awk gh; do
 done
 gh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }
 cd "$SCAN_WORK"
-SCAN_VERSION=v0.8.0-alpha.2
+SCAN_VERSION=v0.9.0-alpha.1
 case "$(uname -m)" in
   x86_64) SCAN_ARCH=amd64 ;;
   aarch64|arm64) SCAN_ARCH=arm64 ;;
@@ -658,14 +697,14 @@ fi
 
 Continuă numai după verificările reușite, versiunea v3.1.3 și mesajul READY. Nu trebuie să poți rula cosign ca o comandă simplă: în acest ghid îl apelăm prin calea completă din COSIGN_BIN.
 
-B. Instalează și verifică Syft 1.54.0. Folosim Cosign din blocul A pentru semnătura listei de checksum-uri Anchore, apoi verificăm arhiva înainte de extragere. Dacă lipsește Cosign, blocul se oprește înainte de descărcări. SYFT_BIN este setat numai după verificare și pornire reușită.
+B. Instalează și verifică Syft 1.54.1. Folosim Cosign din blocul A pentru semnătura listei de checksum-uri Anchore, apoi verificăm arhiva înainte de extragere. Dacă lipsește Cosign, blocul se oprește înainte de descărcări. SYFT_BIN este setat numai după verificare și pornire reușită.
 
 - [Syft — release verification](https://oss.anchore.com/docs/installation/verification/)
 
 ```sh
 SYFT_BIN=
 umask 077
-SYFT_DIR=$(mktemp -d "${SCAN_WORK:?STOP: complete step 3 first}/syft-1.54.0.XXXXXXXX")
+SYFT_DIR=$(mktemp -d "${SCAN_WORK:?STOP: complete step 3 first}/syft-1.54.1.XXXXXXXX")
 (
   set -eu
   : "${SYFT_DIR:?STOP: could not create the Syft directory}"
@@ -673,7 +712,7 @@ SYFT_DIR=$(mktemp -d "${SCAN_WORK:?STOP: complete step 3 first}/syft-1.54.0.XXXX
   for tool in curl tar sha256sum awk; do
     command -v "$tool" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\n' "$tool" >&2; exit 1; }
   done
-  SYFT_VERSION=1.54.0
+  SYFT_VERSION=1.54.1
   case "$(uname -m)" in
     x86_64) SYFT_ARCH=amd64 ;;
     aarch64|arm64) SYFT_ARCH=arm64 ;;
@@ -706,7 +745,7 @@ else
 fi
 ```
 
-Continuă numai după versiunea 1.54.0 și READY. Pentru cosign: command not found sau syft: No such file or directory din instrucțiunile vechi, rulează întâi blocul A, apoi blocul B actualizat. Fiecare rulare folosește un director privat nou; nu șterge și nu suprascrie fișierele descărcate anterior. SCAN_WORK, SCAN_BIN și SBOM-urile existente rămân aceleași. Dacă deschizi alt terminal, restabilește SCAN_WORK și SCAN_BIN conform pasului 3, apoi COSIGN_BIN și SYFT_BIN folosind căile READY afișate aici, sau repetă blocurile A–B.
+Continuă numai după versiunea 1.54.1 și READY. Pentru cosign: command not found sau syft: No such file or directory din instrucțiunile vechi, rulează întâi blocul A, apoi blocul B actualizat. Fiecare rulare folosește un director privat nou; nu șterge și nu suprascrie fișierele descărcate anterior. SCAN_WORK, SCAN_BIN și SBOM-urile existente rămân aceleași. Dacă deschizi alt terminal, restabilește SCAN_WORK și SCAN_BIN conform pasului 3, apoi COSIGN_BIN și SYFT_BIN folosind căile READY afișate aici, sau repetă blocurile A–B.
 
 C. Colectează aplicația Java și importă rezultatul în Awarely. Acest pas începe numai după cele două mesaje READY.
 

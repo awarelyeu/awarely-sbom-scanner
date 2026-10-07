@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "v0.8.0-alpha.2",
+  "version": "v0.9.0-alpha.1",
   "title": "Awarely Scan: from installation to your first result",
   "intro": "Follow the simple path: prepare Linux, install the scanner, choose from its menu and read the result. No Python commands or JSON editing are needed. CLI messages and commands are in English. Examples are fictional; replace them with paths and names from your machine.",
   "sections": [
@@ -46,12 +46,12 @@
         },
         {
           "type": "paragraph",
-          "text": "Download and review the official installer (press q to exit less), then run it. It verifies signed provenance for the exact version and checksums, then publishes the binary at ~/.local/bin/awarely-scan. It refuses to overwrite an existing installation; move the old binary aside when upgrading. If it prints STOP, resolve the cause before starting the scanner."
+          "text": "Download and review the official installer (press q to exit less), then run it. It verifies signed provenance for the exact version and checksums, then publishes the binary at ~/.local/bin/awarely-scan. If an older installation exists, it asks before upgrading and keeps a private rollback backup. Do not move or delete the old binary. A same-version or older installer is refused. If it prints STOP, resolve the cause before starting the scanner."
         },
         {
           "type": "code",
           "language": "sh",
-          "code": "curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \\\n  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.8.0-alpha.2/install.sh \\\n  -o awarely-install.sh\n# Review the installer before running it.\nless awarely-install.sh\nsh awarely-install.sh\n\"$HOME/.local/bin/awarely-scan\" guided"
+          "code": "curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \\\n  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.9.0-alpha.1/install.sh \\\n  -o awarely-install.sh\n# Review the installer before running it.\nless awarely-install.sh\nsh awarely-install.sh\n\"$HOME/.local/bin/awarely-scan\" guided"
         },
         {
           "type": "paragraph",
@@ -61,6 +61,64 @@
           "type": "code",
           "language": "sh",
           "code": "\"$HOME/.local/bin/awarely-scan\" guided"
+        }
+      ]
+    },
+    {
+      "id": "scanner-updates",
+      "title": "Update Awarely and its managed Syft",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Available from v0.9.0-alpha.1. If your current scanner does not recognize update, run the simplified installer above once and approve the upgrade. It verifies the new release before replacing the existing binary. Run updates as the user who installed the scanner, without sudo."
+        },
+        {
+          "type": "paragraph",
+          "text": "First check what is available. This explicit command contacts GitHub; it does not install anything, send your inventory or use an API credential."
+        },
+        {
+          "type": "code",
+          "language": "sh",
+          "code": "\"$HOME/.local/bin/awarely-scan\" update --check"
+        },
+        {
+          "type": "paragraph",
+          "text": "To install, run the next command and type yes at Continue. The scanner downloads a temporary pinned verifier, checks signed provenance for the exact repository, release workflow and tag, checks the binary digest and startup, then replaces the executable atomically. No GitHub account or system gh installation is needed. Keep the terminal open until completion."
+        },
+        {
+          "type": "code",
+          "language": "sh",
+          "code": "\"$HOME/.local/bin/awarely-scan\" update"
+        },
+        {
+          "type": "paragraph",
+          "text": "After Updated to appears, inspect both versions and continue with the guided scanner. Ordinary scans never check for updates or change the scanner in the background."
+        },
+        {
+          "type": "code",
+          "language": "sh",
+          "code": "\"$HOME/.local/bin/awarely-scan\" version --tools\n\"$HOME/.local/bin/awarely-scan\" guided"
+        },
+        {
+          "type": "paragraph",
+          "text": "Syft is updated only through a tested Awarely release. This release manages Syft 1.54.1; you cannot select an arbitrary Syft version or latest in guided mode. The next Syft scan explains the download and asks for approval. Its archive is verified against the embedded SHA-256 on every use. Existing cache versions are kept so rollback can use the earlier pin. Separately produced SBOMs can still be imported, but are outside this managed-tool guarantee."
+        },
+        {
+          "type": "paragraph",
+          "text": "If the new scanner causes a problem, restore the single previous binary with the command below and type yes. Rollback uses the private local backup, without a download. It restores the previous CLI and its Syft pin; it does not change inventories, reports or credentials. A version older than v0.9.0-alpha.1 has no update command: use the current official installer to upgrade again."
+        },
+        {
+          "type": "code",
+          "language": "sh",
+          "code": "\"$HOME/.local/bin/awarely-scan\" update --rollback"
+        },
+        {
+          "type": "paragraph",
+          "text": "Stable installations stay on stable releases. An existing prerelease also receives newer prereleases. Advanced choices: update --version v0.9.0-alpha.1 selects an exact newer published release; update --prerelease explicitly includes previews; update --yes skips the confirmation for trusted automation. Downgrades require rollback. update --help lists the options."
+        },
+        {
+          "type": "paragraph",
+          "text": "On a download, verification, permission or startup failure, resolve the reported cause and retry; do not bypass verification. Exit code 7 identifies an update failure. If another update is running, wait for it. A message saying the binary was replaced but a directory flush failed requires checking version before retrying. Update requires a real executable named awarely-scan in a user-owned directory with trusted, non-writable parent directories; symlink installations are refused."
         }
       ]
     },
@@ -403,7 +461,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "SCAN_BIN=\numask 077\nSCAN_WORK=$(mktemp -d \"$HOME/awarely-scan.XXXXXXXX\")\n(\nset -eu\n: \"${SCAN_WORK:?Could not create working directory}\"\nfor tool in curl tar sha256sum awk gh; do\n  command -v \"$tool\" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\\n' \"$tool\" >&2; exit 1; }\ndone\ngh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }\ncd \"$SCAN_WORK\"\nSCAN_VERSION=v0.8.0-alpha.2\ncase \"$(uname -m)\" in\n  x86_64) SCAN_ARCH=amd64 ;;\n  aarch64|arm64) SCAN_ARCH=arm64 ;;\n  *) echo \"Unsupported architecture\" >&2; exit 1 ;;\nesac\nSCAN_ARCHIVE=\"awarely-scan_${SCAN_VERSION}_linux_${SCAN_ARCH}.tar.gz\"\nSCAN_RELEASE=\"https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/${SCAN_VERSION}\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE\" -o \"$SCAN_ARCHIVE\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/SHA256SUMS\" -o SHA256SUMS\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE.sigstore.jsonl\" -o \"$SCAN_ARCHIVE.sigstore.jsonl\"\ngh attestation verify \"$SCAN_ARCHIVE\" \\\n  --bundle \"$SCAN_ARCHIVE.sigstore.jsonl\" \\\n  --repo awarelyeu/awarely-sbom-scanner \\\n  --signer-workflow awarelyeu/awarely-sbom-scanner/.github/workflows/release.yml \\\n  --source-ref \"refs/tags/$SCAN_VERSION\"\nawk -v file=\"$SCAN_ARCHIVE\" '$2 == file { print; found=1 } END { if (!found) exit 1 }' SHA256SUMS > selected-SHA256SUMS\nsha256sum --check selected-SHA256SUMS\nmkdir release\ntar -xzf \"$SCAN_ARCHIVE\" -C release\n(cd release && sha256sum --check SHA256SUMS)\n\"$SCAN_WORK/release/awarely-scan\" version\n\"$SCAN_WORK/release/awarely-scan\" help\nprintf 'Working directory: %s\\n' \"$SCAN_WORK\"\n)\nSCAN_INSTALL_STATUS=$?\nif [ \"$SCAN_INSTALL_STATUS\" -eq 0 ]; then\n  SCAN_BIN=\"$SCAN_WORK/release/awarely-scan\"\n  printf 'READY: %s\\n' \"$SCAN_BIN\"\nelse\n  SCAN_BIN=\n  printf 'STOP: installation incomplete in %s. Fix the error and rerun all of step 3. Do not scan yet.\\n' \"$SCAN_WORK\" >&2\n  (exit \"$SCAN_INSTALL_STATUS\")\nfi"
+          "code": "SCAN_BIN=\numask 077\nSCAN_WORK=$(mktemp -d \"$HOME/awarely-scan.XXXXXXXX\")\n(\nset -eu\n: \"${SCAN_WORK:?Could not create working directory}\"\nfor tool in curl tar sha256sum awk gh; do\n  command -v \"$tool\" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\\n' \"$tool\" >&2; exit 1; }\ndone\ngh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }\ncd \"$SCAN_WORK\"\nSCAN_VERSION=v0.9.0-alpha.1\ncase \"$(uname -m)\" in\n  x86_64) SCAN_ARCH=amd64 ;;\n  aarch64|arm64) SCAN_ARCH=arm64 ;;\n  *) echo \"Unsupported architecture\" >&2; exit 1 ;;\nesac\nSCAN_ARCHIVE=\"awarely-scan_${SCAN_VERSION}_linux_${SCAN_ARCH}.tar.gz\"\nSCAN_RELEASE=\"https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/${SCAN_VERSION}\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE\" -o \"$SCAN_ARCHIVE\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/SHA256SUMS\" -o SHA256SUMS\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE.sigstore.jsonl\" -o \"$SCAN_ARCHIVE.sigstore.jsonl\"\ngh attestation verify \"$SCAN_ARCHIVE\" \\\n  --bundle \"$SCAN_ARCHIVE.sigstore.jsonl\" \\\n  --repo awarelyeu/awarely-sbom-scanner \\\n  --signer-workflow awarelyeu/awarely-sbom-scanner/.github/workflows/release.yml \\\n  --source-ref \"refs/tags/$SCAN_VERSION\"\nawk -v file=\"$SCAN_ARCHIVE\" '$2 == file { print; found=1 } END { if (!found) exit 1 }' SHA256SUMS > selected-SHA256SUMS\nsha256sum --check selected-SHA256SUMS\nmkdir release\ntar -xzf \"$SCAN_ARCHIVE\" -C release\n(cd release && sha256sum --check SHA256SUMS)\n\"$SCAN_WORK/release/awarely-scan\" version\n\"$SCAN_WORK/release/awarely-scan\" help\nprintf 'Working directory: %s\\n' \"$SCAN_WORK\"\n)\nSCAN_INSTALL_STATUS=$?\nif [ \"$SCAN_INSTALL_STATUS\" -eq 0 ]; then\n  SCAN_BIN=\"$SCAN_WORK/release/awarely-scan\"\n  printf 'READY: %s\\n' \"$SCAN_BIN\"\nelse\n  SCAN_BIN=\n  printf 'STOP: installation incomplete in %s. Fix the error and rerun all of step 3. Do not scan yet.\\n' \"$SCAN_WORK\" >&2\n  (exit \"$SCAN_INSTALL_STATUS\")\nfi"
         },
         {
           "type": "paragraph",
@@ -776,7 +834,7 @@
         },
         {
           "type": "paragraph",
-          "text": "B. Install and verify Syft 1.54.0. Use Cosign from block A to verify Anchore’s signed checksum list, then verify the archive before extraction. If Cosign is missing, the block stops before downloads. SYFT_BIN is set only after verification and successful startup."
+          "text": "B. Install and verify Syft 1.54.1. Use Cosign from block A to verify Anchore’s signed checksum list, then verify the archive before extraction. If Cosign is missing, the block stops before downloads. SYFT_BIN is set only after verification and successful startup."
         },
         {
           "type": "links",
@@ -790,11 +848,11 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "SYFT_BIN=\numask 077\nSYFT_DIR=$(mktemp -d \"${SCAN_WORK:?STOP: complete step 3 first}/syft-1.54.0.XXXXXXXX\")\n(\n  set -eu\n  : \"${SYFT_DIR:?STOP: could not create the Syft directory}\"\n  test -n \"${COSIGN_BIN:-}\" && test -x \"$COSIGN_BIN\" || { echo 'STOP: complete the Cosign block above first.' >&2; exit 1; }\n  for tool in curl tar sha256sum awk; do\n    command -v \"$tool\" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\\n' \"$tool\" >&2; exit 1; }\n  done\n  SYFT_VERSION=1.54.0\n  case \"$(uname -m)\" in\n    x86_64) SYFT_ARCH=amd64 ;;\n    aarch64|arm64) SYFT_ARCH=arm64 ;;\n    *) echo 'STOP: unsupported architecture' >&2; exit 1 ;;\n  esac\n  cd \"$SYFT_DIR\"\n  BASE=\"https://github.com/anchore/syft/releases/download/v$SYFT_VERSION\"\n  ARCHIVE=\"syft_${SYFT_VERSION}_linux_${SYFT_ARCH}.tar.gz\"\n  CHECKSUMS=\"syft_${SYFT_VERSION}_checksums.txt\"\n  for FILE in \"$ARCHIVE\" \"$CHECKSUMS\" \"$CHECKSUMS.sigstore.json\"; do\n    curl --fail --location --connect-timeout 15 --max-time 180 --proto '=https' --proto-redir '=https' --tlsv1.2 \"$BASE/$FILE\" -o \"$FILE\"\n  done\n  \"$COSIGN_BIN\" verify-blob \"$CHECKSUMS\" --bundle \"$CHECKSUMS.sigstore.json\" \\\n    --certificate-identity 'https://github.com/anchore/syft/.github/workflows/release.yaml@refs/heads/main' \\\n    --certificate-oidc-issuer 'https://token.actions.githubusercontent.com'\n  awk -v file=\"$ARCHIVE\" '$2 == file {print; count++} END {if (count != 1) exit 1}' \"$CHECKSUMS\" > selected.sha256\n  sha256sum --check selected.sha256\n  tar -xzf \"$ARCHIVE\" syft\n  chmod 700 syft\n  ./syft version\n)\nSYFT_INSTALL_STATUS=$?\nif [ \"$SYFT_INSTALL_STATUS\" -eq 0 ]; then\n  SYFT_BIN=\"$SYFT_DIR/syft\"\n  printf 'READY: %s\\n' \"$SYFT_BIN\"\nelse\n  SYFT_BIN=\n  echo 'STOP: Syft installation incomplete. Fix the error and rerun this entire block. Do not scan yet.' >&2\n  (exit \"$SYFT_INSTALL_STATUS\")\nfi"
+          "code": "SYFT_BIN=\numask 077\nSYFT_DIR=$(mktemp -d \"${SCAN_WORK:?STOP: complete step 3 first}/syft-1.54.1.XXXXXXXX\")\n(\n  set -eu\n  : \"${SYFT_DIR:?STOP: could not create the Syft directory}\"\n  test -n \"${COSIGN_BIN:-}\" && test -x \"$COSIGN_BIN\" || { echo 'STOP: complete the Cosign block above first.' >&2; exit 1; }\n  for tool in curl tar sha256sum awk; do\n    command -v \"$tool\" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\\n' \"$tool\" >&2; exit 1; }\n  done\n  SYFT_VERSION=1.54.1\n  case \"$(uname -m)\" in\n    x86_64) SYFT_ARCH=amd64 ;;\n    aarch64|arm64) SYFT_ARCH=arm64 ;;\n    *) echo 'STOP: unsupported architecture' >&2; exit 1 ;;\n  esac\n  cd \"$SYFT_DIR\"\n  BASE=\"https://github.com/anchore/syft/releases/download/v$SYFT_VERSION\"\n  ARCHIVE=\"syft_${SYFT_VERSION}_linux_${SYFT_ARCH}.tar.gz\"\n  CHECKSUMS=\"syft_${SYFT_VERSION}_checksums.txt\"\n  for FILE in \"$ARCHIVE\" \"$CHECKSUMS\" \"$CHECKSUMS.sigstore.json\"; do\n    curl --fail --location --connect-timeout 15 --max-time 180 --proto '=https' --proto-redir '=https' --tlsv1.2 \"$BASE/$FILE\" -o \"$FILE\"\n  done\n  \"$COSIGN_BIN\" verify-blob \"$CHECKSUMS\" --bundle \"$CHECKSUMS.sigstore.json\" \\\n    --certificate-identity 'https://github.com/anchore/syft/.github/workflows/release.yaml@refs/heads/main' \\\n    --certificate-oidc-issuer 'https://token.actions.githubusercontent.com'\n  awk -v file=\"$ARCHIVE\" '$2 == file {print; count++} END {if (count != 1) exit 1}' \"$CHECKSUMS\" > selected.sha256\n  sha256sum --check selected.sha256\n  tar -xzf \"$ARCHIVE\" syft\n  chmod 700 syft\n  ./syft version\n)\nSYFT_INSTALL_STATUS=$?\nif [ \"$SYFT_INSTALL_STATUS\" -eq 0 ]; then\n  SYFT_BIN=\"$SYFT_DIR/syft\"\n  printf 'READY: %s\\n' \"$SYFT_BIN\"\nelse\n  SYFT_BIN=\n  echo 'STOP: Syft installation incomplete. Fix the error and rerun this entire block. Do not scan yet.' >&2\n  (exit \"$SYFT_INSTALL_STATUS\")\nfi"
         },
         {
           "type": "paragraph",
-          "text": "Continue only after version 1.54.0 and READY. For cosign: command not found or syft: No such file or directory from older instructions, run block A first, then the updated block B. Each run uses a fresh private directory; earlier downloads are neither deleted nor overwritten. SCAN_WORK, SCAN_BIN and existing SBOMs remain unchanged. In a new terminal, restore SCAN_WORK and SCAN_BIN as described in step 3, then COSIGN_BIN and SYFT_BIN using the READY paths shown here, or repeat blocks A–B."
+          "text": "Continue only after version 1.54.1 and READY. For cosign: command not found or syft: No such file or directory from older instructions, run block A first, then the updated block B. Each run uses a fresh private directory; earlier downloads are neither deleted nor overwritten. SCAN_WORK, SCAN_BIN and existing SBOMs remain unchanged. In a new terminal, restore SCAN_WORK and SCAN_BIN as described in step 3, then COSIGN_BIN and SYFT_BIN using the READY paths shown here, or repeat blocks A–B."
         },
         {
           "type": "paragraph",

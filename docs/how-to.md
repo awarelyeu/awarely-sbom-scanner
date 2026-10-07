@@ -4,10 +4,11 @@ Follow the simple path: prepare Linux, install the scanner, choose from its menu
 
 [English](how-to.md) · [Română](how-to.ro.md)
 
-Release: `v0.8.0-alpha.2`
+Release: `v0.9.0-alpha.1`
 
 - [Start here: your first scan in 4 steps](#start-here)
 - [Start: simplified one-time installation](#quick-install)
+- [Update Awarely and its managed Syft](#scanner-updates)
 - [Guided scanning: menu choices](#guided)
 - [1. Choose your workflow](#choose)
 - [2. Prepare the Linux machine](#prerequisites)
@@ -58,11 +59,11 @@ Run on Linux amd64/arm64 as a regular user. Basic tools: curl, tar, gzip, coreut
 
 If a basic tool is missing, the installer names it and shows installation commands for your distribution. Run those commands in another terminal, then press Enter in the installer to check again. It does not run sudo or modify system packages for you. q quits. If curl itself is missing, install it before downloading the installer.
 
-Download and review the official installer (press q to exit less), then run it. It verifies signed provenance for the exact version and checksums, then publishes the binary at ~/.local/bin/awarely-scan. It refuses to overwrite an existing installation; move the old binary aside when upgrading. If it prints STOP, resolve the cause before starting the scanner.
+Download and review the official installer (press q to exit less), then run it. It verifies signed provenance for the exact version and checksums, then publishes the binary at ~/.local/bin/awarely-scan. If an older installation exists, it asks before upgrading and keeps a private rollback backup. Do not move or delete the old binary. A same-version or older installer is refused. If it prints STOP, resolve the cause before starting the scanner.
 
 ```sh
 curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \
-  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.8.0-alpha.2/install.sh \
+  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.9.0-alpha.1/install.sh \
   -o awarely-install.sh
 # Review the installer before running it.
 less awarely-install.sh
@@ -75,6 +76,44 @@ After READY, there are no Syft/Cosign commands to copy. Open the menu on each ru
 ```sh
 "$HOME/.local/bin/awarely-scan" guided
 ```
+
+
+<a id="scanner-updates"></a>
+
+## Update Awarely and its managed Syft
+
+Available from v0.9.0-alpha.1. If your current scanner does not recognize update, run the simplified installer above once and approve the upgrade. It verifies the new release before replacing the existing binary. Run updates as the user who installed the scanner, without sudo.
+
+First check what is available. This explicit command contacts GitHub; it does not install anything, send your inventory or use an API credential.
+
+```sh
+"$HOME/.local/bin/awarely-scan" update --check
+```
+
+To install, run the next command and type yes at Continue. The scanner downloads a temporary pinned verifier, checks signed provenance for the exact repository, release workflow and tag, checks the binary digest and startup, then replaces the executable atomically. No GitHub account or system gh installation is needed. Keep the terminal open until completion.
+
+```sh
+"$HOME/.local/bin/awarely-scan" update
+```
+
+After Updated to appears, inspect both versions and continue with the guided scanner. Ordinary scans never check for updates or change the scanner in the background.
+
+```sh
+"$HOME/.local/bin/awarely-scan" version --tools
+"$HOME/.local/bin/awarely-scan" guided
+```
+
+Syft is updated only through a tested Awarely release. This release manages Syft 1.54.1; you cannot select an arbitrary Syft version or latest in guided mode. The next Syft scan explains the download and asks for approval. Its archive is verified against the embedded SHA-256 on every use. Existing cache versions are kept so rollback can use the earlier pin. Separately produced SBOMs can still be imported, but are outside this managed-tool guarantee.
+
+If the new scanner causes a problem, restore the single previous binary with the command below and type yes. Rollback uses the private local backup, without a download. It restores the previous CLI and its Syft pin; it does not change inventories, reports or credentials. A version older than v0.9.0-alpha.1 has no update command: use the current official installer to upgrade again.
+
+```sh
+"$HOME/.local/bin/awarely-scan" update --rollback
+```
+
+Stable installations stay on stable releases. An existing prerelease also receives newer prereleases. Advanced choices: update --version v0.9.0-alpha.1 selects an exact newer published release; update --prerelease explicitly includes previews; update --yes skips the confirmation for trusted automation. Downgrades require rollback. update --help lists the options.
+
+On a download, verification, permission or startup failure, resolve the reported cause and retry; do not bypass verification. Exit code 7 identifies an update failure. If another update is running, wait for it. A message saying the binary was replaced but a directory flush failed requires checking version before retrying. Update requires a real executable named awarely-scan in a user-owned directory with trusted, non-writable parent directories; symlink installations are refused.
 
 
 <a id="guided"></a>
@@ -323,7 +362,7 @@ for tool in curl tar sha256sum awk gh; do
 done
 gh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }
 cd "$SCAN_WORK"
-SCAN_VERSION=v0.8.0-alpha.2
+SCAN_VERSION=v0.9.0-alpha.1
 case "$(uname -m)" in
   x86_64) SCAN_ARCH=amd64 ;;
   aarch64|arm64) SCAN_ARCH=arm64 ;;
@@ -658,14 +697,14 @@ fi
 
 Continue only after successful verification, version v3.1.3 and READY. A bare cosign command does not need to work: this guide invokes its full path through COSIGN_BIN.
 
-B. Install and verify Syft 1.54.0. Use Cosign from block A to verify Anchore’s signed checksum list, then verify the archive before extraction. If Cosign is missing, the block stops before downloads. SYFT_BIN is set only after verification and successful startup.
+B. Install and verify Syft 1.54.1. Use Cosign from block A to verify Anchore’s signed checksum list, then verify the archive before extraction. If Cosign is missing, the block stops before downloads. SYFT_BIN is set only after verification and successful startup.
 
 - [Syft — release verification](https://oss.anchore.com/docs/installation/verification/)
 
 ```sh
 SYFT_BIN=
 umask 077
-SYFT_DIR=$(mktemp -d "${SCAN_WORK:?STOP: complete step 3 first}/syft-1.54.0.XXXXXXXX")
+SYFT_DIR=$(mktemp -d "${SCAN_WORK:?STOP: complete step 3 first}/syft-1.54.1.XXXXXXXX")
 (
   set -eu
   : "${SYFT_DIR:?STOP: could not create the Syft directory}"
@@ -673,7 +712,7 @@ SYFT_DIR=$(mktemp -d "${SCAN_WORK:?STOP: complete step 3 first}/syft-1.54.0.XXXX
   for tool in curl tar sha256sum awk; do
     command -v "$tool" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\n' "$tool" >&2; exit 1; }
   done
-  SYFT_VERSION=1.54.0
+  SYFT_VERSION=1.54.1
   case "$(uname -m)" in
     x86_64) SYFT_ARCH=amd64 ;;
     aarch64|arm64) SYFT_ARCH=arm64 ;;
@@ -706,7 +745,7 @@ else
 fi
 ```
 
-Continue only after version 1.54.0 and READY. For cosign: command not found or syft: No such file or directory from older instructions, run block A first, then the updated block B. Each run uses a fresh private directory; earlier downloads are neither deleted nor overwritten. SCAN_WORK, SCAN_BIN and existing SBOMs remain unchanged. In a new terminal, restore SCAN_WORK and SCAN_BIN as described in step 3, then COSIGN_BIN and SYFT_BIN using the READY paths shown here, or repeat blocks A–B.
+Continue only after version 1.54.1 and READY. For cosign: command not found or syft: No such file or directory from older instructions, run block A first, then the updated block B. Each run uses a fresh private directory; earlier downloads are neither deleted nor overwritten. SCAN_WORK, SCAN_BIN and existing SBOMs remain unchanged. In a new terminal, restore SCAN_WORK and SCAN_BIN as described in step 3, then COSIGN_BIN and SYFT_BIN using the READY paths shown here, or repeat blocks A–B.
 
 C. Collect the Java application and import the result into Awarely. Start only after both READY messages.
 
