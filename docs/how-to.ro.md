@@ -1023,4 +1023,4 @@ awarelyScan collector: 'java', mode: 'check',
 
 Înlocuiește calea și ID-ul credențialei cu valorile tale. Un prag depășit marchează build-ul UNSTABLE. Folosește skipStagesAfterUnstable() în Declarative Pipeline dacă următorul deploy trebuie oprit. Componentele neevaluate rămân vizibile; erorile API eșuează pasul și păstrează SBOM-ul local. Tokenul nu se pune în Jenkinsfile.
 
-- [Jenkins: ghid complet](https://github.com/awarelyeu/awarely-sbom-scanner/blob/main/jenkins-plugin/docs/how-to.ro.md)
+- [Jenkins: ghid complet](https://github.com/awarelyeu/awarely-scan-plugin/blob/main/docs/how-to.ro.md)

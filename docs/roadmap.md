@@ -10,7 +10,7 @@
 
 ## Jenkins preview
 
-The [Jenkins plugin](../jenkins-plugin/) uses the same CLI for Linux, npm, Python, Java, other managed-Syft inputs and existing SBOMs. It provides local, check and source-scoped sync actions, Jenkins Secret file credentials, bounded reports and configurable build policies. Preview releases remain separate from stable CLI releases. Untrusted pull-request jobs cannot use plugin API credentials or inventory the agent host.
+The [Jenkins plugin](https://github.com/awarelyeu/awarely-scan-plugin) uses the same CLI for Linux, npm, Python, Java, other managed-Syft inputs and existing SBOMs. It provides local, check and source-scoped sync actions, Jenkins Secret file credentials, bounded reports and configurable build policies. Preview releases remain separate from stable CLI releases. Untrusted pull-request jobs cannot use plugin API credentials or inventory the agent host.
 
 ## Future coverage
 

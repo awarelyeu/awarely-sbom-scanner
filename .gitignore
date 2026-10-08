@@ -15,6 +15,7 @@
 *check-results*.json
 
 /build/
+# Build leftovers from the former plugin subtree.
 /jenkins-plugin/target/
 /jenkins-plugin/work/
 *.hpi
