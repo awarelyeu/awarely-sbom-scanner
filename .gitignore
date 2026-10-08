@@ -15,3 +15,7 @@
 *check-results*.json
 
 /build/
+/jenkins-plugin/target/
+/jenkins-plugin/work/
+*.hpi
+*.jpi

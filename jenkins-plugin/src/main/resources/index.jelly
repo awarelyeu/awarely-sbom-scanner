@@ -1,0 +1,8 @@
+<?jelly escape-by-default='true'?>
+<div>
+  Collect private SBOMs on Linux agents, check package versions with Awarely Monitor,
+  and explicitly synchronize a configured inventory source. Supports npm, Python,
+  Java, other Syft ecosystems, Linux hosts and existing CycloneDX inventories.
+  Verified tools, Jenkins credentials, assessment coverage and build policies are
+  managed without interactive prompts.
+</div>

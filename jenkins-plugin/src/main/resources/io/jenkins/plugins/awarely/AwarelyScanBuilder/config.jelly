@@ -1,0 +1,17 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="lib/form" xmlns:c="lib/credentials">
+<f:entry title="What to scan" field="collector"><f:select>
+<f:option value="npm">npm lockfile</f:option><f:option value="npm-syft">npm installed files (Syft)</f:option>
+<f:option value="python">Python requirements.txt (partial)</f:option><f:option value="python-syft">Python installed environment (Syft)</f:option>
+<f:option value="java">Java built artifacts (Syft)</f:option><f:option value="other">Other application ecosystems (Syft; CVEs unevaluated)</f:option>
+<f:option value="linux">Linux agent host</f:option><f:option value="import">Import external CycloneDX application SBOM</f:option><f:option value="existing">Existing Awarely SBOM</f:option>
+</f:select></f:entry>
+<f:entry title="Action" field="mode"><f:select><f:option value="local">Save local inventory only</f:option><f:option value="check">Check CVEs</f:option><f:option value="sync">Synchronize one source</f:option></f:select></f:entry>
+<f:entry title="Path relative to workspace" field="path"><f:textbox default="."/></f:entry>
+<f:entry title="Application label" field="applicationLabel"><f:textbox default="application"/></f:entry>
+<f:entry title="Monitor credential JSON (Secret file)" field="credentialsId"><c:select/></f:entry>
+<f:entry title="Mark build UNSTABLE for version-confirmed matches at or above" field="severityThreshold"><f:select><f:option value="REPORT_ONLY">Report only</f:option><f:option value="CRITICAL">Critical</f:option><f:option value="HIGH">High</f:option><f:option value="MEDIUM">Medium</f:option><f:option value="LOW">Low</f:option></f:select></f:entry>
+<f:entry title="Mark build UNSTABLE when inventory or assessment is incomplete" field="failOnIncomplete"><f:checkbox default="true"/></f:entry>
+<f:entry title="Include all installed Linux packages" field="allPackages"><f:checkbox/></f:entry>
+<p>Build the application and install its dependencies before this step. Syft inspects existing files only. Linux means the selected Jenkins agent, not the application container or production server. API actions require administrator-approved jobs, agents and destinations.</p>
+</j:jelly>

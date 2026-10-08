@@ -39,3 +39,9 @@ Partial snapshots cannot sync, including package.json fallbacks, requirements fi
 Global gateway/concurrency limits may also return 429 during load. Respect `Retry-After`; the CLI does not automatically retry a 429 or 409. Size/resource limits return an error instead of a truncated success. A stale, corrupt or unavailable catalog returns failure, not an all-clear. 401 indicates invalid/expired/revoked credentials; 403 indicates insufficient scope or changed access; 422 rejects incomplete or unconfirmed empty snapshots.
 
 There is no `--insecure`, redirect following, automatic credential discovery, project execution or background upload. Credentials and outputs must be protected as sensitive files. The default origin is supplied in your downloaded configuration, not discovered from repository contents.
+
+## Automated managed collection
+
+From v0.10.0, `awarely-scan syft --ecosystem npm|python|java|other --path DIR --output FILE` exposes the same pinned producer used by guided mode. It remains separate from API operations: only `check` or `sync` transmits normalized inventory. `--allow-download` explicitly permits preparation of the fixed, digest-verified tool; without it an existing verified cache is required. It does not install application dependencies or execute project commands. The total preparation/scan deadline is bounded by `--timeout` (1–300 seconds). Partial inventories retain exit code 3 and cannot synchronize.
+
+The [Jenkins integration](../jenkins-plugin/) invokes these existing contracts and documents its agent, credential and publication boundaries separately.

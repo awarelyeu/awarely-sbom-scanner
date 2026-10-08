@@ -4,7 +4,7 @@ Urmează traseul simplu: pregătești Linux, instalezi scannerul, alegi din meni
 
 [English](how-to.md) · [Română](how-to.ro.md)
 
-Release: `v0.9.0`
+Release: `v0.10.0`
 
 - [Începe aici: prima scanare în 4 pași](#start-here)
 - [Start: instalare simplificată, o singură dată](#quick-install)
@@ -22,6 +22,7 @@ Release: `v0.9.0`
 - [4. Amazon Linux 2 · alternativă manuală](#amazon-linux-2)
 - [5. Alege ce colectezi · alternativă manuală](#scope)
 - [6. Colectează o aplicație · alternativă manuală](#applications)
+- [Colectare Syft fără interacțiune](#syft-automation)
 - [6b. Java și alte ecosisteme cu Syft opțional · alternativă manuală](#syft)
 - [7. Importă SBOM-ul local în Monitor](#upload)
 - [8. Creează și protejează un token de mașină](#credentials)
@@ -32,6 +33,7 @@ Release: `v0.9.0`
 - [13. Rotește, revocă și retrage o sursă](#credentials-lifecycle)
 - [14. Limite și reîncercări](#limits)
 - [15. Probleme uzuale și coduri de ieșire](#troubleshooting)
+- [Integrarea Jenkins](#jenkins)
 
 <a id="start-here"></a>
 
@@ -63,7 +65,7 @@ Descarcă și citește installerul oficial (în less, apasă q pentru a ieși), 
 
 ```sh
 curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \
-  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.9.0/install.sh \
+  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.10.0/install.sh \
   -o awarely-install.sh
 # Review the installer before running it.
 less awarely-install.sh
@@ -111,7 +113,7 @@ Dacă noul scanner creează o problemă, revino la unicul binar anterior cu coma
 "$HOME/.local/bin/awarely-scan" update --rollback
 ```
 
-Instalările stabile primesc doar versiuni stabile. O instalare prerelease vede și prerelease-uri mai noi. Opțiuni avansate: update --version v0.9.0 alege un release publicat mai nou, exact; update --prerelease include explicit preview-uri; update --yes elimină confirmarea pentru automatizări controlate. Revenirea la o versiune mai veche se face prin rollback. update --help afișează opțiunile.
+Instalările stabile primesc doar versiuni stabile. O instalare prerelease vede și prerelease-uri mai noi. Opțiuni avansate: update --version v0.10.0 alege un release publicat mai nou, exact; update --prerelease include explicit preview-uri; update --yes elimină confirmarea pentru automatizări controlate. Revenirea la o versiune mai veche se face prin rollback. update --help afișează opțiunile.
 
 La o eroare de descărcare, verificare, permisiuni sau pornire, rezolvă cauza afișată și reîncearcă; nu ocoli verificarea. Codul de ieșire 7 indică o eroare de actualizare. Dacă rulează alt update, așteaptă. Dacă mesajul spune că binarul a fost înlocuit, dar scrierea directorului pe disc a eșuat, verifică version înainte de a reîncerca. Actualizarea cere un executabil real numit awarely-scan, într-un director deținut de utilizator, cu directoare părinte de încredere, fără drepturi de scriere pentru alți utilizatori; instalările prin link simbolic sunt refuzate.
 
@@ -162,7 +164,7 @@ Binarul nu are nevoie de gh, Cosign, Node.js, Java sau Python pentru a citi fiș
 | Verificare API | Acces Pro + token Doar verificare | Primești un raport JSON local. Nu salvează inventarul și nu trimite alerte. |
 | Sincronizare API | Acces Pro + token Doar sincronizare sau ambele | Înlocuiește imediat doar sursa autorizată din inventarul salvat. |
 
-Aceasta este o versiune stabilă pentru funcțiile și limitele documentate. Același utilitar, compilat pentru amd64 sau arm64, detectează distribuțiile de mai jos. Integrarea Jenkins, containerele, imaginile AMI/VHD, Alpine și scanarea binarelor arbitrare nu sunt disponibile. Este acceptat un director cu un sistem de fișiere Linux offline; nu un fișier imagine.
+Aceasta este o versiune stabilă pentru funcțiile și limitele documentate. Același utilitar, compilat pentru amd64 sau arm64, detectează distribuțiile de mai jos. Containerele, imaginile AMI/VHD, Alpine și scanarea binarelor arbitrare nu sunt disponibile. Este acceptat un director cu un sistem de fișiere Linux offline; nu un fișier imagine.
 
 Flux recomandat: instalare simplificată → scanare ghidată → alege ce faci cu rezultatul. Pentru API, pregătește credențiala conform secțiunii 8. Secțiunile pe distribuții și comenzile lungi sunt alternative manuale, nu pași obligatorii ai meniului.
 
@@ -362,7 +364,7 @@ for tool in curl tar sha256sum awk gh; do
 done
 gh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }
 cd "$SCAN_WORK"
-SCAN_VERSION=v0.9.0
+SCAN_VERSION=v0.10.0
 case "$(uname -m)" in
   x86_64) SCAN_ARCH=amd64 ;;
   aarch64|arm64) SCAN_ARCH=arm64 ;;
@@ -631,6 +633,21 @@ Pe orice gazdă Linux acceptată, alege directorul proiectului cu npm-shrinkwrap
 Lockfile-urile includ versiunile rezolvate pentru intrările directe/tranzitive, de dezvoltare și opționale; nu dovedesc instalarea sau deployment-ul. Linkurile workspace nu sunt urmărite. requirements.txt păstrează versiunile declarate; nu urmărește include-uri, URL-uri sau rezolvarea dependențelor. Fișierele parțiale pot fi analizate/importate ori verificate, dar sync le refuză. Nu sunt acceptate lockfile-uri pnpm/yarn/poetry sau descoperirea automată a monorepo-urilor.
 
 Pentru colectare extinsă cu Syft, vezi pasul 6b.
+
+
+<a id="syft-automation"></a>
+
+## Colectare Syft fără interacțiune
+
+Din v0.10.0, automatizările pot folosi aceeași versiune Syft verificată ca modul ghidat. Compilează aplicația și instalează dependențele înainte. Înlocuiește directorul exemplu cu aplicația ta. Comanda produce doar un SBOM local; nu trimite date.
+
+```sh
+"$HOME/.local/bin/awarely-scan" syft --ecosystem java \
+  --path /srv/my-java-app --name my-java-app \
+  --output "$HOME/my-java-app.cdx.json" --allow-download
+```
+
+Opțiuni: npm, python, java și other. --allow-download permite explicit descărcarea versiunii Syft fixate dacă lipsește din cache; omite opțiunea pentru a cere un cache existent. Colectorul nu cere cont, gh sau Cosign și nu execută proiectul sau instalări de pachete. Folosește un nume nou pentru fișierul rezultat. Citește avertismentele de acoperire înainte de check sau sync.
 
 
 <a id="syft"></a>
@@ -983,3 +1000,27 @@ Sync citește revizia și folosește o cheie de idempotență. Reîncercările 
 - [Contract API și limite](https://github.com/awarelyeu/awarely-sbom-scanner/blob/main/docs/api.md)
 - [Acoperire detaliată](https://github.com/awarelyeu/awarely-sbom-scanner/blob/main/docs/coverage.md)
 - [Status serviciu](https://monitor.awarely.ro/status)
+
+
+<a id="jenkins"></a>
+
+## Integrarea Jenkins
+
+Integrarea Jenkins folosește același CLI pentru Linux, npm, Python, Java, celelalte ecosisteme Syft și inventare existente. Pluginul are versiuni separate; primul release este preview și se testează întâi pe un Jenkins de staging.
+
+1. Administratorul instalează HPI-ul verificat și dependențele din ghidul Jenkins. Ai nevoie de Jenkins 2.580.1 sau mai nou, Java compatibil (testat cu JDK 21) și un agent Linux amd64/arm64 fără root.
+2. Începe cu un job care are deja aplicația în workspace. Adaugă pasul Awarely Scan, alege tipul aplicației, calea relativă și Save local inventory only. Pentru Java sau un mediu Python instalat, construiește aplicația sau instalează dependențele înainte.
+3. După build, deschide Awarely Scan și Artifacts. Vei găsi inventarul CycloneDX. Nu este nevoie de cont Monitor pentru acest pas local.
+4. Pentru Check, creează în Setări > Active > Awarely Scan CLI o credențială Check only și încarc-o în Jenkins ca Secret file. Administratorul aprobă exact jobul, agentul și destinația API. Selectează credențiala în pasul Awarely Scan.
+5. Pentru Sync, folosește o sursă și o credențială separate, deținute de un singur job de deployment. Rulează după un deployment reușit. Scanarea Linux descrie agentul Jenkins, nu serverul unde ai făcut deploy.
+
+```groovy
+awarelyScan collector: 'java', mode: 'check',
+  path: 'services/shipping', applicationLabel: 'shipping',
+  credentialsId: 'awarely-monitor-check',
+  severityThreshold: 'HIGH', failOnIncomplete: true
+```
+
+Înlocuiește calea și ID-ul credențialei cu valorile tale. Un prag depășit marchează build-ul UNSTABLE. Folosește skipStagesAfterUnstable() în Declarative Pipeline dacă următorul deploy trebuie oprit. Componentele neevaluate rămân vizibile; erorile API eșuează pasul și păstrează SBOM-ul local. Tokenul nu se pune în Jenkinsfile.
+
+- [Jenkins: ghid complet](https://github.com/awarelyeu/awarely-sbom-scanner/blob/main/jenkins-plugin/docs/how-to.ro.md)

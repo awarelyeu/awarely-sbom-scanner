@@ -32,6 +32,21 @@ with tempfile.TemporaryDirectory(prefix='awarely-guided-test-') as directory:
  run('python',['3',str(app),'1','demo',str(root),'1'],expected=3,isolated=True)
  run('java-download',['4',str(app),'yes','java-demo',str(root),'1'])
  run('java-offline',['4',str(app),'yes','java-demo',str(root),'1'],isolated=True)
+ # The automation entry point uses the same managed runner with no simulated
+ # wizard input. Cached collection must succeed in a network namespace.
+ for kind in ['java','python','npm','other']:
+  (app/'go.mod').write_text('module example.com/demo\n\ngo 1.22\n\nrequire github.com/google/uuid v1.6.0\n')
+  cmd=['sudo','unshare','--net','--setuid',str(os.getuid()),'--setgid',str(os.getgid()),'--',
+    'env','-i','HOME='+str(root),'PATH=/usr/bin:/bin',binary,'syft','--ecosystem',kind,'--path',str(app),'--output',str(root/(kind+'-automation.cdx.json'))]
+  result=subprocess.run(cmd,text=True,capture_output=True,timeout=240)
+  assert result.returncode in (0,3),(kind,result.returncode,result.stdout,result.stderr)
+  report=root/(kind+'-automation.cdx.json')
+  assert json.loads(report.read_text())['components']
+  assert report.stat().st_mode & 0o777 == 0o600
+ no_cache_env={**environment,'HOME':str(root/'uncached')};(root/'uncached').mkdir()
+ result=subprocess.run([binary,'syft','--ecosystem','java','--path',str(app),'--output',str(root/'unapproved.json')],env=no_cache_env,text=True,capture_output=True,timeout=20)
+ assert result.returncode==2 and not (root/'unapproved.json').exists()
+ assert not list((root/'uncached').glob('.awarely-scan-tools/*.tar.gz'))
  for report in root.glob('awarely-results-*/inventory.cdx.json'):
   assert report.stat().st_mode & 0o777==0o600
   assert str(root) not in report.read_text()

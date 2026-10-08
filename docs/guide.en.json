@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "v0.9.0",
+  "version": "v0.10.0",
   "title": "Awarely Scan: from installation to your first result",
   "intro": "Follow the simple path: prepare Linux, install the scanner, choose from its menu and read the result. No Python commands or JSON editing are needed. CLI messages and commands are in English. Examples are fictional; replace them with paths and names from your machine.",
   "sections": [
@@ -51,7 +51,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \\\n  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.9.0/install.sh \\\n  -o awarely-install.sh\n# Review the installer before running it.\nless awarely-install.sh\nsh awarely-install.sh\n\"$HOME/.local/bin/awarely-scan\" guided"
+          "code": "curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \\\n  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.10.0/install.sh \\\n  -o awarely-install.sh\n# Review the installer before running it.\nless awarely-install.sh\nsh awarely-install.sh\n\"$HOME/.local/bin/awarely-scan\" guided"
         },
         {
           "type": "paragraph",
@@ -114,7 +114,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Stable installations stay on stable releases. An existing prerelease also receives newer prereleases. Advanced choices: update --version v0.9.0 selects an exact newer published release; update --prerelease explicitly includes previews; update --yes skips the confirmation for trusted automation. Downgrades require rollback. update --help lists the options."
+          "text": "Stable installations stay on stable releases. An existing prerelease also receives newer prereleases. Advanced choices: update --version v0.10.0 selects an exact newer published release; update --prerelease explicitly includes previews; update --yes skips the confirmation for trusted automation. Downgrades require rollback. update --help lists the options."
         },
         {
           "type": "paragraph",
@@ -245,7 +245,7 @@
         },
         {
           "type": "paragraph",
-          "text": "This is a stable release for the documented scope. The same Linux binary supports amd64 and arm64 builds across the distributions below. Jenkins integration, containers, AMI/VHD images, Alpine and arbitrary binary scanning are not available. An offline Linux root directory is supported; an image file is not."
+          "text": "This is a stable release for the documented scope. The same Linux binary supports amd64 and arm64 builds across the distributions below. Containers, AMI/VHD images, Alpine and arbitrary binary scanning are not available. An offline Linux root directory is supported; an image file is not."
         },
         {
           "type": "paragraph",
@@ -461,7 +461,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "SCAN_BIN=\numask 077\nSCAN_WORK=$(mktemp -d \"$HOME/awarely-scan.XXXXXXXX\")\n(\nset -eu\n: \"${SCAN_WORK:?Could not create working directory}\"\nfor tool in curl tar sha256sum awk gh; do\n  command -v \"$tool\" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\\n' \"$tool\" >&2; exit 1; }\ndone\ngh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }\ncd \"$SCAN_WORK\"\nSCAN_VERSION=v0.9.0\ncase \"$(uname -m)\" in\n  x86_64) SCAN_ARCH=amd64 ;;\n  aarch64|arm64) SCAN_ARCH=arm64 ;;\n  *) echo \"Unsupported architecture\" >&2; exit 1 ;;\nesac\nSCAN_ARCHIVE=\"awarely-scan_${SCAN_VERSION}_linux_${SCAN_ARCH}.tar.gz\"\nSCAN_RELEASE=\"https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/${SCAN_VERSION}\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE\" -o \"$SCAN_ARCHIVE\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/SHA256SUMS\" -o SHA256SUMS\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE.sigstore.jsonl\" -o \"$SCAN_ARCHIVE.sigstore.jsonl\"\ngh attestation verify \"$SCAN_ARCHIVE\" \\\n  --bundle \"$SCAN_ARCHIVE.sigstore.jsonl\" \\\n  --repo awarelyeu/awarely-sbom-scanner \\\n  --signer-workflow awarelyeu/awarely-sbom-scanner/.github/workflows/release.yml \\\n  --source-ref \"refs/tags/$SCAN_VERSION\"\nawk -v file=\"$SCAN_ARCHIVE\" '$2 == file { print; found=1 } END { if (!found) exit 1 }' SHA256SUMS > selected-SHA256SUMS\nsha256sum --check selected-SHA256SUMS\nmkdir release\ntar -xzf \"$SCAN_ARCHIVE\" -C release\n(cd release && sha256sum --check SHA256SUMS)\n\"$SCAN_WORK/release/awarely-scan\" version\n\"$SCAN_WORK/release/awarely-scan\" help\nprintf 'Working directory: %s\\n' \"$SCAN_WORK\"\n)\nSCAN_INSTALL_STATUS=$?\nif [ \"$SCAN_INSTALL_STATUS\" -eq 0 ]; then\n  SCAN_BIN=\"$SCAN_WORK/release/awarely-scan\"\n  printf 'READY: %s\\n' \"$SCAN_BIN\"\nelse\n  SCAN_BIN=\n  printf 'STOP: installation incomplete in %s. Fix the error and rerun all of step 3. Do not scan yet.\\n' \"$SCAN_WORK\" >&2\n  (exit \"$SCAN_INSTALL_STATUS\")\nfi"
+          "code": "SCAN_BIN=\numask 077\nSCAN_WORK=$(mktemp -d \"$HOME/awarely-scan.XXXXXXXX\")\n(\nset -eu\n: \"${SCAN_WORK:?Could not create working directory}\"\nfor tool in curl tar sha256sum awk gh; do\n  command -v \"$tool\" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\\n' \"$tool\" >&2; exit 1; }\ndone\ngh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }\ncd \"$SCAN_WORK\"\nSCAN_VERSION=v0.10.0\ncase \"$(uname -m)\" in\n  x86_64) SCAN_ARCH=amd64 ;;\n  aarch64|arm64) SCAN_ARCH=arm64 ;;\n  *) echo \"Unsupported architecture\" >&2; exit 1 ;;\nesac\nSCAN_ARCHIVE=\"awarely-scan_${SCAN_VERSION}_linux_${SCAN_ARCH}.tar.gz\"\nSCAN_RELEASE=\"https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/${SCAN_VERSION}\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE\" -o \"$SCAN_ARCHIVE\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/SHA256SUMS\" -o SHA256SUMS\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE.sigstore.jsonl\" -o \"$SCAN_ARCHIVE.sigstore.jsonl\"\ngh attestation verify \"$SCAN_ARCHIVE\" \\\n  --bundle \"$SCAN_ARCHIVE.sigstore.jsonl\" \\\n  --repo awarelyeu/awarely-sbom-scanner \\\n  --signer-workflow awarelyeu/awarely-sbom-scanner/.github/workflows/release.yml \\\n  --source-ref \"refs/tags/$SCAN_VERSION\"\nawk -v file=\"$SCAN_ARCHIVE\" '$2 == file { print; found=1 } END { if (!found) exit 1 }' SHA256SUMS > selected-SHA256SUMS\nsha256sum --check selected-SHA256SUMS\nmkdir release\ntar -xzf \"$SCAN_ARCHIVE\" -C release\n(cd release && sha256sum --check SHA256SUMS)\n\"$SCAN_WORK/release/awarely-scan\" version\n\"$SCAN_WORK/release/awarely-scan\" help\nprintf 'Working directory: %s\\n' \"$SCAN_WORK\"\n)\nSCAN_INSTALL_STATUS=$?\nif [ \"$SCAN_INSTALL_STATUS\" -eq 0 ]; then\n  SCAN_BIN=\"$SCAN_WORK/release/awarely-scan\"\n  printf 'READY: %s\\n' \"$SCAN_BIN\"\nelse\n  SCAN_BIN=\n  printf 'STOP: installation incomplete in %s. Fix the error and rerun all of step 3. Do not scan yet.\\n' \"$SCAN_WORK\" >&2\n  (exit \"$SCAN_INSTALL_STATUS\")\nfi"
         },
         {
           "type": "paragraph",
@@ -762,6 +762,25 @@
         {
           "type": "paragraph",
           "text": "For broader collection using Syft, see step 6b."
+        }
+      ]
+    },
+    {
+      "id": "syft-automation",
+      "title": "Non-interactive Syft collection",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "From v0.10.0, automation can use the same verified Syft managed by guided mode. Build/install your application dependencies first. Replace the example directory with your application. This command only writes a local SBOM; it does not upload anything."
+        },
+        {
+          "type": "code",
+          "language": "sh",
+          "code": "\"$HOME/.local/bin/awarely-scan\" syft --ecosystem java \\\n  --path /srv/my-java-app --name my-java-app \\\n  --output \"$HOME/my-java-app.cdx.json\" --allow-download"
+        },
+        {
+          "type": "paragraph",
+          "text": "Supported choices: npm, python, java and other. --allow-download explicitly permits the pinned Syft download when its verified cache is missing; omit it to require an existing cache. No account, gh, Cosign, project execution or package installation is performed by this collector. Use a new output filename on every run. Read partial-coverage warnings before check or sync."
         }
       ]
     },
@@ -1252,6 +1271,44 @@
             {
               "label": "Service status",
               "href": "https://monitor.awarely.ro/status"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "jenkins",
+      "title": "Jenkins integration",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "The Jenkins integration uses the same CLI for Linux, npm, Python, Java, other Syft ecosystems and existing inventories. Plugin versions are independent; the first release is a preview to test on a staging Jenkins controller."
+        },
+        {
+          "type": "list",
+          "items": [
+            "The administrator installs the verified HPI and dependencies from the Jenkins walkthrough. You need Jenkins 2.580.1 or newer, a compatible Java runtime (tested with JDK 21), and a non-root Linux amd64/arm64 agent.",
+            "Start with a job that already has the application in its workspace. Add Awarely Scan, select its collector and relative path, and choose Save local inventory only. Build Java artifacts or install Python environment dependencies in an earlier step.",
+            "After the build, open Awarely Scan and Artifacts to find the CycloneDX inventory. No Monitor account is needed for this local step.",
+            "For Check, create a Check only credential under Settings > Assets > Awarely Scan CLI, and upload it to Jenkins as a Secret file. The administrator approves the exact job, agent and API origin. Select that credential in the Awarely Scan step.",
+            "For Sync, use a separate source and credential owned by one deployment job. Run after successful deployment. Linux collection describes the Jenkins agent, not the server you deployed to."
+          ]
+        },
+        {
+          "type": "code",
+          "language": "groovy",
+          "code": "awarelyScan collector: 'java', mode: 'check',\n  path: 'services/shipping', applicationLabel: 'shipping',\n  credentialsId: 'awarely-monitor-check',\n  severityThreshold: 'HIGH', failOnIncomplete: true"
+        },
+        {
+          "type": "paragraph",
+          "text": "Replace the path and credential ID with your own values. An exceeded threshold marks the build UNSTABLE. Use skipStagesAfterUnstable() in Declarative Pipeline if subsequent deployment must stop. Unevaluated components stay visible; API errors fail the step and preserve the local SBOM. Never put the token in your Jenkinsfile."
+        },
+        {
+          "type": "links",
+          "links": [
+            {
+              "label": "Jenkins: complete walkthrough",
+              "href": "https://github.com/awarelyeu/awarely-sbom-scanner/blob/main/jenkins-plugin/docs/how-to.md"
             }
           ]
         }

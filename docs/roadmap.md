@@ -8,9 +8,9 @@
 - Scoped expiring credentials and MFA management.
 - Synthetic end-to-end tests on Linux amd64 and arm64.
 
-## Next: Jenkins plugin
+## Jenkins preview
 
-Build a dedicated plugin using this same CLI after the CLI/API test gates pass. Offer local, check and sync modes, use Jenkins Credentials and publish results. Untrusted pull-request jobs must not receive inventory-write credentials.
+The [Jenkins plugin](../jenkins-plugin/) uses the same CLI for Linux, npm, Python, Java, other managed-Syft inputs and existing SBOMs. It provides local, check and source-scoped sync actions, Jenkins Secret file credentials, bounded reports and configurable build policies. Preview releases remain separate from stable CLI releases. Untrusted pull-request jobs cannot use plugin API credentials or inventory the agent host.
 
 ## Future coverage
 
