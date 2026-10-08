@@ -25,16 +25,18 @@ const help = `Awarely Scan — SBOM inventory, API check and source sync
 Usage:
   awarely-scan                      Guided setup when run in a terminal
   awarely-scan guided               Guided Linux/npm/Python/Java workflow
-  awarely-scan app --path DIR --output FILE [--name NAME]
+  awarely-scan app --path DIR --output FILE [--name NAME] [--ecosystem npm|python]
   awarely-scan host --output FILE [--select 'nginx*,openssl'] [--name NAME]
   awarely-scan host --all-packages --output FILE
   awarely-scan import --input FILE --output FILE [--name NAME]
+  awarely-scan syft --ecosystem java|python|npm|other --path DIR --output FILE [--allow-download]
   awarely-scan version [--tools]
   awarely-scan update [--check | --rollback] [--version TAG] [--yes]
   awarely-scan check --input FILE --credentials FILE --output REPORT.json
   awarely-scan sync --input FILE --credentials FILE --output RECEIPT.json
 
 app: npm lockfile v2/v3, package.json, requirements.txt in the selected directory.
+     --ecosystem selects one native ecosystem; omitted means all supported manifests.
 import: CycloneDX JSON from Syft or another producer; application packages only.
 host: auto-detected Debian/Ubuntu (DEB), Rocky/AlmaLinux/Amazon Linux (RPM); focused selection.
 
@@ -50,6 +52,8 @@ Exit codes: 0 selected inputs processed; 2 invalid input/error; 3 partial covera
             4 output error; 5 interrupted/deadline; 6 API operation failed; 7 update failed.
 Native host/app/import: no network, installation, project execution, credentials or telemetry.
 Guided mode: optional verified Syft preparation/execution after explicit consent.
+syft: explicit noninteractive managed collection; downloads require --allow-download.
+      Reuses the release-pinned verified cache; never builds or installs project dependencies.
 Local collection never uses network or credentials. API operations are explicit.
 check does not change saved inventory. sync replaces only the credential's source.
 Credentials: protected JSON file (chmod 600), or --credentials - for stdin.
@@ -106,6 +110,9 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 	if args[0] == "check" || args[0] == "sync" {
 		return runRemote(parent, args, out, errOut)
 	}
+	if args[0] == "syft" {
+		return runSyft(parent, args[1:], errOut)
+	}
 	mode := args[0]
 	if mode != "app" && mode != "host" && mode != "import" {
 		fmt.Fprint(errOut, help)
@@ -116,10 +123,11 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 	output := fs.String("output", "", "output")
 	name := fs.String("name", "", "name")
 	timeout := fs.Int("timeout", 60, "deadline")
-	var path, selection string
+	var path, selection, ecosystem string
 	var all bool
 	if mode == "app" {
 		fs.StringVar(&path, "path", ".", "application directory")
+		fs.StringVar(&ecosystem, "ecosystem", "", "optional native ecosystem: npm or python")
 	} else if mode == "import" {
 		fs.StringVar(&path, "input", "", "selected CycloneDX SBOM")
 	} else {
@@ -151,6 +159,10 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 			return 2
 		}
 	}
+	if ecosystem != "" && ecosystem != "npm" && ecosystem != "python" {
+		fmt.Fprintln(errOut, "Choose --ecosystem npm or python for native application collection.")
+		return 2
+	}
 	if *name == "" {
 		*name = "application"
 		if mode == "host" {
@@ -166,7 +178,7 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 	var r inventory.Result
 	var err error
 	if mode == "app" {
-		r, err = inventory.App(ctx, path)
+		r, err = inventory.AppFor(ctx, path, ecosystem)
 	} else if mode == "import" {
 		r, err = inventory.Import(ctx, path)
 	} else {
@@ -180,7 +192,11 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 		fmt.Fprintln(errOut, "Scan failed:", err)
 		return 2
 	}
-	b, err := inventory.Marshal(r, *name, version, time.Now())
+	return publishInventory(ctx, r, *name, *output, errOut)
+}
+
+func publishInventory(ctx context.Context, r inventory.Result, name, output string, errOut io.Writer) int {
+	b, err := inventory.Marshal(r, name, version, time.Now())
 	if err != nil {
 		fmt.Fprintln(errOut, "Cannot generate inventory:", err)
 		return 2
@@ -189,7 +205,7 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 		fmt.Fprintln(errOut, "Deadline exceeded; no inventory written.")
 		return 5
 	}
-	if err = safeio.WriteNew(*output, b); err != nil {
+	if err = safeio.WriteNew(output, b); err != nil {
 		fmt.Fprintln(errOut, "Cannot publish output; choose a new file in a writable directory.")
 		return 4
 	}

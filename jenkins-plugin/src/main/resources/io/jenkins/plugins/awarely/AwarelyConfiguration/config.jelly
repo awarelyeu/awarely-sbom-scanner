@@ -1,0 +1,12 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="lib/form">
+<f:section title="Awarely Scan">
+<f:entry title="Allow verified tool downloads" field="allowToolDownloads"><f:checkbox/></f:entry>
+<f:entry title="Jobs allowed to use Monitor credentials (one exact full job name per line)" field="remoteJobs"><f:textarea/></f:entry>
+<f:entry title="Jobs allowed to synchronize inventory (one exact full job name per line)" field="syncJobs"><f:textarea/></f:entry>
+<f:entry title="Jobs allowed to inventory the agent host (one exact full job name per line)" field="hostScanJobs"><f:textarea/></f:entry>
+<f:entry title="Trusted agents for remote actions and host scans (one exact node name per line)" field="trustedAgents"><f:textarea/></f:entry>
+<f:entry title="Allowed Monitor API origins (one exact HTTPS origin per line)" field="apiOrigins"><f:textarea/></f:entry>
+<p>Use dedicated agents for trusted jobs. External pull requests cannot use remote actions or host scans. Tool versions and hashes are fixed by the plugin release. Downloads never update tools to an unreviewed latest version.</p>
+</f:section>
+</j:jelly>

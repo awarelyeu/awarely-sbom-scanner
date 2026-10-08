@@ -4,7 +4,7 @@ Follow the simple path: prepare Linux, install the scanner, choose from its menu
 
 [English](how-to.md) · [Română](how-to.ro.md)
 
-Release: `v0.9.0`
+Release: `v0.10.0`
 
 - [Start here: your first scan in 4 steps](#start-here)
 - [Start: simplified one-time installation](#quick-install)
@@ -22,6 +22,7 @@ Release: `v0.9.0`
 - [4. Amazon Linux 2 · manual alternative](#amazon-linux-2)
 - [5. Choose the collection scope · manual alternative](#scope)
 - [6. Collect an application instead · manual alternative](#applications)
+- [Non-interactive Syft collection](#syft-automation)
 - [6b. Java and other ecosystems with optional Syft · manual alternative](#syft)
 - [7. Upload the local SBOM in Monitor](#upload)
 - [8. Create and protect a machine credential](#credentials)
@@ -32,6 +33,7 @@ Release: `v0.9.0`
 - [13. Rotate, revoke and retire a source](#credentials-lifecycle)
 - [14. Limits and safe retries](#limits)
 - [15. Troubleshooting and exit codes](#troubleshooting)
+- [Jenkins integration](#jenkins)
 
 <a id="start-here"></a>
 
@@ -63,7 +65,7 @@ Download and review the official installer (press q to exit less), then run it. 
 
 ```sh
 curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \
-  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.9.0/install.sh \
+  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.10.0/install.sh \
   -o awarely-install.sh
 # Review the installer before running it.
 less awarely-install.sh
@@ -111,7 +113,7 @@ If the new scanner causes a problem, restore the single previous binary with the
 "$HOME/.local/bin/awarely-scan" update --rollback
 ```
 
-Stable installations stay on stable releases. An existing prerelease also receives newer prereleases. Advanced choices: update --version v0.9.0 selects an exact newer published release; update --prerelease explicitly includes previews; update --yes skips the confirmation for trusted automation. Downgrades require rollback. update --help lists the options.
+Stable installations stay on stable releases. An existing prerelease also receives newer prereleases. Advanced choices: update --version v0.10.0 selects an exact newer published release; update --prerelease explicitly includes previews; update --yes skips the confirmation for trusted automation. Downgrades require rollback. update --help lists the options.
 
 On a download, verification, permission or startup failure, resolve the reported cause and retry; do not bypass verification. Exit code 7 identifies an update failure. If another update is running, wait for it. A message saying the binary was replaced but a directory flush failed requires checking version before retrying. Update requires a real executable named awarely-scan in a user-owned directory with trusted, non-writable parent directories; symlink installations are refused.
 
@@ -162,7 +164,7 @@ The scanner itself does not need gh, Cosign, Node.js, Java or Python to read sup
 | API check | Pro access + Check only credential | Returns a local JSON report. Does not save inventory or send alerts. |
 | API sync | Pro access + Sync only or Check and sync credential | Immediately replaces only the authorized source in saved inventory. |
 
-This is a stable release for the documented scope. The same Linux binary supports amd64 and arm64 builds across the distributions below. Jenkins integration, containers, AMI/VHD images, Alpine and arbitrary binary scanning are not available. An offline Linux root directory is supported; an image file is not.
+This is a stable release for the documented scope. The same Linux binary supports amd64 and arm64 builds across the distributions below. Containers, AMI/VHD images, Alpine and arbitrary binary scanning are not available. An offline Linux root directory is supported; an image file is not.
 
 Recommended workflow: simplified installation → guided scan → choose what happens to the result. For API operations, prepare a credential using section 8. Distribution sections and long commands are manual alternatives, not mandatory steps in the menu.
 
@@ -362,7 +364,7 @@ for tool in curl tar sha256sum awk gh; do
 done
 gh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }
 cd "$SCAN_WORK"
-SCAN_VERSION=v0.9.0
+SCAN_VERSION=v0.10.0
 case "$(uname -m)" in
   x86_64) SCAN_ARCH=amd64 ;;
   aarch64|arm64) SCAN_ARCH=arm64 ;;
@@ -631,6 +633,21 @@ On any supported Linux host, select the project directory containing npm-shrinkw
 Lockfiles include resolved direct/transitive, development and optional entries; they do not prove deployment or installation. Workspace links are not followed. requirements.txt includes declared versions only; includes, URLs and dependency resolution are not followed. Partial files can be reviewed/uploaded or checked, but sync rejects them. pnpm/yarn/poetry lockfiles and automatic monorepo discovery are not supported.
 
 For broader collection using Syft, see step 6b.
+
+
+<a id="syft-automation"></a>
+
+## Non-interactive Syft collection
+
+From v0.10.0, automation can use the same verified Syft managed by guided mode. Build/install your application dependencies first. Replace the example directory with your application. This command only writes a local SBOM; it does not upload anything.
+
+```sh
+"$HOME/.local/bin/awarely-scan" syft --ecosystem java \
+  --path /srv/my-java-app --name my-java-app \
+  --output "$HOME/my-java-app.cdx.json" --allow-download
+```
+
+Supported choices: npm, python, java and other. --allow-download explicitly permits the pinned Syft download when its verified cache is missing; omit it to require an existing cache. No account, gh, Cosign, project execution or package installation is performed by this collector. Use a new output filename on every run. Read partial-coverage warnings before check or sync.
 
 
 <a id="syft"></a>
@@ -983,3 +1000,27 @@ Sync reads a revision and uses an idempotency key. Bounded transport/503 retries
 - [API contract and limits](https://github.com/awarelyeu/awarely-sbom-scanner/blob/main/docs/api.md)
 - [Coverage details](https://github.com/awarelyeu/awarely-sbom-scanner/blob/main/docs/coverage.md)
 - [Service status](https://monitor.awarely.ro/status)
+
+
+<a id="jenkins"></a>
+
+## Jenkins integration
+
+The Jenkins integration uses the same CLI for Linux, npm, Python, Java, other Syft ecosystems and existing inventories. Plugin versions are independent; the first release is a preview to test on a staging Jenkins controller.
+
+1. The administrator installs the verified HPI and dependencies from the Jenkins walkthrough. You need Jenkins 2.580.1 or newer, a compatible Java runtime (tested with JDK 21), and a non-root Linux amd64/arm64 agent.
+2. Start with a job that already has the application in its workspace. Add Awarely Scan, select its collector and relative path, and choose Save local inventory only. Build Java artifacts or install Python environment dependencies in an earlier step.
+3. After the build, open Awarely Scan and Artifacts to find the CycloneDX inventory. No Monitor account is needed for this local step.
+4. For Check, create a Check only credential under Settings > Assets > Awarely Scan CLI, and upload it to Jenkins as a Secret file. The administrator approves the exact job, agent and API origin. Select that credential in the Awarely Scan step.
+5. For Sync, use a separate source and credential owned by one deployment job. Run after successful deployment. Linux collection describes the Jenkins agent, not the server you deployed to.
+
+```groovy
+awarelyScan collector: 'java', mode: 'check',
+  path: 'services/shipping', applicationLabel: 'shipping',
+  credentialsId: 'awarely-monitor-check',
+  severityThreshold: 'HIGH', failOnIncomplete: true
+```
+
+Replace the path and credential ID with your own values. An exceeded threshold marks the build UNSTABLE. Use skipStagesAfterUnstable() in Declarative Pipeline if subsequent deployment must stop. Unevaluated components stay visible; API errors fail the step and preserve the local SBOM. Never put the token in your Jenkinsfile.
+
+- [Jenkins: complete walkthrough](https://github.com/awarelyeu/awarely-sbom-scanner/blob/main/jenkins-plugin/docs/how-to.md)

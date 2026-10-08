@@ -1,0 +1,20 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:l="lib/layout">
+<j:invoke on="${it}" method="checkPermission"/>
+<l:layout title="Awarely Scan"><l:main-panel>
+<h1>Awarely Scan</h1>
+<p>Assessment covers the submitted inventory and stated catalog period. No matches is not a security guarantee. Review incomplete coverage and the full evidence before making a remediation decision.</p>
+<j:forEach var="result" items="${it.results}">
+<h2>${result.label}</h2>
+<p>Collector: ${result.collector} · Action: ${result.mode} · Components: ${result.components} · Inventory coverage: ${result.coverage}</p>
+<j:choose><j:when test="${result.mode == 'check'}">
+<p>Matched CVEs: ${result.matchedCves} · Version-confirmed component matches: ${result.versionMatches} · Unevaluated components: ${result.unevaluated}</p>
+<p>Catalog period: ${result.period}</p>
+<j:if test="${result.gateExceeded}"><p><strong>The configured severity threshold was exceeded.</strong></p></j:if>
+<j:if test="${result.incomplete}"><p><strong>Assessment is incomplete. This result is not an all-clear.</strong></p></j:if>
+<table class="jenkins-table"><thead><tr><th>Advisory</th><th>Severity</th><th>Ecosystem</th><th>Package</th><th>Version</th><th>Precision</th></tr></thead>
+<tbody><j:forEach var="finding" items="${result.findings}"><tr><td>${finding.id}</td><td>${finding.severity}</td><td>${finding.ecosystem}</td><td>${finding.name}</td><td>${finding.version}</td><td>${finding.precision}</td></tr></j:forEach></tbody></table>
+<p>Preview includes up to 100 component matches. The JSON artifact contains the full result.</p>
+</j:when><j:when test="${result.mode == 'sync'}"><p>Source inventory synchronized. This action does not evaluate vulnerabilities.</p></j:when><j:otherwise><p>Local inventory only. No vulnerability assessment or upload was performed.</p></j:otherwise></j:choose>
+<p><a href="${rootURL}/${it.run.url}artifact/${result.artifactPath}/">Download inventory and result artifacts</a></p>
+</j:forEach></l:main-panel></l:layout></j:jelly>
