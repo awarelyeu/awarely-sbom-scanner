@@ -1308,7 +1308,7 @@
           "links": [
             {
               "label": "Jenkins: complete walkthrough",
-              "href": "https://github.com/awarelyeu/awarely-sbom-scanner/blob/main/jenkins-plugin/docs/how-to.md"
+              "href": "https://github.com/awarelyeu/awarely-scan-plugin/blob/main/docs/how-to.md"
             }
           ]
         }

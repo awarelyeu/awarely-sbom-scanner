@@ -44,4 +44,4 @@ There is no `--insecure`, redirect following, automatic credential discovery, pr
 
 From v0.10.0, `awarely-scan syft --ecosystem npm|python|java|other --path DIR --output FILE` exposes the same pinned producer used by guided mode. It remains separate from API operations: only `check` or `sync` transmits normalized inventory. `--allow-download` explicitly permits preparation of the fixed, digest-verified tool; without it an existing verified cache is required. It does not install application dependencies or execute project commands. The total preparation/scan deadline is bounded by `--timeout` (1–300 seconds). Partial inventories retain exit code 3 and cannot synchronize.
 
-The [Jenkins integration](../jenkins-plugin/) invokes these existing contracts and documents its agent, credential and publication boundaries separately.
+The [Jenkins integration](https://github.com/awarelyeu/awarely-scan-plugin) invokes these existing contracts and documents its agent, credential and publication boundaries separately.

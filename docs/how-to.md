@@ -1023,4 +1023,4 @@ awarelyScan collector: 'java', mode: 'check',
 
 Replace the path and credential ID with your own values. An exceeded threshold marks the build UNSTABLE. Use skipStagesAfterUnstable() in Declarative Pipeline if subsequent deployment must stop. Unevaluated components stay visible; API errors fail the step and preserve the local SBOM. Never put the token in your Jenkinsfile.
 
-- [Jenkins: complete walkthrough](https://github.com/awarelyeu/awarely-sbom-scanner/blob/main/jenkins-plugin/docs/how-to.md)
+- [Jenkins: complete walkthrough](https://github.com/awarelyeu/awarely-scan-plugin/blob/main/docs/how-to.md)
