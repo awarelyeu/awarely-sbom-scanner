@@ -1,6 +1,6 @@
 # Jenkins: de la instalare la prima verificare
 
-Acest ghid descrie integrarea aflată în dezvoltare. În producție folosește doar un release publicat și verificat al pluginului.
+Acest ghid acoperă preview-ul 0.1.0-alpha.1. Începe pe un Jenkins de staging și folosește HPI-ul verificat conform [ghidului de release](releases.md).
 
 ## 1. Pregătește Jenkins o singură dată
 

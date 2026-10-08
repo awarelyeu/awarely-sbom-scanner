@@ -1,6 +1,6 @@
 # Jenkins: from installation to your first inventory check
 
-This guide describes the integration under development. Use only a published, verified plugin release in production.
+This guide covers preview 0.1.0-alpha.1. Start with a staging Jenkins controller and use the verified HPI from the [release guide](releases.md).
 
 ## 1. Prepare Jenkins once
 

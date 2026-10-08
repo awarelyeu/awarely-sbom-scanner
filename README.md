@@ -7,7 +7,7 @@ Generate a local **CycloneDX SBOM** from application manifests or a focused sele
 
 Built for [Awarely Monitor](https://monitor.awarely.ro/en), with a standalone local workflow you can inspect and use independently.
 
-**Release candidate: v0.10.0 for Linux amd64 and arm64.** Local collection is independent of an account. Remote operations require Awarely Monitor Pro and a scoped machine credential created by an organization manager with MFA. The Jenkins integration is maintained in [jenkins-plugin/](jenkins-plugin/) with separate versions and verified releases.
+**Stable release: v0.10.0 for Linux amd64 and arm64.** Local collection is independent of an account. Remote operations require Awarely Monitor Pro and a scoped machine credential created by an organization manager with MFA. The Jenkins integration is maintained in [jenkins-plugin/](jenkins-plugin/) with separate versions and verified releases.
 
 | Workflow | Available |
 | --- | --- |
