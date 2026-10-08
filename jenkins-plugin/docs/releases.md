@@ -2,19 +2,26 @@
 
 Plugin tags use `jenkins-vVERSION`; CLI tags use `vVERSION`. The monorepo keeps the implementation and compatibility contract together, while allowing independent plugin releases. The HPI is not currently listed in the Jenkins Update Center.
 
-Download the HPI, its matching `.sigstore.jsonl` file and `SHA256SUMS` from the exact plugin release. Before installing controller code, verify the public provenance bundle with an up-to-date GitHub CLI. Substitute the release's exact tag and filename:
+The first preview is **0.1.0-alpha.1**, built for CLI **v0.10.0** and managed Syft **1.54.1**. Download all four files below from its [release page](https://github.com/awarelyeu/awarely-sbom-scanner/releases/tag/jenkins-v0.1.0-alpha.1) into a new empty directory:
+
+- `awarely-scan-jenkins-0.1.0-alpha.1.hpi`
+- `awarely-scan-jenkins-0.1.0-alpha.1.hpi.sigstore.jsonl`
+- `awarely-scan-jenkins-0.1.0-alpha.1.cdx.json`
+- `SHA256SUMS`
+
+Before installing controller code, run this in that directory with an up-to-date GitHub CLI:
 
 ```sh
-gh attestation verify awarely-scan-jenkins-VERSION.hpi \
-  --bundle awarely-scan-jenkins-VERSION.hpi.sigstore.jsonl \
+gh attestation verify awarely-scan-jenkins-0.1.0-alpha.1.hpi \
+  --bundle awarely-scan-jenkins-0.1.0-alpha.1.hpi.sigstore.jsonl \
   --repo awarelyeu/awarely-sbom-scanner \
   --signer-workflow awarelyeu/awarely-sbom-scanner/.github/workflows/jenkins-release.yml \
-  --source-ref refs/tags/jenkins-vVERSION \
+  --source-ref refs/tags/jenkins-v0.1.0-alpha.1 \
   --deny-self-hosted-runners
 sha256sum --check SHA256SUMS
 ```
 
-Download the dependency inventory JSON too when checking the complete checksum list. On macOS, use `shasum -a 256 -c SHA256SUMS`. Public bundles do not require a GitHub account; trust-root updates still need internet access. Stop if provenance or digests fail. The attestation identifies the build source, not a guarantee that code has no vulnerabilities.
+On macOS, replace the last command with `shasum -a 256 -c SHA256SUMS`. Public bundles do not require a GitHub account; trust-root updates still need internet access. Stop if provenance or digests fail. If `gh` is unavailable, follow the official [GitHub CLI installation guide](https://github.com/cli/cli#installation); it is a verifier for this administrator step, not a scanner runtime dependency. The attestation identifies the build source, not a guarantee that code has no vulnerabilities.
 
 Each release contains the HPI, a CycloneDX dependency inventory, checksum list and public attestation bundles. The dependency inventory includes provided Jenkins/plugin dependencies, not only JARs embedded in the HPI. The HPI carries Maven license metadata; this plugin is Apache-2.0 and its Jenkins dependencies retain their own licenses.
 
