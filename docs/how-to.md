@@ -4,7 +4,7 @@ Follow the simple path: prepare Linux, install the scanner, choose from its menu
 
 [English](how-to.md) · [Română](how-to.ro.md)
 
-Release: `v0.10.0`
+Release: `v0.10.1`
 
 - [Start here: your first scan in 4 steps](#start-here)
 - [Start: simplified one-time installation](#quick-install)
@@ -65,7 +65,7 @@ Download and review the official installer (press q to exit less), then run it. 
 
 ```sh
 curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \
-  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.10.0/install.sh \
+  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.10.1/install.sh \
   -o awarely-install.sh
 # Review the installer before running it.
 less awarely-install.sh
@@ -113,7 +113,7 @@ If the new scanner causes a problem, restore the single previous binary with the
 "$HOME/.local/bin/awarely-scan" update --rollback
 ```
 
-Stable installations stay on stable releases. An existing prerelease also receives newer prereleases. Advanced choices: update --version v0.10.0 selects an exact newer published release; update --prerelease explicitly includes previews; update --yes skips the confirmation for trusted automation. Downgrades require rollback. update --help lists the options.
+Stable installations stay on stable releases. An existing prerelease also receives newer prereleases. Advanced choices: update --version v0.10.1 selects an exact newer published release; update --prerelease explicitly includes previews; update --yes skips the confirmation for trusted automation. Downgrades require rollback. update --help lists the options.
 
 On a download, verification, permission or startup failure, resolve the reported cause and retry; do not bypass verification. Exit code 7 identifies an update failure. If another update is running, wait for it. A message saying the binary was replaced but a directory flush failed requires checking version before retrying. Update requires a real executable named awarely-scan in a user-owned directory with trusted, non-writable parent directories; symlink installations are refused.
 
@@ -364,7 +364,7 @@ for tool in curl tar sha256sum awk gh; do
 done
 gh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }
 cd "$SCAN_WORK"
-SCAN_VERSION=v0.10.0
+SCAN_VERSION=v0.10.1
 case "$(uname -m)" in
   x86_64) SCAN_ARCH=amd64 ;;
   aarch64|arm64) SCAN_ARCH=arm64 ;;

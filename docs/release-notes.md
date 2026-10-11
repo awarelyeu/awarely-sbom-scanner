@@ -1,9 +1,9 @@
-# Awarely Scan v0.10.0 — managed collection for automation
+# Awarely Scan v0.10.1 — updated Go runtime
 
-Automated builds can now collect npm, installed Python, Java and other supported application ecosystems through `awarely-scan syft`. It uses the same verified, release-pinned Syft 1.54.1 as guided mode, without interactive prompts. `--allow-download` explicitly permits downloading a missing pinned tool; otherwise collection requires its existing verified cache.
+This patch rebuilds the Linux amd64 and arm64 scanner with Go 1.27.2, which includes security fixes to the Go runtime and standard library. The vulnerability check runs against the new toolchain before release. See the [official Go release notes](https://go.dev/doc/devel/release#go1.27.2).
 
-The collector reads an existing application directory, writes a new private CycloneDX inventory and preserves partial-coverage warnings. It does not build the project, install dependencies or contact Monitor. Checks and synchronization remain separate explicit commands. Native `app --ecosystem npm|python` can limit a mixed directory to one ecosystem. Omitting the selector preserves combined-manifest behavior. Existing guided, update and API workflows retain their behavior.
+Collection, API operations, update verification and managed Syft 1.54.1 retain their behavior. There are no additional Go module dependencies. Existing installations can run `awarely-scan update --check`, then `awarely-scan update` to install the verified release.
 
-The [Jenkins integration](https://github.com/awarelyeu/awarely-scan-plugin) is versioned separately and uses this CLI. See the [English guide](https://github.com/awarelyeu/awarely-sbom-scanner/blob/main/docs/how-to.md#syft-automation) or [Romanian guide](https://github.com/awarelyeu/awarely-sbom-scanner/blob/main/docs/how-to.ro.md#syft-automation).
+The English and Romanian guides also describe configuration-only validation, configurable policy outcomes and build comparison in the separately versioned [Jenkins plugin](https://github.com/awarelyeu/awarely-scan-plugin). These plugin features are delivered in its own release.
 
-Coverage is unchanged. Unsupported ecosystems remain explicitly unevaluated; no matches is not an assurance of security.
+[English guide](https://github.com/awarelyeu/awarely-sbom-scanner/blob/main/docs/how-to.md) · [Ghid în română](https://github.com/awarelyeu/awarely-sbom-scanner/blob/main/docs/how-to.ro.md)
