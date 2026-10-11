@@ -4,7 +4,7 @@ Urmează traseul simplu: pregătești Linux, instalezi scannerul, alegi din meni
 
 [English](how-to.md) · [Română](how-to.ro.md)
 
-Release: `v0.10.0`
+Release: `v0.10.1`
 
 - [Începe aici: prima scanare în 4 pași](#start-here)
 - [Start: instalare simplificată, o singură dată](#quick-install)
@@ -65,7 +65,7 @@ Descarcă și citește installerul oficial (în less, apasă q pentru a ieși), 
 
 ```sh
 curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \
-  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.10.0/install.sh \
+  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.10.1/install.sh \
   -o awarely-install.sh
 # Review the installer before running it.
 less awarely-install.sh
@@ -113,7 +113,7 @@ Dacă noul scanner creează o problemă, revino la unicul binar anterior cu coma
 "$HOME/.local/bin/awarely-scan" update --rollback
 ```
 
-Instalările stabile primesc doar versiuni stabile. O instalare prerelease vede și prerelease-uri mai noi. Opțiuni avansate: update --version v0.10.0 alege un release publicat mai nou, exact; update --prerelease include explicit preview-uri; update --yes elimină confirmarea pentru automatizări controlate. Revenirea la o versiune mai veche se face prin rollback. update --help afișează opțiunile.
+Instalările stabile primesc doar versiuni stabile. O instalare prerelease vede și prerelease-uri mai noi. Opțiuni avansate: update --version v0.10.1 alege un release publicat mai nou, exact; update --prerelease include explicit preview-uri; update --yes elimină confirmarea pentru automatizări controlate. Revenirea la o versiune mai veche se face prin rollback. update --help afișează opțiunile.
 
 La o eroare de descărcare, verificare, permisiuni sau pornire, rezolvă cauza afișată și reîncearcă; nu ocoli verificarea. Codul de ieșire 7 indică o eroare de actualizare. Dacă rulează alt update, așteaptă. Dacă mesajul spune că binarul a fost înlocuit, dar scrierea directorului pe disc a eșuat, verifică version înainte de a reîncerca. Actualizarea cere un executabil real numit awarely-scan, într-un director deținut de utilizator, cu directoare părinte de încredere, fără drepturi de scriere pentru alți utilizatori; instalările prin link simbolic sunt refuzate.
 
@@ -364,7 +364,7 @@ for tool in curl tar sha256sum awk gh; do
 done
 gh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }
 cd "$SCAN_WORK"
-SCAN_VERSION=v0.10.0
+SCAN_VERSION=v0.10.1
 case "$(uname -m)" in
   x86_64) SCAN_ARCH=amd64 ;;
   aarch64|arm64) SCAN_ARCH=arm64 ;;
@@ -1006,21 +1006,25 @@ Sync citește revizia și folosește o cheie de idempotență. Reîncercările 
 
 ## Integrarea Jenkins
 
-Integrarea Jenkins folosește același CLI pentru Linux, npm, Python, Java, celelalte ecosisteme Syft și inventare existente. Pluginul are versiuni separate; primul release este preview și se testează întâi pe un Jenkins de staging.
+Integrarea Jenkins folosește același CLI pentru Linux, npm, Python, Java, celelalte ecosisteme Syft și inventare existente. Pluginul are versiuni separate; primul release este preview și se testează întâi pe un Jenkins de staging. De la preview-ul 0.1.0-alpha.3 sunt disponibile verificarea configurației, politica UNSTABLE/FAILURE și comparația cu build-ul anterior.
 
 1. Administratorul instalează HPI-ul verificat și dependențele din ghidul Jenkins. Ai nevoie de Jenkins 2.580.1 sau mai nou, Java compatibil (testat cu JDK 21) și un agent Linux amd64/arm64 fără root.
 2. Începe cu un job care are deja aplicația în workspace. Adaugă pasul Awarely Scan, alege tipul aplicației, calea relativă și Save local inventory only. Pentru Java sau un mediu Python instalat, construiește aplicația sau instalează dependențele înainte.
-3. După build, deschide Awarely Scan și Artifacts. Vei găsi inventarul CycloneDX. Nu este nevoie de cont Monitor pentru acest pas local.
-4. Pentru Check, creează în Setări > Active > Awarely Scan CLI o credențială Check only și încarc-o în Jenkins ca Secret file. Administratorul aprobă exact jobul, agentul și destinația API. Selectează credențiala în pasul Awarely Scan.
-5. Pentru Sync, folosește o sursă și o credențială separate, deținute de un singur job de deployment. Rulează după un deployment reușit. Scanarea Linux descrie agentul Jenkins, nu serverul unde ai făcut deploy.
+3. Într-un job de staging fără deployment, bifează Validate configuration only (preflightOnly: true). Citește consola, corectează căile/aprobările, apoi debifează și rulează scanarea reală. Preflight nu scanează, nu descarcă și nu contactează Monitor; nu oprește ceilalți pași din job. Conexiunea, drepturile tokenului și pregătirea Syft se verifică la operațiunea reală.
+4. După build, deschide Awarely Scan și Artifacts. Vei găsi inventarul CycloneDX. Nu este nevoie de cont Monitor pentru acest pas local.
+5. Pentru Check, creează în Setări > Active > Awarely Scan CLI o credențială Check only și încarc-o în Jenkins ca Secret file. Administratorul aprobă exact jobul, agentul și destinația API. Selectează credențiala în pasul Awarely Scan.
+6. Pentru Sync, folosește o sursă și o credențială separate, deținute de un singur job de deployment. Rulează după un deployment reușit. Scanarea Linux descrie agentul Jenkins, nu serverul unde ai făcut deploy.
 
 ```groovy
 awarelyScan collector: 'java', mode: 'check',
   path: 'services/shipping', applicationLabel: 'shipping',
   credentialsId: 'awarely-monitor-check',
-  severityThreshold: 'HIGH', failOnIncomplete: true
+  severityThreshold: 'HIGH', failOnIncomplete: true,
+  policyResult: 'FAILURE'
 ```
 
-Înlocuiește calea și ID-ul credențialei cu valorile tale. Un prag depășit marchează build-ul UNSTABLE. Folosește skipStagesAfterUnstable() în Declarative Pipeline dacă următorul deploy trebuie oprit. Componentele neevaluate rămân vizibile; erorile API eșuează pasul și păstrează SBOM-ul local. Tokenul nu se pune în Jenkinsfile.
+Înlocuiește calea și ID-ul credențialei cu valorile tale. FAILURE oprește execuția normală a pasului după salvarea raportului. UNSTABLE rămâne valoarea implicită; folosește skipStagesAfterUnstable() pentru a omite etapele Declarative următoare. Tratarea explicită a erorilor în Pipeline poate schimba acest flux. Politica de acoperire incompletă este separată de pragul de severitate. Erorile API opresc pasul și păstrează SBOM-ul. Nu pune tokenul în Jenkinsfile.
+
+Pagina Awarely Scan a build-ului compară inventarele complete păstrate din același job și aceeași configurație. Verificările complete, fără componente neevaluate, arată și potriviri pe componente apărute/care nu mai apar. Schimbările catalogului/perioadei sunt indicate; dispariția nu demonstrează remedierea. Dovezile lipsă, incomplete ori incompatibile afișează motivul indisponibilității comparației. Politica build-ului folosește în continuare constatările curente.
 
 - [Jenkins: ghid complet](https://github.com/awarelyeu/awarely-scan-plugin/blob/main/docs/how-to.ro.md)

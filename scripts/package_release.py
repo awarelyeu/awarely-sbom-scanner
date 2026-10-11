@@ -18,8 +18,8 @@ os.chdir(source)
 revision = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
 epoch = int(subprocess.check_output(["git", "show", "-s", "--format=%ct", "HEAD"], text=True))
 go_version = subprocess.check_output(["go", "env", "GOVERSION"], text=True).strip()
-if go_version != "go1.27.1":
-    raise SystemExit("Release toolchain must be go1.27.1")
+if go_version != "go1.27.2":
+    raise SystemExit("Release toolchain must be go1.27.2")
 goroot = Path(subprocess.check_output(["go", "env", "GOROOT"], text=True).strip())
 dest = source / "dist"
 dest.mkdir(exist_ok=True)
