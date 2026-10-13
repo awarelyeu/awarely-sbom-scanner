@@ -133,7 +133,19 @@ func Import(ctx context.Context, path string) (Result, error) {
 			if eco == "maven" && c.Group == "" && strings.HasSuffix(name, "/"+c.Name) {
 				expected = name
 			}
-			if name != expected || version != c.Version {
+			componentVersion := c.Version
+			// Syft represents an unversioned Go main module as UNKNOWN (or
+			// (devel)) while omitting the PURL version. Preserve missing-version
+			// coverage instead of inventing a version or discarding the module.
+			if eco == "golang" && version == "" && (componentVersion == "UNKNOWN" || componentVersion == "(devel)") {
+				componentVersion = ""
+			}
+			// Syft uses go1.x for stdlib's display version and 1.x in its PURL.
+			// Keep it in inventory; the service explicitly leaves stdlib unevaluated.
+			if eco == "golang" && name == "stdlib" && expected == "stdlib" && strings.HasPrefix(componentVersion, "go") {
+				componentVersion = strings.TrimPrefix(componentVersion, "go")
+			}
+			if name != expected || version != componentVersion {
 				return errors.New("SBOM component disagrees with its package URL")
 			}
 			component, err := NewComponent(eco, name, version, "imported-sbom", nil)
