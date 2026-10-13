@@ -8,7 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
+	"github.com/awarelyeu/awarely-sbom-scanner/internal/diagnostics"
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/inventory"
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/safeio"
 	"io"
@@ -91,6 +91,7 @@ func (c *Client) request(ctx context.Context, method, path string, body []byte, 
 	}
 	for attempt := 0; attempt < 3; attempt++ {
 		if attempt > 0 {
+			diagnostics.Event(ctx, "API_RETRY")
 			var jitter [1]byte
 			if _, err := rand.Read(jitter[:]); err != nil {
 				return nil, errors.New("cannot schedule retry")
@@ -123,7 +124,7 @@ func (c *Client) request(ctx context.Context, method, path string, body []byte, 
 			if attempt < 2 {
 				continue
 			}
-			return nil, errors.New("API transport failed; credentials and response details were not logged")
+			return nil, ErrTransport
 		}
 		b, readErr := io.ReadAll(io.LimitReader(response.Body, MaxResponse+1))
 		response.Body.Close()
@@ -138,10 +139,10 @@ func (c *Client) request(ctx context.Context, method, path string, body []byte, 
 			var message struct {
 				Error string `json:"error"`
 			}
-			if json.Unmarshal(b, &message) == nil && regexp.MustCompile(`^[A-Z][A-Z0-9_]{0,79}$`).MatchString(message.Error) {
+			if json.Unmarshal(b, &message) == nil && diagnostics.KnownError(message.Error) {
 				code = message.Error
 			}
-			return nil, fmt.Errorf("API returned HTTP %d (%s)", response.StatusCode, code)
+			return nil, &RemoteError{Status: response.StatusCode, Code: code}
 		}
 		if !strings.HasPrefix(strings.ToLower(response.Header.Get("Content-Type")), "application/json") || response.Header.Get("Content-Encoding") != "" {
 			return nil, errors.New("API returned unsupported content")
@@ -288,17 +289,19 @@ func (c *Client) Check(ctx context.Context, s Snapshot) ([]byte, error) {
 	if !bytes.Equal(want, got) {
 		return nil, errors.New("API result does not describe submitted components")
 	}
+	diagnostics.Event(ctx, "API_RESPONSE_VALIDATED")
 	return result, nil
 }
 func (c *Client) Sync(ctx context.Context, s Snapshot, revision, key string, allowEmpty bool) ([]byte, error) {
 	if s.Coverage != "complete" {
-		return nil, errors.New("sync requires complete coverage; review the local SBOM warnings")
+		return nil, ErrPartialSync
 	}
 	if len(s.Components) == 0 && !allowEmpty {
-		return nil, errors.New("empty sync requires --allow-empty")
+		return nil, ErrEmptySync
 	}
 	path := "/v1/applications/" + c.credentials.ApplicationID + "/sources/" + c.credentials.SourceID + "/inventory"
 	if revision == "" {
+		diagnostics.Event(ctx, "SOURCE_STATE")
 		b, err := c.request(ctx, "GET", path, nil, nil)
 		if err != nil {
 			return nil, err
@@ -350,6 +353,7 @@ func (c *Client) Sync(ctx context.Context, s Snapshot, revision, key string, all
 	if json.Unmarshal(result, &state) != nil || state.Schema != 1 || state.Status != "committed" || state.SourceID != c.credentials.SourceID || state.ApplicationID != c.credentials.ApplicationID || state.Count != len(s.Components) || !regexp.MustCompile(`^[a-f0-9-]{36}$`).MatchString(state.Revision) {
 		return nil, errors.New("API did not confirm this inventory commit")
 	}
+	diagnostics.Event(ctx, "API_RESPONSE_VALIDATED")
 	return result, nil
 }
 

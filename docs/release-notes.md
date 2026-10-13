@@ -1,3 +1,7 @@
+# v0.11.0 — Clear progress and safe diagnostics
+
+Collection and API commands show progress, waiting messages, timings and bounded check summaries. Optional `--verbose` explains cache verification and tool isolation. A payload-free v1 diagnostic-code interface lets Jenkins show specific recovery guidance without forwarding raw output. Existing exit codes, JSON artifacts, consent, pin verification and API behavior are preserved. Syft remains 1.54.1.
+
 # Awarely Scan v0.10.1 — updated Go runtime
 
 This patch rebuilds the Linux amd64 and arm64 scanner with Go 1.27.2, which includes security fixes to the Go runtime and standard library. The vulnerability check runs against the new toolchain before release. See the [official Go release notes](https://go.dev/doc/devel/release#go1.27.2).

@@ -22,6 +22,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/awarelyeu/awarely-sbom-scanner/internal/diagnostics"
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/inventory"
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/safeio"
 )
@@ -165,6 +166,7 @@ func Prepare(ctx context.Context, cache string, allowDownload bool) error {
 		return errors.New("run managed Syft as a regular user, without sudo")
 	}
 	if _, err := readArchive(ctx, cache); err == nil {
+		diagnostics.Event(ctx, "SYFT_CACHE_VERIFIED")
 		return nil
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return errors.New("Syft cache is unsafe or failed verification; inspect the private cache before retrying")
@@ -180,10 +182,12 @@ func Prepare(ctx context.Context, cache string, allowDownload bool) error {
 		}
 		return nil
 	}}
+	diagnostics.Event(ctx, "SYFT_DOWNLOADING")
 	data, err := download(ctx, client, "https://github.com/anchore/syft/releases/download/v"+Version+"/"+archiveName(), digests[runtime.GOARCH])
 	if err != nil {
 		return err
 	}
+	diagnostics.Event(ctx, "SYFT_DOWNLOAD_VERIFIED")
 	if err := safeio.WriteNew(filepath.Join(cache, archiveName()), data); err != nil {
 		// A concurrent approved process may have published the identical archive.
 		if _, e := readArchive(ctx, cache); e != nil {
@@ -244,6 +248,7 @@ func (w *boundedWriter) Write(p []byte) (int, error) {
 // credential environment. Configuration is not an OS sandbox; untrusted trees
 // still require the caller's resource and filesystem isolation.
 func Scan(parent context.Context, cache, target, kind string) (inventory.Result, error) {
+	diagnostics.Event(parent, "SYFT_ISOLATION")
 	var r inventory.Result
 	if !Supported() || os.Geteuid() == 0 {
 		return r, errors.New("managed Syft requires a regular Linux user on amd64/arm64")

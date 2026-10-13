@@ -8,15 +8,17 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 
+	"github.com/awarelyeu/awarely-sbom-scanner/internal/diagnostics"
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/inventory"
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/producer"
 )
 
 const syftHelp = `Usage:
   awarely-scan syft --ecosystem java|python|npm|other --path DIR --output FILE
-                    [--name NAME] [--allow-download] [--timeout N]
+                    [--name NAME] [--allow-download] [--timeout N] [--verbose] [--log-format text|events]
 
 Runs only the managed Syft version pinned to this Awarely release. The selected
 directory must already contain built artifacts or installed dependencies.
@@ -31,6 +33,8 @@ Exit codes match local collection, including 3 for a partial inventory.
 func runSyft(parent context.Context, args []string, errOut io.Writer) int {
 	fs := flag.NewFlagSet("syft", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
+	var logging diagnostics.Options
+	logging.Flags(fs)
 	kind := fs.String("ecosystem", "", "ecosystem")
 	path := fs.String("path", "", "existing application directory")
 	output := fs.String("output", "", "new inventory file")
@@ -45,41 +49,57 @@ func runSyft(parent context.Context, args []string, errOut io.Writer) int {
 		return 2
 	}
 	validKind := *kind == "java" || *kind == "python" || *kind == "npm" || *kind == "other"
-	if !validKind || fs.NArg() != 0 || *path == "" || *output == "" || *output == "-" || *seconds < 1 || *seconds > 300 || !inventory.ValidText(*name, 120) {
+	if !logging.Valid() || !validKind || fs.NArg() != 0 || *path == "" || *output == "" || *output == "-" || *seconds < 1 || *seconds > 300 || !inventory.ValidText(*name, 120) {
 		fmt.Fprint(errOut, syftHelp)
 		return 2
 	}
+	parent = diagnostics.With(parent, errOut, logging)
+	diagnostics.Runtime(parent, version, producer.Version, runtime.GOOS+"/"+runtime.GOARCH)
+	if logging.Format == "events" {
+		errOut = io.Discard
+	}
+	defer diagnostics.Duration(parent, time.Now())
+	diagnostics.Event(parent, "VALIDATING")
 	// Reject invalid selections before any approved network access.
 	target, err := filepath.EvalSymlinks(*path)
 	if err == nil {
 		target, err = filepath.Abs(target)
 	}
 	if err != nil || filepath.Clean(target) == "/" {
+		diagnostics.Failure(parent, "COLLECTION_FAILED")
 		fmt.Fprintln(errOut, "Select an existing application directory, not the host root.")
 		return 2
 	}
 	info, err := os.Stat(target)
 	if err != nil || !info.IsDir() {
+		diagnostics.Failure(parent, "COLLECTION_FAILED")
 		fmt.Fprintln(errOut, "Select an existing readable application directory.")
 		return 2
 	}
 	cache, err := producer.CachePath()
 	if err != nil {
+		diagnostics.Failure(parent, "COLLECTION_FAILED")
 		fmt.Fprintln(errOut, "Tool preparation failed:", err)
 		return 2
 	}
 	ctx, cancel := context.WithTimeout(parent, time.Duration(*seconds)*time.Second)
 	defer cancel()
+	stopProgress := diagnostics.Step(ctx, "PREPARING_SYFT")
 	err = producer.Prepare(ctx, cache, *allow)
+	stopProgress()
 	var r inventory.Result
 	if err == nil {
+		stopProgress = diagnostics.Step(ctx, "SYFT_RUNNING")
 		r, err = producer.Scan(ctx, cache, target, *kind)
+		stopProgress()
 	}
 	if ctx.Err() != nil {
+		diagnostics.Failure(ctx, "INTERRUPTED")
 		fmt.Fprintln(errOut, "Scan interrupted or deadline exceeded; no inventory written.")
 		return 5
 	}
 	if err != nil {
+		diagnostics.Failure(ctx, "COLLECTION_FAILED")
 		fmt.Fprintln(errOut, "Managed collection failed:", err)
 		return 2
 	}

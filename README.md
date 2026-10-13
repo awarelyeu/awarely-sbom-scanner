@@ -7,7 +7,7 @@ Generate a local **CycloneDX SBOM** from application manifests or a focused sele
 
 Built for [Awarely Monitor](https://monitor.awarely.ro/en), with a standalone local workflow you can inspect and use independently.
 
-**Stable release: v0.10.1 for Linux amd64 and arm64.** Local collection is independent of an account. Remote operations require Awarely Monitor Pro and a scoped machine credential created by an organization manager with MFA. The Jenkins integration is maintained in the dedicated [awarely-scan-plugin repository](https://github.com/awarelyeu/awarely-scan-plugin) with separate versions and verified releases.
+**Stable release: v0.11.0 for Linux amd64 and arm64.** Local collection is independent of an account. Remote operations require Awarely Monitor Pro and a scoped machine credential created by an organization manager with MFA. The Jenkins integration is maintained in the dedicated [awarely-scan-plugin repository](https://github.com/awarelyeu/awarely-scan-plugin) with separate versions and verified releases.
 
 | Workflow | Available |
 | --- | --- |
@@ -187,3 +187,5 @@ Input parsing is bounded, duplicate JSON keys are rejected, file access is roote
 ## License
 
 Awarely Scan is licensed under [Apache-2.0](LICENSE). Go runtime notices are included in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The CLI license does not change the terms of the Awarely Monitor service.
+
+Progress and safe detailed logging: use `awarely-scan guided --verbose`, or add `--verbose` to a collection/check/sync command. See [console diagnostics](docs/how-to.md#console-diagnostics). JSON artifacts and exit codes are unchanged.

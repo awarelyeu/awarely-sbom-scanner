@@ -4,10 +4,11 @@ Follow the simple path: prepare Linux, install the scanner, choose from its menu
 
 [English](how-to.md) · [Română](how-to.ro.md)
 
-Release: `v0.10.1`
+Release: `v0.11.0`
 
 - [Start here: your first scan in 4 steps](#start-here)
 - [Start: simplified one-time installation](#quick-install)
+- [Understand progress and errors](#console-diagnostics)
 - [Update Awarely and its managed Syft](#scanner-updates)
 - [Guided scanning: menu choices](#guided)
 - [1. Choose your workflow](#choose)
@@ -65,7 +66,7 @@ Download and review the official installer (press q to exit less), then run it. 
 
 ```sh
 curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \
-  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.10.1/install.sh \
+  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.11.0/install.sh \
   -o awarely-install.sh
 # Review the installer before running it.
 less awarely-install.sh
@@ -78,6 +79,23 @@ After READY, there are no Syft/Cosign commands to copy. Open the menu on each ru
 ```sh
 "$HOME/.local/bin/awarely-scan" guided
 ```
+
+
+<a id="console-diagnostics"></a>
+
+## Understand progress and errors
+
+The scanner now explains validation, tool preparation, local collection, API waiting and report saving. Long operations print a waiting message every 15 seconds while their existing deadline remains active. An elapsed time is shown after collection or an API operation. These messages do not change scan coverage or send additional requests.
+
+For more help, add --verbose. It includes safe cache-verification and tool-isolation details. It does not display credentials, request bodies or raw Syft output. Messages remain in English. JSON files, stdout and exit codes retain their existing contract; noninteractive diagnostic messages go to stderr.
+
+```sh
+"$HOME/.local/bin/awarely-scan" guided --verbose
+```
+
+INSUFFICIENT_SCOPE means the credential does not permit this action: use a credential with Sync permissions for sync. INVALID_CREDENTIAL can mean invalid, expired or revoked; replace it with a newly issued credential. INVENTORY_CONFLICT means the source changed: review it before another sync. A timeout or failed receipt save can happen after a commit; inspect the source before retrying.
+
+For integrations, app/host/import/syft/check/sync accept --log-format events. stderr then carries payload-free AWARELY_EVENT_V1 / AWARELY_ERROR_V1 codes after option validation. Consumers must ignore unknown codes and use the exit status plus validated output files as the result. Human progress messages are not a stable parsing interface. Update/install retain their existing dedicated progress; these logging flags apply to scanning commands and guided mode (--verbose only).
 
 
 <a id="scanner-updates"></a>
@@ -113,7 +131,7 @@ If the new scanner causes a problem, restore the single previous binary with the
 "$HOME/.local/bin/awarely-scan" update --rollback
 ```
 
-Stable installations stay on stable releases. An existing prerelease also receives newer prereleases. Advanced choices: update --version v0.10.1 selects an exact newer published release; update --prerelease explicitly includes previews; update --yes skips the confirmation for trusted automation. Downgrades require rollback. update --help lists the options.
+Stable installations stay on stable releases. An existing prerelease also receives newer prereleases. Advanced choices: update --version v0.11.0 selects an exact newer published release; update --prerelease explicitly includes previews; update --yes skips the confirmation for trusted automation. Downgrades require rollback. update --help lists the options.
 
 On a download, verification, permission or startup failure, resolve the reported cause and retry; do not bypass verification. Exit code 7 identifies an update failure. If another update is running, wait for it. A message saying the binary was replaced but a directory flush failed requires checking version before retrying. Update requires a real executable named awarely-scan in a user-owned directory with trusted, non-writable parent directories; symlink installations are refused.
 
@@ -364,7 +382,7 @@ for tool in curl tar sha256sum awk gh; do
 done
 gh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }
 cd "$SCAN_WORK"
-SCAN_VERSION=v0.10.1
+SCAN_VERSION=v0.11.0
 case "$(uname -m)" in
   x86_64) SCAN_ARCH=amd64 ;;
   aarch64|arm64) SCAN_ARCH=arm64 ;;
@@ -1007,6 +1025,8 @@ Sync reads a revision and uses an idempotency key. Bounded transport/503 retries
 ## Jenkins integration
 
 The Jenkins integration uses the same CLI for Linux, npm, Python, Java, other Syft ecosystems and existing inventories. Plugin versions are independent; the first release is a preview to test on a staging Jenkins controller. From plugin preview 0.1.0-alpha.3, configuration preflight, selectable UNSTABLE/FAILURE policies and comparisons with the previous build are available.
+
+From plugin 0.1.0-alpha.5, every Pipeline/Freestyle scan shows progress, elapsed time, coverage, report locations and the configured build policy. Enable Detailed logging in the build step, or detailedLogging: true in Pipeline, for safe extra details. Expected input errors and known API refusals explain the corrective action without a Java stack trace.
 
 1. The administrator installs the verified HPI and dependencies from the Jenkins walkthrough. You need Jenkins 2.580.1 or newer, a compatible Java runtime (tested with JDK 21), and a non-root Linux amd64/arm64 agent.
 2. Start with a job that already has the application in its workspace. Add Awarely Scan, select its collector and relative path, and choose Save local inventory only. Build Java artifacts or install Python environment dependencies in an earlier step.
