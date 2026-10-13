@@ -1024,9 +1024,9 @@ Sync reads a revision and uses an idempotency key. Bounded transport/503 retries
 
 ## Jenkins integration
 
-The Jenkins integration uses the same CLI for Linux, npm, Python, Java, other Syft ecosystems and existing inventories. Plugin versions are independent; the first release is a preview to test on a staging Jenkins controller. From plugin preview 0.1.0-alpha.3, configuration preflight, selectable UNSTABLE/FAILURE policies and comparisons with the previous build are available.
+The Jenkins integration uses the same CLI for Linux, npm, Python, Java, other Syft ecosystems and existing inventories. Stable plugin 0.1.0 is distributed as a verified HPI on GitHub; Jenkins Update Center publication is pending hosting approval. Validate your setup on staging first. Configuration preflight, selectable UNSTABLE/FAILURE policies and comparisons with the previous build are included.
 
-From plugin 0.1.0-alpha.5, every Pipeline/Freestyle scan shows progress, elapsed time, coverage, report locations and the configured build policy. Enable Detailed logging in the build step, or detailedLogging: true in Pipeline, for safe extra details. Expected input errors and known API refusals explain the corrective action without a Java stack trace.
+Every Pipeline/Freestyle scan shows progress, elapsed time, coverage, report locations and the configured build policy. Enable Detailed logging in the build step, or detailedLogging: true in Pipeline, for safe extra details. Expected input errors and known API refusals explain the corrective action without a Java stack trace.
 
 1. The administrator installs the verified HPI and dependencies from the Jenkins walkthrough. You need Jenkins 2.580.1 or newer, a compatible Java runtime (tested with JDK 21), and a non-root Linux amd64/arm64 agent.
 2. Start with a job that already has the application in its workspace. Add Awarely Scan, select its collector and relative path, and choose Save local inventory only. Build Java artifacts or install Python environment dependencies in an earlier step.
@@ -1048,3 +1048,4 @@ Replace the path and credential ID with your own values. FAILURE stops normal ex
 The build’s Awarely Scan page compares retained complete inventories from the same job and scan configuration. Complete, evaluated checks also show component matches newly observed/no longer observed. Catalog/date changes are disclosed; disappearance is not proof of remediation. Missing, incomplete or incompatible evidence shows why comparison is unavailable. Current findings still determine the build policy.
 
 - [Jenkins: complete walkthrough](https://github.com/awarelyeu/awarely-scan-plugin/blob/main/docs/how-to.md)
+- [Stable plugin download and verification](https://github.com/awarelyeu/awarely-scan-plugin/blob/main/docs/releases.md)

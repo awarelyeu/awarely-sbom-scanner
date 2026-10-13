@@ -1309,11 +1309,11 @@
       "blocks": [
         {
           "type": "paragraph",
-          "text": "The Jenkins integration uses the same CLI for Linux, npm, Python, Java, other Syft ecosystems and existing inventories. Plugin versions are independent; the first release is a preview to test on a staging Jenkins controller. From plugin preview 0.1.0-alpha.3, configuration preflight, selectable UNSTABLE/FAILURE policies and comparisons with the previous build are available."
+          "text": "The Jenkins integration uses the same CLI for Linux, npm, Python, Java, other Syft ecosystems and existing inventories. Stable plugin 0.1.0 is distributed as a verified HPI on GitHub; Jenkins Update Center publication is pending hosting approval. Validate your setup on staging first. Configuration preflight, selectable UNSTABLE/FAILURE policies and comparisons with the previous build are included."
         },
         {
           "type": "paragraph",
-          "text": "From plugin 0.1.0-alpha.5, every Pipeline/Freestyle scan shows progress, elapsed time, coverage, report locations and the configured build policy. Enable Detailed logging in the build step, or detailedLogging: true in Pipeline, for safe extra details. Expected input errors and known API refusals explain the corrective action without a Java stack trace."
+          "text": "Every Pipeline/Freestyle scan shows progress, elapsed time, coverage, report locations and the configured build policy. Enable Detailed logging in the build step, or detailedLogging: true in Pipeline, for safe extra details. Expected input errors and known API refusals explain the corrective action without a Java stack trace."
         },
         {
           "type": "list",
@@ -1345,6 +1345,10 @@
             {
               "label": "Jenkins: complete walkthrough",
               "href": "https://github.com/awarelyeu/awarely-scan-plugin/blob/main/docs/how-to.md"
+            },
+            {
+              "label": "Stable plugin download and verification",
+              "href": "https://github.com/awarelyeu/awarely-scan-plugin/blob/main/docs/releases.md"
             }
           ]
         }
