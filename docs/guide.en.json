@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "v0.11.0",
+  "version": "v0.12.0",
   "title": "Awarely Scan: from installation to your first result",
   "intro": "Follow the simple path: prepare Linux, install the scanner, choose from its menu and read the result. No Python commands or JSON editing are needed. CLI messages and commands are in English. Examples are fictional; replace them with paths and names from your machine.",
   "sections": [
@@ -51,7 +51,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \\\n  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.11.0/install.sh \\\n  -o awarely-install.sh\n# Review the installer before running it.\nless awarely-install.sh\nsh awarely-install.sh\n\"$HOME/.local/bin/awarely-scan\" guided"
+          "code": "curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \\\n  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.12.0/install.sh \\\n  -o awarely-install.sh\n# Review the installer before running it.\nless awarely-install.sh\nsh awarely-install.sh\n\"$HOME/.local/bin/awarely-scan\" guided"
         },
         {
           "type": "paragraph",
@@ -141,7 +141,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Stable installations stay on stable releases. An existing prerelease also receives newer prereleases. Advanced choices: update --version v0.11.0 selects an exact newer published release; update --prerelease explicitly includes previews; update --yes skips the confirmation for trusted automation. Downgrades require rollback. update --help lists the options."
+          "text": "Stable installations stay on stable releases. An existing prerelease also receives newer prereleases. Advanced choices: update --version v0.12.0 selects an exact newer published release; update --prerelease explicitly includes previews; update --yes skips the confirmation for trusted automation. Downgrades require rollback. update --help lists the options."
         },
         {
           "type": "paragraph",
@@ -184,7 +184,7 @@
             [
               "5. Other ecosystems",
               "/srv/my-app",
-              "Syft for NuGet/Go/Composer/RubyGems/Cargo. Inventory and sync supported; CVE assessment unevaluated."
+              "Syft for NuGet/Go/Composer/RubyGems/Cargo. NuGet and Go support CVE checks; Composer/RubyGems/Cargo remain unevaluated."
             ],
             [
               "6. Existing SBOM",
@@ -488,7 +488,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "SCAN_BIN=\numask 077\nSCAN_WORK=$(mktemp -d \"$HOME/awarely-scan.XXXXXXXX\")\n(\nset -eu\n: \"${SCAN_WORK:?Could not create working directory}\"\nfor tool in curl tar sha256sum awk gh; do\n  command -v \"$tool\" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\\n' \"$tool\" >&2; exit 1; }\ndone\ngh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }\ncd \"$SCAN_WORK\"\nSCAN_VERSION=v0.11.0\ncase \"$(uname -m)\" in\n  x86_64) SCAN_ARCH=amd64 ;;\n  aarch64|arm64) SCAN_ARCH=arm64 ;;\n  *) echo \"Unsupported architecture\" >&2; exit 1 ;;\nesac\nSCAN_ARCHIVE=\"awarely-scan_${SCAN_VERSION}_linux_${SCAN_ARCH}.tar.gz\"\nSCAN_RELEASE=\"https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/${SCAN_VERSION}\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE\" -o \"$SCAN_ARCHIVE\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/SHA256SUMS\" -o SHA256SUMS\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE.sigstore.jsonl\" -o \"$SCAN_ARCHIVE.sigstore.jsonl\"\ngh attestation verify \"$SCAN_ARCHIVE\" \\\n  --bundle \"$SCAN_ARCHIVE.sigstore.jsonl\" \\\n  --repo awarelyeu/awarely-sbom-scanner \\\n  --signer-workflow awarelyeu/awarely-sbom-scanner/.github/workflows/release.yml \\\n  --source-ref \"refs/tags/$SCAN_VERSION\"\nawk -v file=\"$SCAN_ARCHIVE\" '$2 == file { print; found=1 } END { if (!found) exit 1 }' SHA256SUMS > selected-SHA256SUMS\nsha256sum --check selected-SHA256SUMS\nmkdir release\ntar -xzf \"$SCAN_ARCHIVE\" -C release\n(cd release && sha256sum --check SHA256SUMS)\n\"$SCAN_WORK/release/awarely-scan\" version\n\"$SCAN_WORK/release/awarely-scan\" help\nprintf 'Working directory: %s\\n' \"$SCAN_WORK\"\n)\nSCAN_INSTALL_STATUS=$?\nif [ \"$SCAN_INSTALL_STATUS\" -eq 0 ]; then\n  SCAN_BIN=\"$SCAN_WORK/release/awarely-scan\"\n  printf 'READY: %s\\n' \"$SCAN_BIN\"\nelse\n  SCAN_BIN=\n  printf 'STOP: installation incomplete in %s. Fix the error and rerun all of step 3. Do not scan yet.\\n' \"$SCAN_WORK\" >&2\n  (exit \"$SCAN_INSTALL_STATUS\")\nfi"
+          "code": "SCAN_BIN=\numask 077\nSCAN_WORK=$(mktemp -d \"$HOME/awarely-scan.XXXXXXXX\")\n(\nset -eu\n: \"${SCAN_WORK:?Could not create working directory}\"\nfor tool in curl tar sha256sum awk gh; do\n  command -v \"$tool\" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\\n' \"$tool\" >&2; exit 1; }\ndone\ngh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }\ncd \"$SCAN_WORK\"\nSCAN_VERSION=v0.12.0\ncase \"$(uname -m)\" in\n  x86_64) SCAN_ARCH=amd64 ;;\n  aarch64|arm64) SCAN_ARCH=arm64 ;;\n  *) echo \"Unsupported architecture\" >&2; exit 1 ;;\nesac\nSCAN_ARCHIVE=\"awarely-scan_${SCAN_VERSION}_linux_${SCAN_ARCH}.tar.gz\"\nSCAN_RELEASE=\"https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/${SCAN_VERSION}\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE\" -o \"$SCAN_ARCHIVE\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/SHA256SUMS\" -o SHA256SUMS\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE.sigstore.jsonl\" -o \"$SCAN_ARCHIVE.sigstore.jsonl\"\ngh attestation verify \"$SCAN_ARCHIVE\" \\\n  --bundle \"$SCAN_ARCHIVE.sigstore.jsonl\" \\\n  --repo awarelyeu/awarely-sbom-scanner \\\n  --signer-workflow awarelyeu/awarely-sbom-scanner/.github/workflows/release.yml \\\n  --source-ref \"refs/tags/$SCAN_VERSION\"\nawk -v file=\"$SCAN_ARCHIVE\" '$2 == file { print; found=1 } END { if (!found) exit 1 }' SHA256SUMS > selected-SHA256SUMS\nsha256sum --check selected-SHA256SUMS\nmkdir release\ntar -xzf \"$SCAN_ARCHIVE\" -C release\n(cd release && sha256sum --check SHA256SUMS)\n\"$SCAN_WORK/release/awarely-scan\" version\n\"$SCAN_WORK/release/awarely-scan\" help\nprintf 'Working directory: %s\\n' \"$SCAN_WORK\"\n)\nSCAN_INSTALL_STATUS=$?\nif [ \"$SCAN_INSTALL_STATUS\" -eq 0 ]; then\n  SCAN_BIN=\"$SCAN_WORK/release/awarely-scan\"\n  printf 'READY: %s\\n' \"$SCAN_BIN\"\nelse\n  SCAN_BIN=\n  printf 'STOP: installation incomplete in %s. Fix the error and rerun all of step 3. Do not scan yet.\\n' \"$SCAN_WORK\" >&2\n  (exit \"$SCAN_INSTALL_STATUS\")\nfi"
         },
         {
           "type": "paragraph",
@@ -812,6 +812,32 @@
       ]
     },
     {
+      "id": "nuget-go",
+      "title": "6b. .NET / NuGet and Go checks",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "For .NET package libraries and Go modules, choose 5 in guided mode, enter the existing application directory, approve verified Syft, then choose 2 (Check). Use the same credential workflow as Java/npm/Python. The scanner does not need a .NET SDK or Go compiler to inspect existing files and never restores or builds your application."
+        },
+        {
+          "type": "list",
+          "items": [
+            "Prepare dependency information in your normal build process. For .NET, restore/build the project and retain packages.lock.json, project.assets.json or the published .deps.json beside the application. For Go, keep go.mod/go.sum or a built executable containing module build information.",
+            "Run \"$HOME/.local/bin/awarely-scan\" guided, choose 5, and enter the directory containing those files. Keep the SBOM locally or choose Check.",
+            "Review the package names, versions, precision and coverage.unevaluated. After updating dependencies in your build process, scan again and compare the new report. Jenkins uses collector: other with mode: check; build/restore belongs in an earlier stage."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Monitor checks NuGet and Go against package advisories already collected in its catalog, within the report’s application assessment period. It requires the correct advisory ecosystem and full package identity: NuGet IDs are case-insensitive; Go module paths are case-sensitive and /v2 is part of the identity. It does not treat a similarly named .NET runtime or OS package as a NuGet library."
+        },
+        {
+          "type": "paragraph",
+          "text": "NuGet versions include numeric revisions and prereleases; Go versions include SemVer prereleases and pseudo-versions. Unknown versions, Go dirty/development builds and unsupported advisory expressions stay unevaluated or product-level. Go standard-library/toolchain vulnerability assessment is outside this module check. Version matches indicate an affected dependency version, not proof that vulnerable code is reachable. Composer, RubyGems and Cargo still support inventory/sync only."
+        }
+      ]
+    },
+    {
       "id": "syft",
       "title": "6b. Java and other ecosystems with optional Syft · manual alternative",
       "blocks": [
@@ -842,7 +868,12 @@
               "Comparable ranges; other cases need review"
             ],
             [
-              ".NET / NuGet, Go, PHP / Composer, RubyGems, Rust / Cargo",
+              ".NET / NuGet, Go",
+              "Yes",
+              "Typed package advisories and ecosystem-specific version rules"
+            ],
+            [
+              "PHP / Composer, RubyGems, Rust / Cargo",
               "Yes",
               "Unevaluated in this release"
             ]
@@ -1200,6 +1231,14 @@
             [
               "Synchronization was not confirmed",
               "Inspect the source inventory in the app before retrying. Your local file is preserved."
+            ],
+            [
+              "ADVISORY_RANGE_NOT_EVALUATED",
+              "Package advisory found, but its affected-version expression cannot be evaluated. Review the product-level match."
+            ],
+            [
+              "PACKAGE_IDENTITY_NOT_EVALUATED",
+              "Identity is outside the supported package model, for example Go stdlib/toolchain rather than a module."
             ]
           ]
         },
@@ -1309,7 +1348,7 @@
       "blocks": [
         {
           "type": "paragraph",
-          "text": "The Jenkins integration uses the same CLI for Linux, npm, Python, Java, other Syft ecosystems and existing inventories. Stable plugin 0.1.0 is distributed as a verified HPI on GitHub; Jenkins Update Center publication is pending hosting approval. Validate your setup on staging first. Configuration preflight, selectable UNSTABLE/FAILURE policies and comparisons with the previous build are included."
+          "text": "The Jenkins integration uses the same CLI for Linux, npm, Python, Java, other Syft ecosystems and existing inventories. Stable plugin 0.2.0 is distributed as a verified HPI on GitHub; Jenkins Update Center publication is pending hosting approval. Validate your setup on staging first. Configuration preflight, selectable UNSTABLE/FAILURE policies and comparisons with the previous build are included."
         },
         {
           "type": "paragraph",

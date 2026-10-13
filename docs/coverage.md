@@ -86,3 +86,11 @@ References: [ALAS metadata](https://docs.aws.amazon.com/linux/al2023/ug/alas.htm
 ## External application SBOMs
 
 `import` accepts CycloneDX JSON 1.4–1.7, including nested components, under the existing 5 MiB / 5,000 component and JSON complexity limits. Maven coordinates preserve case and namespace. Default Maven packaging qualifiers are accepted; classifiers/custom qualifiers make the input partial. Imported packages carry `imported-sbom` evidence, never an installed or resolved-lockfile claim. Metadata, paths and external URLs are not forwarded. See the [Syft guide](how-to.md#syft) for all supported ecosystem identities and explicit CVE coverage.
+
+## NuGet and Go application assessment
+
+The API matches NuGet libraries and Go modules to ecosystem-typed package advisories in Monitor's application reporting window. NuGet IDs are case-insensitive; Go module paths (including major-version suffixes) are exact and case-sensitive. Generic NVD product names are not sufficient to infer a package identity.
+
+NuGet supports one to four numeric version fields, prerelease ordering and build metadata normalization. Go supports complete SemVer, optional leading v, prereleases and pseudo-versions. Dirty/development builds remain unevaluated. Explicit advisory comparisons (<, <=, >, >=, =, ==), comma intersections and || alternatives are supported; NuGet also supports one bracketed interval. A bare advisory version means exact equality, not NuGet dependency resolution's minimum-version convention. Unsupported expressions remain product-level matches with ADVISORY_RANGE_NOT_EVALUATED.
+
+This does not assess the Go standard library/toolchain, .NET runtime by inference, function reachability, local Go replacements with unknown versions or unlisted vulnerabilities. OS packages continue through the distribution assessment. Composer, RubyGems and Cargo remain unevaluated.

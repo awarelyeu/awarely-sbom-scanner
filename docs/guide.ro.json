@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "v0.11.0",
+  "version": "v0.12.0",
   "title": "Awarely Scan: de la instalare la primul rezultat",
   "intro": "Urmează traseul simplu: pregătești Linux, instalezi scannerul, alegi din meniu și citești rezultatul. Nu trebuie să știi Python sau să editezi JSON. Mesajele și comenzile CLI sunt în engleză. Exemplele sunt fictive și trebuie adaptate la calculatorul tău.",
   "sections": [
@@ -51,7 +51,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \\\n  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.11.0/install.sh \\\n  -o awarely-install.sh\n# Review the installer before running it.\nless awarely-install.sh\nsh awarely-install.sh\n\"$HOME/.local/bin/awarely-scan\" guided"
+          "code": "curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \\\n  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.12.0/install.sh \\\n  -o awarely-install.sh\n# Review the installer before running it.\nless awarely-install.sh\nsh awarely-install.sh\n\"$HOME/.local/bin/awarely-scan\" guided"
         },
         {
           "type": "paragraph",
@@ -141,7 +141,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Instalările stabile primesc doar versiuni stabile. O instalare prerelease vede și prerelease-uri mai noi. Opțiuni avansate: update --version v0.11.0 alege un release publicat mai nou, exact; update --prerelease include explicit preview-uri; update --yes elimină confirmarea pentru automatizări controlate. Revenirea la o versiune mai veche se face prin rollback. update --help afișează opțiunile."
+          "text": "Instalările stabile primesc doar versiuni stabile. O instalare prerelease vede și prerelease-uri mai noi. Opțiuni avansate: update --version v0.12.0 alege un release publicat mai nou, exact; update --prerelease include explicit preview-uri; update --yes elimină confirmarea pentru automatizări controlate. Revenirea la o versiune mai veche se face prin rollback. update --help afișează opțiunile."
         },
         {
           "type": "paragraph",
@@ -184,7 +184,7 @@
             [
               "5. Other ecosystems",
               "/srv/my-app",
-              "Syft pentru NuGet/Go/Composer/RubyGems/Cargo. Inventar și sync disponibile; CVE neevaluat."
+              "Syft pentru NuGet/Go/Composer/RubyGems/Cargo. NuGet și Go au verificare CVE; Composer/RubyGems/Cargo rămân neevaluate."
             ],
             [
               "6. SBOM existent",
@@ -488,7 +488,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "SCAN_BIN=\numask 077\nSCAN_WORK=$(mktemp -d \"$HOME/awarely-scan.XXXXXXXX\")\n(\nset -eu\n: \"${SCAN_WORK:?Could not create working directory}\"\nfor tool in curl tar sha256sum awk gh; do\n  command -v \"$tool\" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\\n' \"$tool\" >&2; exit 1; }\ndone\ngh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }\ncd \"$SCAN_WORK\"\nSCAN_VERSION=v0.11.0\ncase \"$(uname -m)\" in\n  x86_64) SCAN_ARCH=amd64 ;;\n  aarch64|arm64) SCAN_ARCH=arm64 ;;\n  *) echo \"Unsupported architecture\" >&2; exit 1 ;;\nesac\nSCAN_ARCHIVE=\"awarely-scan_${SCAN_VERSION}_linux_${SCAN_ARCH}.tar.gz\"\nSCAN_RELEASE=\"https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/${SCAN_VERSION}\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE\" -o \"$SCAN_ARCHIVE\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/SHA256SUMS\" -o SHA256SUMS\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE.sigstore.jsonl\" -o \"$SCAN_ARCHIVE.sigstore.jsonl\"\ngh attestation verify \"$SCAN_ARCHIVE\" \\\n  --bundle \"$SCAN_ARCHIVE.sigstore.jsonl\" \\\n  --repo awarelyeu/awarely-sbom-scanner \\\n  --signer-workflow awarelyeu/awarely-sbom-scanner/.github/workflows/release.yml \\\n  --source-ref \"refs/tags/$SCAN_VERSION\"\nawk -v file=\"$SCAN_ARCHIVE\" '$2 == file { print; found=1 } END { if (!found) exit 1 }' SHA256SUMS > selected-SHA256SUMS\nsha256sum --check selected-SHA256SUMS\nmkdir release\ntar -xzf \"$SCAN_ARCHIVE\" -C release\n(cd release && sha256sum --check SHA256SUMS)\n\"$SCAN_WORK/release/awarely-scan\" version\n\"$SCAN_WORK/release/awarely-scan\" help\nprintf 'Working directory: %s\\n' \"$SCAN_WORK\"\n)\nSCAN_INSTALL_STATUS=$?\nif [ \"$SCAN_INSTALL_STATUS\" -eq 0 ]; then\n  SCAN_BIN=\"$SCAN_WORK/release/awarely-scan\"\n  printf 'READY: %s\\n' \"$SCAN_BIN\"\nelse\n  SCAN_BIN=\n  printf 'STOP: installation incomplete in %s. Fix the error and rerun all of step 3. Do not scan yet.\\n' \"$SCAN_WORK\" >&2\n  (exit \"$SCAN_INSTALL_STATUS\")\nfi"
+          "code": "SCAN_BIN=\numask 077\nSCAN_WORK=$(mktemp -d \"$HOME/awarely-scan.XXXXXXXX\")\n(\nset -eu\n: \"${SCAN_WORK:?Could not create working directory}\"\nfor tool in curl tar sha256sum awk gh; do\n  command -v \"$tool\" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\\n' \"$tool\" >&2; exit 1; }\ndone\ngh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }\ncd \"$SCAN_WORK\"\nSCAN_VERSION=v0.12.0\ncase \"$(uname -m)\" in\n  x86_64) SCAN_ARCH=amd64 ;;\n  aarch64|arm64) SCAN_ARCH=arm64 ;;\n  *) echo \"Unsupported architecture\" >&2; exit 1 ;;\nesac\nSCAN_ARCHIVE=\"awarely-scan_${SCAN_VERSION}_linux_${SCAN_ARCH}.tar.gz\"\nSCAN_RELEASE=\"https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/${SCAN_VERSION}\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE\" -o \"$SCAN_ARCHIVE\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/SHA256SUMS\" -o SHA256SUMS\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE.sigstore.jsonl\" -o \"$SCAN_ARCHIVE.sigstore.jsonl\"\ngh attestation verify \"$SCAN_ARCHIVE\" \\\n  --bundle \"$SCAN_ARCHIVE.sigstore.jsonl\" \\\n  --repo awarelyeu/awarely-sbom-scanner \\\n  --signer-workflow awarelyeu/awarely-sbom-scanner/.github/workflows/release.yml \\\n  --source-ref \"refs/tags/$SCAN_VERSION\"\nawk -v file=\"$SCAN_ARCHIVE\" '$2 == file { print; found=1 } END { if (!found) exit 1 }' SHA256SUMS > selected-SHA256SUMS\nsha256sum --check selected-SHA256SUMS\nmkdir release\ntar -xzf \"$SCAN_ARCHIVE\" -C release\n(cd release && sha256sum --check SHA256SUMS)\n\"$SCAN_WORK/release/awarely-scan\" version\n\"$SCAN_WORK/release/awarely-scan\" help\nprintf 'Working directory: %s\\n' \"$SCAN_WORK\"\n)\nSCAN_INSTALL_STATUS=$?\nif [ \"$SCAN_INSTALL_STATUS\" -eq 0 ]; then\n  SCAN_BIN=\"$SCAN_WORK/release/awarely-scan\"\n  printf 'READY: %s\\n' \"$SCAN_BIN\"\nelse\n  SCAN_BIN=\n  printf 'STOP: installation incomplete in %s. Fix the error and rerun all of step 3. Do not scan yet.\\n' \"$SCAN_WORK\" >&2\n  (exit \"$SCAN_INSTALL_STATUS\")\nfi"
         },
         {
           "type": "paragraph",
@@ -812,6 +812,32 @@
       ]
     },
     {
+      "id": "nuget-go",
+      "title": "6b. Verificări .NET / NuGet și Go",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Pentru biblioteci .NET/NuGet și module Go, alege 5 în modul guided, introdu directorul aplicației, aprobă Syft verificat și apoi alege 2 (Check). Credentialul se folosește la fel ca pentru Java/npm/Python. Scanerul nu are nevoie de SDK .NET sau compilator Go ca să inspecteze fișiere existente și nu execută restore sau build."
+        },
+        {
+          "type": "list",
+          "items": [
+            "Pregătește dependențele în procesul normal de build. Pentru .NET, execută restore/build și păstrează packages.lock.json, project.assets.json sau fișierul .deps.json publicat lângă aplicație. Pentru Go, păstrează go.mod/go.sum sau un executabil construit cu informații despre module.",
+            "Rulează \"$HOME/.local/bin/awarely-scan\" guided, alege 5 și introdu directorul care conține aceste fișiere. Păstrează SBOM-ul local sau alege Check.",
+            "Verifică numele pachetelor, versiunile, precizia și coverage.unevaluated. După actualizarea dependențelor în procesul tău de build, scanează din nou și compară raportul. În Jenkins folosește collector: other cu mode: check; restore/build se execută într-o etapă anterioară."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Monitor verifică NuGet și Go în avizele pentru pachete deja colectate în catalogul său, în perioada de evaluare a aplicațiilor indicată în raport. Avizul trebuie să aibă ecosistemul corect și identitatea completă: la NuGet, numele nu ține cont de majuscule; la Go, calea modulului ține cont de majuscule, iar /v2 face parte din identitate. Un runtime .NET sau un pachet OS cu nume asemănător nu este tratat drept bibliotecă NuGet."
+        },
+        {
+          "type": "paragraph",
+          "text": "NuGet include revizii numerice și prerelease-uri; Go include prerelease-uri SemVer și pseudo-versiuni. Versiunile necunoscute, build-urile Go dirty/development și intervalele de aviz neacceptate rămân neevaluate sau potriviri doar pe produs. Verificarea bibliotecii standard și a toolchain-ului Go nu este inclusă în acest check de module. O potrivire pe versiune nu dovedește că aplicația execută funcția vulnerabilă. Composer, RubyGems și Cargo păstrează doar inventar/sync."
+        }
+      ]
+    },
+    {
       "id": "syft",
       "title": "6b. Java și alte ecosisteme cu Syft opțional · alternativă manuală",
       "blocks": [
@@ -842,7 +868,12 @@
               "Intervale comparabile; restul necesită revizuire"
             ],
             [
-              ".NET / NuGet, Go, PHP / Composer, RubyGems, Rust / Cargo",
+              ".NET / NuGet, Go",
+              "Da",
+              "Avize pentru ecosistemul exact și reguli specifice de versiune"
+            ],
+            [
+              "PHP / Composer, RubyGems, Rust / Cargo",
               "Da",
               "Neevaluat în această versiune"
             ]
@@ -1200,6 +1231,14 @@
             [
               "Synchronization was not confirmed",
               "Verifică inventarul sursei în aplicație înainte de reluare. Fișierul local este păstrat."
+            ],
+            [
+              "ADVISORY_RANGE_NOT_EVALUATED",
+              "Aviz găsit pentru pachet, dar intervalul versiunilor afectate nu poate fi evaluat. Verifică potrivirea pe produs."
+            ],
+            [
+              "PACKAGE_IDENTITY_NOT_EVALUATED",
+              "Identitatea nu este un pachet acceptat; de exemplu Go stdlib/toolchain, în locul unui modul."
             ]
           ]
         },
@@ -1309,7 +1348,7 @@
       "blocks": [
         {
           "type": "paragraph",
-          "text": "Integrarea Jenkins folosește același CLI pentru Linux, npm, Python, Java, celelalte ecosisteme Syft și inventare existente. Pluginul stabil 0.1.0 este distribuit ca HPI verificat pe GitHub; publicarea în Jenkins Update Center așteaptă aprobarea de hosting. Validează întâi configurația pe staging. Sunt incluse verificarea configurației, politica UNSTABLE/FAILURE și comparația cu build-ul anterior."
+          "text": "Integrarea Jenkins folosește același CLI pentru Linux, npm, Python, Java, celelalte ecosisteme Syft și inventare existente. Pluginul stabil 0.2.0 este distribuit ca HPI verificat pe GitHub; publicarea în Jenkins Update Center așteaptă aprobarea de hosting. Validează întâi configurația pe staging. Sunt incluse verificarea configurației, politica UNSTABLE/FAILURE și comparația cu build-ul anterior."
         },
         {
           "type": "paragraph",

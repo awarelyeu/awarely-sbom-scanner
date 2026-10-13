@@ -4,7 +4,7 @@ Follow the simple path: prepare Linux, install the scanner, choose from its menu
 
 [English](how-to.md) · [Română](how-to.ro.md)
 
-Release: `v0.11.0`
+Release: `v0.12.0`
 
 - [Start here: your first scan in 4 steps](#start-here)
 - [Start: simplified one-time installation](#quick-install)
@@ -24,6 +24,7 @@ Release: `v0.11.0`
 - [5. Choose the collection scope · manual alternative](#scope)
 - [6. Collect an application instead · manual alternative](#applications)
 - [Non-interactive Syft collection](#syft-automation)
+- [6b. .NET / NuGet and Go checks](#nuget-go)
 - [6b. Java and other ecosystems with optional Syft · manual alternative](#syft)
 - [7. Upload the local SBOM in Monitor](#upload)
 - [8. Create and protect a machine credential](#credentials)
@@ -66,7 +67,7 @@ Download and review the official installer (press q to exit less), then run it. 
 
 ```sh
 curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \
-  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.11.0/install.sh \
+  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.12.0/install.sh \
   -o awarely-install.sh
 # Review the installer before running it.
 less awarely-install.sh
@@ -131,7 +132,7 @@ If the new scanner causes a problem, restore the single previous binary with the
 "$HOME/.local/bin/awarely-scan" update --rollback
 ```
 
-Stable installations stay on stable releases. An existing prerelease also receives newer prereleases. Advanced choices: update --version v0.11.0 selects an exact newer published release; update --prerelease explicitly includes previews; update --yes skips the confirmation for trusted automation. Downgrades require rollback. update --help lists the options.
+Stable installations stay on stable releases. An existing prerelease also receives newer prereleases. Advanced choices: update --version v0.12.0 selects an exact newer published release; update --prerelease explicitly includes previews; update --yes skips the confirmation for trusted automation. Downgrades require rollback. update --help lists the options.
 
 On a download, verification, permission or startup failure, resolve the reported cause and retry; do not bypass verification. Exit code 7 identifies an update failure. If another update is running, wait for it. A message saying the binary was replaced but a directory flush failed requires checking version before retrying. Update requires a real executable named awarely-scan in a user-owned directory with trusted, non-writable parent directories; symlink installations are refused.
 
@@ -146,7 +147,7 @@ On a download, verification, permission or startup failure, resolve the reported
 | 2. npm | /srv/demo-shop → 1 (native) / 2 (Syft) | Looks for a v2/v3 lockfile or package.json; reading needs no Node.js/npm. Never runs npm install. |
 | 3. Python | /srv/demo-python → 1 (requirements.txt) / 2 (installed environment) | Mode 1 is partial; mode 2 requires metadata from an existing virtual environment and can prepare Syft. |
 | 4. Java | /srv/demo-java | Requires existing JAR/WAR/EAR artifacts; does not install Java/Maven or build the project. |
-| 5. Other ecosystems | /srv/my-app | Syft for NuGet/Go/Composer/RubyGems/Cargo. Inventory and sync supported; CVE assessment unevaluated. |
+| 5. Other ecosystems | /srv/my-app | Syft for NuGet/Go/Composer/RubyGems/Cargo. NuGet and Go support CVE checks; Composer/RubyGems/Cargo remain unevaluated. |
 | 6. Existing SBOM | /home/demo-user/awarely-results-EXAMPLE/inventory.cdx.json | Open a saved Awarely inventory for Check/Sync, without rescanning. |
 
 The menu has 3 stages: choose a scan, save locally and choose an action. Enter accepts the value in [brackets]. b goes back; q quits and keeps completed exports. Colors appear only in a terminal; every message also works without color. Disable colors with: NO_COLOR=1 "$HOME/.local/bin/awarely-scan" guided.
@@ -382,7 +383,7 @@ for tool in curl tar sha256sum awk gh; do
 done
 gh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }
 cd "$SCAN_WORK"
-SCAN_VERSION=v0.11.0
+SCAN_VERSION=v0.12.0
 case "$(uname -m)" in
   x86_64) SCAN_ARCH=amd64 ;;
   aarch64|arm64) SCAN_ARCH=arm64 ;;
@@ -668,6 +669,21 @@ From v0.10.0, automation can use the same verified Syft managed by guided mode. 
 Supported choices: npm, python, java and other. --allow-download explicitly permits the pinned Syft download when its verified cache is missing; omit it to require an existing cache. No account, gh, Cosign, project execution or package installation is performed by this collector. Use a new output filename on every run. Read partial-coverage warnings before check or sync.
 
 
+<a id="nuget-go"></a>
+
+## 6b. .NET / NuGet and Go checks
+
+For .NET package libraries and Go modules, choose 5 in guided mode, enter the existing application directory, approve verified Syft, then choose 2 (Check). Use the same credential workflow as Java/npm/Python. The scanner does not need a .NET SDK or Go compiler to inspect existing files and never restores or builds your application.
+
+1. Prepare dependency information in your normal build process. For .NET, restore/build the project and retain packages.lock.json, project.assets.json or the published .deps.json beside the application. For Go, keep go.mod/go.sum or a built executable containing module build information.
+2. Run "$HOME/.local/bin/awarely-scan" guided, choose 5, and enter the directory containing those files. Keep the SBOM locally or choose Check.
+3. Review the package names, versions, precision and coverage.unevaluated. After updating dependencies in your build process, scan again and compare the new report. Jenkins uses collector: other with mode: check; build/restore belongs in an earlier stage.
+
+Monitor checks NuGet and Go against package advisories already collected in its catalog, within the report’s application assessment period. It requires the correct advisory ecosystem and full package identity: NuGet IDs are case-insensitive; Go module paths are case-sensitive and /v2 is part of the identity. It does not treat a similarly named .NET runtime or OS package as a NuGet library.
+
+NuGet versions include numeric revisions and prereleases; Go versions include SemVer prereleases and pseudo-versions. Unknown versions, Go dirty/development builds and unsupported advisory expressions stay unevaluated or product-level. Go standard-library/toolchain vulnerability assessment is outside this module check. Version matches indicate an affected dependency version, not proof that vulnerable code is reachable. Composer, RubyGems and Cargo still support inventory/sync only.
+
+
 <a id="syft"></a>
 
 ## 6b. Java and other ecosystems with optional Syft · manual alternative
@@ -680,7 +696,8 @@ Syft is a separate Anchore tool under Apache-2.0. In the manual workflow you run
 | --- | --- | --- |
 | Java / Maven | Yes | Maven versions and full coordinates |
 | npm, Python / PyPI | Yes | Comparable ranges; other cases need review |
-| .NET / NuGet, Go, PHP / Composer, RubyGems, Rust / Cargo | Yes | Unevaluated in this release |
+| .NET / NuGet, Go | Yes | Typed package advisories and ecosystem-specific version rules |
+| PHP / Composer, RubyGems, Rust / Cargo | Yes | Unevaluated in this release |
 
 Complete steps 2–3 first and keep the same Bash session: SCAN_WORK and SCAN_BIN must point to the successful installation. Run the three blocks below in order: A — Cosign, B — Syft, C — Java collection. Downloading and verification require internet, but no GitHub account, token, sudo or PATH changes.
 
@@ -993,6 +1010,8 @@ Sync reads a revision and uses an idempotency key. Bounded transport/503 retries
 | Credential file rejected | Check the filename and chmod 600; never paste the token into the terminal. Enter the path again. |
 | ECOSYSTEM_NOT_EVALUATED | Inventory is available, but CVE assessment for this ecosystem is not implemented. |
 | Synchronization was not confirmed | Inspect the source inventory in the app before retrying. Your local file is preserved. |
+| ADVISORY_RANGE_NOT_EVALUATED | Package advisory found, but its affected-version expression cannot be evaluated. Review the product-level match. |
+| PACKAGE_IDENTITY_NOT_EVALUATED | Identity is outside the supported package model, for example Go stdlib/toolchain rather than a module. |
 
 | Symptom | Action |
 | --- | --- |
@@ -1024,7 +1043,7 @@ Sync reads a revision and uses an idempotency key. Bounded transport/503 retries
 
 ## Jenkins integration
 
-The Jenkins integration uses the same CLI for Linux, npm, Python, Java, other Syft ecosystems and existing inventories. Stable plugin 0.1.0 is distributed as a verified HPI on GitHub; Jenkins Update Center publication is pending hosting approval. Validate your setup on staging first. Configuration preflight, selectable UNSTABLE/FAILURE policies and comparisons with the previous build are included.
+The Jenkins integration uses the same CLI for Linux, npm, Python, Java, other Syft ecosystems and existing inventories. Stable plugin 0.2.0 is distributed as a verified HPI on GitHub; Jenkins Update Center publication is pending hosting approval. Validate your setup on staging first. Configuration preflight, selectable UNSTABLE/FAILURE policies and comparisons with the previous build are included.
 
 Every Pipeline/Freestyle scan shows progress, elapsed time, coverage, report locations and the configured build policy. Enable Detailed logging in the build step, or detailedLogging: true in Pipeline, for safe extra details. Expected input errors and known API refusals explain the corrective action without a Java stack trace.
 

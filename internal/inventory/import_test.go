@@ -98,3 +98,29 @@ func TestImportNestedPackageInsideFile(t *testing.T) {
 		t.Fatal(r, err)
 	}
 }
+
+func TestSyftGoExecutableMetadataIsConservative(t *testing.T) {
+	for _, unknown := range []string{"UNKNOWN", "(devel)"} {
+		input := `{"bomFormat":"CycloneDX","specVersion":"1.6","components":[{"name":"example.invalid/demo","version":"` + unknown + `","purl":"pkg:golang/example.invalid/demo"},{"name":"stdlib","version":"go1.22.2","purl":"pkg:golang/stdlib@1.22.2"},{"name":"golang.org/x/crypto","version":"v0.30.0","purl":"pkg:golang/golang.org/x/crypto@v0.30.0"}]}`
+		r, err := importFixture(t, input)
+		if err != nil || len(r.Components) != 3 || !strings.Contains(strings.Join(r.Warnings, ","), "VERSION_UNKNOWN") {
+			t.Fatalf("lost Go inventory or uncertainty: %+v %v", r, err)
+		}
+		for _, c := range r.Components {
+			if c.Name == "example.invalid/demo" && c.Version != "" {
+				t.Fatal("invented main-module version")
+			}
+		}
+	}
+	for _, c := range []string{
+		`{"name":"example.invalid/demo","version":"UNKNOWN","purl":"pkg:golang/example.invalid/demo@1.0.0"}`,
+		`{"name":"example.invalid/demo","version":"custom","purl":"pkg:golang/example.invalid/demo"}`,
+		`{"name":"stdlib","version":"go1.22.2","purl":"pkg:golang/stdlib@1.22.3"}`,
+		`{"name":"example.invalid/demo","version":"go1.22.2","purl":"pkg:golang/example.invalid/demo@1.22.2"}`,
+		`{"name":"stdlib","version":"go1.22.2","purl":"pkg:nuget/stdlib@1.22.2"}`,
+	} {
+		if _, err := importFixture(t, `{"bomFormat":"CycloneDX","specVersion":"1.6","components":[`+c+`]}`); err == nil {
+			t.Fatal("accepted conflicting identity: " + c)
+		}
+	}
+}
