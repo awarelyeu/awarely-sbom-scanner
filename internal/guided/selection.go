@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/api"
+	"github.com/awarelyeu/awarely-sbom-scanner/internal/diagnostics"
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/inventory"
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/producer"
 )
@@ -213,7 +214,11 @@ func (s *session) collect() (inventory.Result, string, string, bool, string, err
 					fmt.Fprintln(s.out, "Cancelled. No tool was downloaded and no scan was run.")
 					return result, kind, target, syft, resume, declined
 				}
-				if e := s.prepareTool(func() error { return producer.Prepare(s.ctx, cache, !ready) }); e != nil {
+				if e := s.prepareTool(func() error {
+					stop := diagnostics.Step(s.ctx, "PREPARING_SYFT")
+					defer stop()
+					return producer.Prepare(s.ctx, cache, !ready)
+				}); e != nil {
 					if errors.Is(e, back) {
 						stage = "path"
 						continue
@@ -221,15 +226,23 @@ func (s *session) collect() (inventory.Result, string, string, bool, string, err
 					return result, kind, target, syft, resume, e
 				}
 				fmt.Fprintln(s.out, "Scanning with verified Syft...")
+				stop := diagnostics.Step(s.ctx, "SYFT_RUNNING")
+				started := time.Now()
 				result, err = producer.Scan(s.ctx, cache, target, kind)
+				stop()
+				diagnostics.Duration(s.ctx, started)
 			} else {
 				fmt.Fprintln(s.out, "Scanning selected inputs locally...")
 				ctx, cancel := context.WithTimeout(s.ctx, 60*time.Second)
+				stop := diagnostics.Step(ctx, "COLLECTING")
+				started := time.Now()
 				if kind == "linux" {
 					result, err = inventory.Host(ctx, "/", inventory.DefaultSelection, all)
 				} else {
 					result, err = inventory.AppFor(ctx, target, kind)
 				}
+				stop()
+				diagnostics.Duration(ctx, started)
 				cancel()
 			}
 			if err == nil {

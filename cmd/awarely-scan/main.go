@@ -8,9 +8,11 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"runtime"
 	"time"
 
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/api"
+	"github.com/awarelyeu/awarely-sbom-scanner/internal/diagnostics"
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/guided"
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/inventory"
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/producer"
@@ -47,6 +49,8 @@ Options:
   --root DIR        Host root filesystem (default: /; also accepts offline roots)
   --select LIST     Comma-separated package names or trailing * selectors
   --all-packages    Include all installed packages (explicit opt-in)
+  --verbose         Additional safe operational details (guided/collection/check/sync)
+  --log-format text|events  Diagnostic text or fixed v1 codes on stderr (automation)
 
 Exit codes: 0 selected inputs processed; 2 invalid input/error; 3 partial coverage;
             4 output error; 5 interrupted/deadline; 6 API operation failed; 7 update failed.
@@ -85,14 +89,23 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 		return update.Install(parent, version, os.Stdin, out, errOut)
 	}
 	if args[0] == "guided" {
-		if len(args) != 1 {
-			fmt.Fprintln(errOut, "Guided mode accepts no arguments. Use host/app/import/check/sync for automation.")
+		fs := flag.NewFlagSet("guided", flag.ContinueOnError)
+		fs.SetOutput(io.Discard)
+		var logging diagnostics.Options
+		logging.Flags(fs)
+		if fs.Parse(args[1:]) != nil || fs.NArg() != 0 || !logging.Valid() || logging.Format != "text" {
+			fmt.Fprintln(errOut, "Use guided [--verbose]. Use host/app/import/check/sync for automation.")
 			return 2
 		}
 		_, noColor := os.LookupEnv("NO_COLOR")
 		color := false
 		if f, ok := out.(*os.File); ok {
 			color = fileTerminal(f) && !noColor && os.Getenv("TERM") != "dumb"
+		}
+		parent = diagnostics.With(parent, errOut, logging)
+		diagnostics.Runtime(parent, version, producer.Version, runtime.GOOS+"/"+runtime.GOARCH)
+		if logging.Format == "events" {
+			errOut = io.Discard
 		}
 		return guided.RunWithColor(parent, os.Stdin, out, errOut, version, color)
 	}
@@ -120,6 +133,8 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 	}
 	fs := flag.NewFlagSet(mode, flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
+	var logging diagnostics.Options
+	logging.Flags(fs)
 	output := fs.String("output", "", "output")
 	name := fs.String("name", "", "name")
 	timeout := fs.Int("timeout", 60, "deadline")
@@ -143,7 +158,7 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 		fmt.Fprintln(errOut, "Invalid arguments. Run awarely-scan help.")
 		return 2
 	}
-	if (mode == "import" && path == "") || fs.NArg() != 0 || *output == "" || *output == "-" || *timeout < 1 || *timeout > 300 {
+	if !logging.Valid() || (mode == "import" && path == "") || fs.NArg() != 0 || *output == "" || *output == "-" || *timeout < 1 || *timeout > 300 {
 		fmt.Fprintln(errOut, "Provide --output FILE and a timeout between 1 and 300 seconds; positional arguments are not accepted.")
 		return 2
 	}
@@ -173,10 +188,19 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 		fmt.Fprintln(errOut, "Invalid application name.")
 		return 2
 	}
+	parent = diagnostics.With(parent, errOut, logging)
+	diagnostics.Runtime(parent, version, producer.Version, runtime.GOOS+"/"+runtime.GOARCH)
+	if logging.Format == "events" {
+		errOut = io.Discard
+	}
+	defer diagnostics.Duration(parent, time.Now())
+	diagnostics.Event(parent, "VALIDATING")
+	diagnostics.Event(parent, "OFFLINE_COLLECTION")
 	ctx, cancel := context.WithTimeout(parent, time.Duration(*timeout)*time.Second)
 	defer cancel()
 	var r inventory.Result
 	var err error
+	stopProgress := diagnostics.Step(ctx, "COLLECTING")
 	if mode == "app" {
 		r, err = inventory.AppFor(ctx, path, ecosystem)
 	} else if mode == "import" {
@@ -184,11 +208,14 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 	} else {
 		r, err = inventory.Host(ctx, path, selection, all)
 	}
+	stopProgress()
 	if ctx.Err() != nil {
+		diagnostics.Failure(ctx, "INTERRUPTED")
 		fmt.Fprintln(errOut, "Scan interrupted or deadline exceeded; no inventory written.")
 		return 5
 	}
 	if err != nil {
+		diagnostics.Failure(ctx, "COLLECTION_FAILED")
 		fmt.Fprintln(errOut, "Scan failed:", err)
 		return 2
 	}
@@ -196,19 +223,24 @@ func run(parent context.Context, args []string, out, errOut io.Writer) int {
 }
 
 func publishInventory(ctx context.Context, r inventory.Result, name, output string, errOut io.Writer) int {
+	diagnostics.Event(ctx, "SAVING")
 	b, err := inventory.Marshal(r, name, version, time.Now())
 	if err != nil {
+		diagnostics.Failure(ctx, "COLLECTION_FAILED")
 		fmt.Fprintln(errOut, "Cannot generate inventory:", err)
 		return 2
 	}
 	if ctx.Err() != nil {
+		diagnostics.Failure(ctx, "INTERRUPTED")
 		fmt.Fprintln(errOut, "Deadline exceeded; no inventory written.")
 		return 5
 	}
 	if err = safeio.WriteNew(output, b); err != nil {
+		diagnostics.Failure(ctx, "OUTPUT_FAILED")
 		fmt.Fprintln(errOut, "Cannot publish output; choose a new file in a writable directory.")
 		return 4
 	}
+	fmt.Fprintf(errOut, "Saved inventory: %q\n", output)
 	fmt.Fprintf(errOut, "Wrote %d unique components from %d selected inputs. No data was sent.\n", len(r.Components), len(r.Inputs))
 	for _, notice := range r.Notices {
 		fmt.Fprintln(errOut, "Notice:", notice)
@@ -227,6 +259,8 @@ func publishInventory(ctx context.Context, r inventory.Result, name, output stri
 func runRemote(parent context.Context, args []string, out, errOut io.Writer) int {
 	fs := flag.NewFlagSet(args[0], flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
+	var logging diagnostics.Options
+	logging.Flags(fs)
 	input := fs.String("input", "", "SBOM")
 	credentials := fs.String("credentials", "", "protected credentials")
 	output := fs.String("output", "", "result")
@@ -241,7 +275,7 @@ func runRemote(parent context.Context, args []string, out, errOut io.Writer) int
 		fmt.Fprintln(errOut, "Invalid remote arguments. Run awarely-scan help.")
 		return 2
 	}
-	if fs.NArg() != 0 || *input == "" || *credentials == "" || *output == "" || *output == "-" {
+	if !logging.Valid() || fs.NArg() != 0 || *input == "" || *credentials == "" || *output == "" || *output == "-" {
 		fmt.Fprintln(errOut, "Remote commands require --input, --credentials and a new --output file.")
 		return 2
 	}
@@ -249,7 +283,15 @@ func runRemote(parent context.Context, args []string, out, errOut io.Writer) int
 		fmt.Fprintln(errOut, "Revision, idempotency and empty confirmation options apply only to sync.")
 		return 2
 	}
+	parent = diagnostics.With(parent, errOut, logging)
+	diagnostics.Runtime(parent, version, producer.Version, runtime.GOOS+"/"+runtime.GOARCH)
+	if logging.Format == "events" {
+		errOut = io.Discard
+	}
+	defer diagnostics.Duration(parent, time.Now())
+	diagnostics.Event(parent, "VALIDATING")
 	if _, err := os.Lstat(*output); !errors.Is(err, os.ErrNotExist) {
+		diagnostics.Failure(parent, "OUTPUT_FAILED")
 		fmt.Fprintln(errOut, "Choose a new output file before contacting the API.")
 		return 4
 	}
@@ -257,15 +299,22 @@ func runRemote(parent context.Context, args []string, out, errOut io.Writer) int
 	defer cancel()
 	snapshot, err := api.ReadSnapshot(ctx, *input)
 	if err != nil {
+		diagnostics.Failure(ctx, "INVALID_INVENTORY")
 		fmt.Fprintln(errOut, "Invalid local inventory:", err)
 		return 2
 	}
 	snapshot.CollectorVersion = version
 	c, err := api.ReadCredentials(ctx, *credentials, os.Stdin)
 	if err != nil {
+		diagnostics.Failure(ctx, "CREDENTIAL_FILE_INVALID")
 		fmt.Fprintln(errOut, "Credentials rejected:", err)
 		return 2
 	}
+	phase := "CHECKING"
+	if args[0] == "sync" {
+		phase = "SYNCING"
+	}
+	stopProgress := diagnostics.Step(ctx, phase)
 	client := api.NewClient(c)
 	var result []byte
 	if args[0] == "check" {
@@ -273,21 +322,27 @@ func runRemote(parent context.Context, args []string, out, errOut io.Writer) int
 	} else {
 		result, err = client.Sync(ctx, snapshot, *revision, *key, *empty)
 	}
+	stopProgress()
 	if err != nil {
+		api.Diagnose(ctx, err)
 		fmt.Fprintln(errOut, "Remote operation failed:", err)
 		if ctx.Err() != nil {
 			return 5
 		}
 		return 6
 	}
+	diagnostics.Event(ctx, "SAVING")
 	if err = safeio.WriteNew(*output, append(result, '\n')); err != nil {
+		diagnostics.Failure(ctx, "OUTPUT_FAILED")
 		fmt.Fprintln(errOut, "The API operation completed, but its result could not be saved. Check destination permissions; a sync may already be committed.")
 		return 4
 	}
 	if args[0] == "check" {
+		diagnostics.Summary(ctx, result)
 		fmt.Fprintln(errOut, "Complete check report saved. Review matches and unevaluated components. Saved inventory was not changed.")
 	} else {
 		fmt.Fprintln(errOut, "Source inventory synchronized. Commit receipt saved. Other sources were preserved.")
 	}
+	fmt.Fprintf(errOut, "Saved report: %q\n", *output)
 	return 0
 }

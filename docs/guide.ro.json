@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "v0.10.1",
+  "version": "v0.11.0",
   "title": "Awarely Scan: de la instalare la primul rezultat",
   "intro": "Urmează traseul simplu: pregătești Linux, instalezi scannerul, alegi din meniu și citești rezultatul. Nu trebuie să știi Python sau să editezi JSON. Mesajele și comenzile CLI sunt în engleză. Exemplele sunt fictive și trebuie adaptate la calculatorul tău.",
   "sections": [
@@ -51,7 +51,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \\\n  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.10.1/install.sh \\\n  -o awarely-install.sh\n# Review the installer before running it.\nless awarely-install.sh\nsh awarely-install.sh\n\"$HOME/.local/bin/awarely-scan\" guided"
+          "code": "curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \\\n  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.11.0/install.sh \\\n  -o awarely-install.sh\n# Review the installer before running it.\nless awarely-install.sh\nsh awarely-install.sh\n\"$HOME/.local/bin/awarely-scan\" guided"
         },
         {
           "type": "paragraph",
@@ -61,6 +61,33 @@
           "type": "code",
           "language": "sh",
           "code": "\"$HOME/.local/bin/awarely-scan\" guided"
+        }
+      ]
+    },
+    {
+      "id": "console-diagnostics",
+      "title": "Cum citești progresul și erorile",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Scannerul explică validarea, pregătirea uneltelor, colectarea locală, așteptarea API-ului și salvarea raportului. Operațiile mai lungi afișează un mesaj de așteptare la fiecare 15 secunde, în limita de timp existentă. După colectare sau operația API apare durata. Aceste mesaje nu schimbă acoperirea și nu trimit cereri suplimentare."
+        },
+        {
+          "type": "paragraph",
+          "text": "Pentru detalii suplimentare, adaugă --verbose. Vezi verificarea cache-ului și modul de rulare a uneltelor. Nu sunt afișate credentiale, corpuri de cereri sau ieșirea brută Syft. Mesajele rămân în engleză. Fișierele JSON, stdout și codurile de ieșire păstrează contractul existent; mesajele neinteractive de diagnostic merg în stderr."
+        },
+        {
+          "type": "code",
+          "language": "sh",
+          "code": "\"$HOME/.local/bin/awarely-scan\" guided --verbose"
+        },
+        {
+          "type": "paragraph",
+          "text": "INSUFFICIENT_SCOPE înseamnă că acel credential nu permite acțiunea: pentru sync folosește un credential cu drept de sincronizare. INVALID_CREDENTIAL poate însemna invalid, expirat sau revocat; înlocuiește-l cu unul nou. INVENTORY_CONFLICT indică o sursă modificată: verific-o înainte de alt sync. Un timeout sau eșec la salvarea confirmării poate apărea după sincronizare; inspectează sursa înainte să reîncerci."
+        },
+        {
+          "type": "paragraph",
+          "text": "Pentru integrări, app/host/import/syft/check/sync acceptă --log-format events. După validarea opțiunilor, stderr conține coduri AWARELY_EVENT_V1 / AWARELY_ERROR_V1 fără date atașate. Integrările trebuie să ignore codurile necunoscute și să folosească exit status plus fișierele validate pentru rezultat. Mesajele pentru oameni nu sunt un contract de parsare. Update/install își păstrează progresul propriu; noile opțiuni se aplică scanării și modului guided (doar --verbose)."
         }
       ]
     },
@@ -114,7 +141,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Instalările stabile primesc doar versiuni stabile. O instalare prerelease vede și prerelease-uri mai noi. Opțiuni avansate: update --version v0.10.1 alege un release publicat mai nou, exact; update --prerelease include explicit preview-uri; update --yes elimină confirmarea pentru automatizări controlate. Revenirea la o versiune mai veche se face prin rollback. update --help afișează opțiunile."
+          "text": "Instalările stabile primesc doar versiuni stabile. O instalare prerelease vede și prerelease-uri mai noi. Opțiuni avansate: update --version v0.11.0 alege un release publicat mai nou, exact; update --prerelease include explicit preview-uri; update --yes elimină confirmarea pentru automatizări controlate. Revenirea la o versiune mai veche se face prin rollback. update --help afișează opțiunile."
         },
         {
           "type": "paragraph",
@@ -461,7 +488,7 @@
         {
           "type": "code",
           "language": "sh",
-          "code": "SCAN_BIN=\numask 077\nSCAN_WORK=$(mktemp -d \"$HOME/awarely-scan.XXXXXXXX\")\n(\nset -eu\n: \"${SCAN_WORK:?Could not create working directory}\"\nfor tool in curl tar sha256sum awk gh; do\n  command -v \"$tool\" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\\n' \"$tool\" >&2; exit 1; }\ndone\ngh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }\ncd \"$SCAN_WORK\"\nSCAN_VERSION=v0.10.1\ncase \"$(uname -m)\" in\n  x86_64) SCAN_ARCH=amd64 ;;\n  aarch64|arm64) SCAN_ARCH=arm64 ;;\n  *) echo \"Unsupported architecture\" >&2; exit 1 ;;\nesac\nSCAN_ARCHIVE=\"awarely-scan_${SCAN_VERSION}_linux_${SCAN_ARCH}.tar.gz\"\nSCAN_RELEASE=\"https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/${SCAN_VERSION}\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE\" -o \"$SCAN_ARCHIVE\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/SHA256SUMS\" -o SHA256SUMS\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE.sigstore.jsonl\" -o \"$SCAN_ARCHIVE.sigstore.jsonl\"\ngh attestation verify \"$SCAN_ARCHIVE\" \\\n  --bundle \"$SCAN_ARCHIVE.sigstore.jsonl\" \\\n  --repo awarelyeu/awarely-sbom-scanner \\\n  --signer-workflow awarelyeu/awarely-sbom-scanner/.github/workflows/release.yml \\\n  --source-ref \"refs/tags/$SCAN_VERSION\"\nawk -v file=\"$SCAN_ARCHIVE\" '$2 == file { print; found=1 } END { if (!found) exit 1 }' SHA256SUMS > selected-SHA256SUMS\nsha256sum --check selected-SHA256SUMS\nmkdir release\ntar -xzf \"$SCAN_ARCHIVE\" -C release\n(cd release && sha256sum --check SHA256SUMS)\n\"$SCAN_WORK/release/awarely-scan\" version\n\"$SCAN_WORK/release/awarely-scan\" help\nprintf 'Working directory: %s\\n' \"$SCAN_WORK\"\n)\nSCAN_INSTALL_STATUS=$?\nif [ \"$SCAN_INSTALL_STATUS\" -eq 0 ]; then\n  SCAN_BIN=\"$SCAN_WORK/release/awarely-scan\"\n  printf 'READY: %s\\n' \"$SCAN_BIN\"\nelse\n  SCAN_BIN=\n  printf 'STOP: installation incomplete in %s. Fix the error and rerun all of step 3. Do not scan yet.\\n' \"$SCAN_WORK\" >&2\n  (exit \"$SCAN_INSTALL_STATUS\")\nfi"
+          "code": "SCAN_BIN=\numask 077\nSCAN_WORK=$(mktemp -d \"$HOME/awarely-scan.XXXXXXXX\")\n(\nset -eu\n: \"${SCAN_WORK:?Could not create working directory}\"\nfor tool in curl tar sha256sum awk gh; do\n  command -v \"$tool\" >/dev/null 2>&1 || { printf 'STOP: missing %s. Complete step 2.\\n' \"$tool\" >&2; exit 1; }\ndone\ngh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }\ncd \"$SCAN_WORK\"\nSCAN_VERSION=v0.11.0\ncase \"$(uname -m)\" in\n  x86_64) SCAN_ARCH=amd64 ;;\n  aarch64|arm64) SCAN_ARCH=arm64 ;;\n  *) echo \"Unsupported architecture\" >&2; exit 1 ;;\nesac\nSCAN_ARCHIVE=\"awarely-scan_${SCAN_VERSION}_linux_${SCAN_ARCH}.tar.gz\"\nSCAN_RELEASE=\"https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/${SCAN_VERSION}\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE\" -o \"$SCAN_ARCHIVE\"\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/SHA256SUMS\" -o SHA256SUMS\ncurl --proto '=https' --tlsv1.2 -fL \"$SCAN_RELEASE/$SCAN_ARCHIVE.sigstore.jsonl\" -o \"$SCAN_ARCHIVE.sigstore.jsonl\"\ngh attestation verify \"$SCAN_ARCHIVE\" \\\n  --bundle \"$SCAN_ARCHIVE.sigstore.jsonl\" \\\n  --repo awarelyeu/awarely-sbom-scanner \\\n  --signer-workflow awarelyeu/awarely-sbom-scanner/.github/workflows/release.yml \\\n  --source-ref \"refs/tags/$SCAN_VERSION\"\nawk -v file=\"$SCAN_ARCHIVE\" '$2 == file { print; found=1 } END { if (!found) exit 1 }' SHA256SUMS > selected-SHA256SUMS\nsha256sum --check selected-SHA256SUMS\nmkdir release\ntar -xzf \"$SCAN_ARCHIVE\" -C release\n(cd release && sha256sum --check SHA256SUMS)\n\"$SCAN_WORK/release/awarely-scan\" version\n\"$SCAN_WORK/release/awarely-scan\" help\nprintf 'Working directory: %s\\n' \"$SCAN_WORK\"\n)\nSCAN_INSTALL_STATUS=$?\nif [ \"$SCAN_INSTALL_STATUS\" -eq 0 ]; then\n  SCAN_BIN=\"$SCAN_WORK/release/awarely-scan\"\n  printf 'READY: %s\\n' \"$SCAN_BIN\"\nelse\n  SCAN_BIN=\n  printf 'STOP: installation incomplete in %s. Fix the error and rerun all of step 3. Do not scan yet.\\n' \"$SCAN_WORK\" >&2\n  (exit \"$SCAN_INSTALL_STATUS\")\nfi"
         },
         {
           "type": "paragraph",
@@ -1283,6 +1310,10 @@
         {
           "type": "paragraph",
           "text": "Integrarea Jenkins folosește același CLI pentru Linux, npm, Python, Java, celelalte ecosisteme Syft și inventare existente. Pluginul are versiuni separate; primul release este preview și se testează întâi pe un Jenkins de staging. De la preview-ul 0.1.0-alpha.3 sunt disponibile verificarea configurației, politica UNSTABLE/FAILURE și comparația cu build-ul anterior."
+        },
+        {
+          "type": "paragraph",
+          "text": "De la pluginul 0.1.0-alpha.5, fiecare scanare Pipeline/Freestyle afișează progresul, durata, acoperirea, locația rapoartelor și politica buildului. Activează Detailed logging în pasul de build sau detailedLogging: true în Pipeline pentru detalii suplimentare. Erorile previzibile de input și refuzurile API cunoscute explică soluția fără un stack trace Java."
         },
         {
           "type": "list",

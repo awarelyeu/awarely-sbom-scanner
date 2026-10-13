@@ -100,3 +100,32 @@ func TestPartialAndErrorsAreNotSuccess(t *testing.T) {
 		t.Fatal(code)
 	}
 }
+
+func TestDetailedLoggingKeepsStdoutAndInventoryContract(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "package-lock.json"), []byte(`{"lockfileVersion":3,"packages":{"node_modules/example":{"version":"1.2.3"}}}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	for _, format := range []string{"text", "events"} {
+		var out, logs bytes.Buffer
+		path := filepath.Join(dir, format+".cdx.json")
+		code := run(context.Background(), []string{"app", "--path", dir, "--ecosystem", "npm", "--output", path, "--verbose", "--log-format", format}, &out, &logs)
+		if code != 0 || out.Len() != 0 {
+			t.Fatalf("exit %d stdout %q logs %q", code, out.String(), logs.String())
+		}
+		data, err := os.ReadFile(path)
+		if err != nil || !json.Valid(data) {
+			t.Fatal("missing JSON inventory", err)
+		}
+		if !strings.Contains(logs.String(), "COLLECTING") {
+			t.Fatal(logs.String())
+		}
+		if format == "events" {
+			for _, line := range strings.Split(strings.TrimSpace(logs.String()), "\n") {
+				if !strings.HasPrefix(line, "AWARELY_EVENT_V1 ") {
+					t.Fatal(line)
+				}
+			}
+		}
+	}
+}

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/api"
+	"github.com/awarelyeu/awarely-sbom-scanner/internal/diagnostics"
 	"github.com/awarelyeu/awarely-sbom-scanner/internal/safeio"
 )
 
@@ -101,9 +102,18 @@ func (s *session) afterExport(path, dir string, partial bool) int {
 			}
 			fmt.Fprintln(s.out, "Waiting for the API result...")
 			ctx, cancel := context.WithTimeout(s.ctx, 90*time.Second)
+			phase := "CHECKING"
+			if action == "sync" {
+				phase = "SYNCING"
+			}
+			started := time.Now()
+			stopProgress := diagnostics.Step(ctx, phase)
 			report, e := s.remote(ctx, credentials, snapshot, action)
+			stopProgress()
+			diagnostics.Duration(ctx, started)
 			cancel()
 			if e != nil {
+				api.Diagnose(ctx, e)
 				s.issue(e)
 				fmt.Fprintf(s.out, "Your local inventory is preserved: %q\n", path)
 				if s.ctx.Err() != nil {

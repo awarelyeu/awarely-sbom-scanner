@@ -1,0 +1,94 @@
+{
+  "events": {
+    "VALIDATING": {
+      "message": "Validating selected inputs and output options.",
+      "detailed": false
+    },
+    "COLLECTING": {
+      "message": "Collecting selected inputs locally; no project commands are executed.",
+      "detailed": false
+    },
+    "PREPARING_SYFT": {
+      "message": "Preparing the release-pinned Syft tool.",
+      "detailed": false
+    },
+    "SYFT_DOWNLOADING": {
+      "message": "Downloading the approved, pinned Syft archive from GitHub.",
+      "detailed": false
+    },
+    "SYFT_RUNNING": {
+      "message": "Scanning existing application files with verified Syft.",
+      "detailed": false
+    },
+    "CHECKING": {
+      "message": "Waiting for Monitor to check the inventory; saved assets are unchanged.",
+      "detailed": false
+    },
+    "SYNCING": {
+      "message": "Synchronizing only the credential's configured source.",
+      "detailed": false
+    },
+    "SAVING": {
+      "message": "Saving results to a new private file.",
+      "detailed": false
+    },
+    "API_RETRY": {
+      "message": "Retrying a temporary API failure within the existing request deadline.",
+      "detailed": false
+    },
+    "STILL_WORKING": {
+      "message": "Still working; the operation deadline remains active.",
+      "detailed": false
+    },
+    "SYFT_CACHE_VERIFIED": {
+      "message": "Pinned Syft archive found in cache and its checksum verified.",
+      "detailed": true
+    },
+    "SYFT_DOWNLOAD_VERIFIED": {
+      "message": "Downloaded Syft archive passed pinned checksum verification.",
+      "detailed": true
+    },
+    "SOURCE_STATE": {
+      "message": "Reading the current source revision before synchronization.",
+      "detailed": true
+    },
+    "API_RESPONSE_VALIDATED": {
+      "message": "API response format, completeness and submitted-component consistency verified.",
+      "detailed": true
+    },
+    "OFFLINE_COLLECTION": {
+      "message": "Native collection uses no network or credentials.",
+      "detailed": true
+    },
+    "SYFT_ISOLATION": {
+      "message": "Syft runs with fixed offline configuration and a restricted environment; this is not an OS sandbox.",
+      "detailed": true
+    }
+  },
+  "errors": {
+    "INVALID_CREDENTIAL": "Monitor rejected the credential. It may be invalid, expired or revoked; create a new credential and replace the protected file.",
+    "INSUFFICIENT_SCOPE": "This credential does not permit the requested operation. Use Check only for check, or Sync only / Check and sync for sync.",
+    "ACCESS_REVOKED": "Monitor access is no longer authorized. Ask the account administrator to review subscription and membership permissions.",
+    "SOURCE_UNAVAILABLE": "The configured source is unavailable. Review it in Settings > Assets and create a credential for an active source.",
+    "RESOURCE_NOT_AUTHORIZED": "The credential does not authorize this application/source. Use the credential issued for the intended destination.",
+    "RATE_LIMITED": "Monitor rate limit reached. Stagger operations for this account and retry later.",
+    "INVENTORY_CONFLICT": "The source changed during synchronization. Review its current inventory before starting a new sync.",
+    "IDEMPOTENCY_CONFLICT": "The retry key was reused with a different request. Inspect the source before starting a new sync.",
+    "DISTRIBUTION_CATALOG_INVALID": "The distribution catalog is unavailable or invalid. Retry the check later; no successful assessment is reported.",
+    "DISTRIBUTION_CATALOG_UNAVAILABLE": "The distribution catalog is unavailable. Retry later; no successful assessment is reported.",
+    "DISTRIBUTION_CATALOG_STALE": "The distribution catalog is out of date. Retry after it is refreshed; no successful assessment is reported.",
+    "SERVICE_UNAVAILABLE": "Monitor is temporarily unavailable. Retry later; a sync may already have committed, so inspect the source first.",
+    "SCANNER_PAUSED": "Monitor scanner operations are temporarily paused. Retry later.",
+    "INVENTORY_LIMIT_EXCEEDED": "The inventory exceeds the account limit. Review selected inputs and account capacity.",
+    "REQUEST_REJECTED": "Monitor rejected the request. Review the operation, credential permissions and account limits.",
+    "API_TRANSPORT_FAILED": "Could not reach Monitor over HTTPS. Check connectivity; a sync may already have committed, so inspect the source first.",
+    "REMOTE_FAILED": "The API operation could not be confirmed. Review the credential, inventory and service availability; inspect the source before retrying sync.",
+    "INVALID_INVENTORY": "The inventory is invalid. Use an Awarely inventory.cdx.json containing a components array, or import a supported external SBOM first.",
+    "CREDENTIAL_FILE_INVALID": "The credential file could not be validated. Check its JSON format, ownership and owner-only permissions (chmod 600).",
+    "PARTIAL_SYNC": "Synchronization requires complete selected-input coverage. Use local export or check, or collect installed dependencies.",
+    "EMPTY_SYNC": "An empty inventory would remove this source's components. Review it and use --allow-empty only for intentional clearing.",
+    "INTERRUPTED": "The operation was interrupted or exceeded its deadline. A sync may already have committed; inspect the source before retrying.",
+    "OUTPUT_FAILED": "Results could not be saved. Choose a new file in a writable directory; an API sync may already have committed.",
+    "COLLECTION_FAILED": "Collection failed. Review the selected path, supported manifests or built artifacts and tool availability; nothing was uploaded."
+  }
+}
