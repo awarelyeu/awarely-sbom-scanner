@@ -1024,9 +1024,9 @@ Sync citește revizia și folosește o cheie de idempotență. Reîncercările 
 
 ## Integrarea Jenkins
 
-Integrarea Jenkins folosește același CLI pentru Linux, npm, Python, Java, celelalte ecosisteme Syft și inventare existente. Pluginul are versiuni separate; primul release este preview și se testează întâi pe un Jenkins de staging. De la preview-ul 0.1.0-alpha.3 sunt disponibile verificarea configurației, politica UNSTABLE/FAILURE și comparația cu build-ul anterior.
+Integrarea Jenkins folosește același CLI pentru Linux, npm, Python, Java, celelalte ecosisteme Syft și inventare existente. Pluginul stabil 0.1.0 este distribuit ca HPI verificat pe GitHub; publicarea în Jenkins Update Center așteaptă aprobarea de hosting. Validează întâi configurația pe staging. Sunt incluse verificarea configurației, politica UNSTABLE/FAILURE și comparația cu build-ul anterior.
 
-De la pluginul 0.1.0-alpha.5, fiecare scanare Pipeline/Freestyle afișează progresul, durata, acoperirea, locația rapoartelor și politica buildului. Activează Detailed logging în pasul de build sau detailedLogging: true în Pipeline pentru detalii suplimentare. Erorile previzibile de input și refuzurile API cunoscute explică soluția fără un stack trace Java.
+Fiecare scanare Pipeline/Freestyle afișează progresul, durata, acoperirea, locația rapoartelor și politica buildului. Activează Detailed logging în pasul de build sau detailedLogging: true în Pipeline pentru detalii suplimentare. Erorile previzibile de input și refuzurile API cunoscute explică soluția fără un stack trace Java.
 
 1. Administratorul instalează HPI-ul verificat și dependențele din ghidul Jenkins. Ai nevoie de Jenkins 2.580.1 sau mai nou, Java compatibil (testat cu JDK 21) și un agent Linux amd64/arm64 fără root.
 2. Începe cu un job care are deja aplicația în workspace. Adaugă pasul Awarely Scan, alege tipul aplicației, calea relativă și Save local inventory only. Pentru Java sau un mediu Python instalat, construiește aplicația sau instalează dependențele înainte.
@@ -1048,3 +1048,4 @@ awarelyScan collector: 'java', mode: 'check',
 Pagina Awarely Scan a build-ului compară inventarele complete păstrate din același job și aceeași configurație. Verificările complete, fără componente neevaluate, arată și potriviri pe componente apărute/care nu mai apar. Schimbările catalogului/perioadei sunt indicate; dispariția nu demonstrează remedierea. Dovezile lipsă, incomplete ori incompatibile afișează motivul indisponibilității comparației. Politica build-ului folosește în continuare constatările curente.
 
 - [Jenkins: ghid complet](https://github.com/awarelyeu/awarely-scan-plugin/blob/main/docs/how-to.ro.md)
+- [Plugin stabil: descărcare și verificare](https://github.com/awarelyeu/awarely-scan-plugin/blob/main/docs/releases.md)
