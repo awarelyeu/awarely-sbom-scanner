@@ -7,7 +7,7 @@ Generate a local **CycloneDX SBOM** from application manifests or a focused sele
 
 Built for [Awarely Monitor](https://monitor.awarely.ro/en), with a standalone local workflow you can inspect and use independently.
 
-**Stable release: v0.11.0 for Linux amd64 and arm64.** Local collection is independent of an account. Remote operations require Awarely Monitor Pro and a scoped machine credential created by an organization manager with MFA. The Jenkins integration is maintained in the dedicated [awarely-scan-plugin repository](https://github.com/awarelyeu/awarely-scan-plugin) with separate versions and verified releases.
+**Stable release: v0.12.0 for Linux amd64 and arm64.** Local collection is independent of an account. Remote operations require Awarely Monitor Pro and a scoped machine credential created by an organization manager with MFA. The Jenkins integration is maintained in the dedicated [awarely-scan-plugin repository](https://github.com/awarelyeu/awarely-scan-plugin) with separate versions and verified releases.
 
 | Workflow | Available |
 | --- | --- |
@@ -42,7 +42,7 @@ Keep the native Linux/npm/Python collectors, or generate an application SBOM wit
 awarely-scan import --input application.syft.json --name demo-app --output application.cdx.json
 ```
 
-Accepts CycloneDX JSON 1.4–1.7 for Maven, npm, PyPI, NuGet, Go, Composer, RubyGems and Cargo. The normalized file supports local upload, API check and source sync. Java checks preserve full Maven coordinates and Maven version ordering. NuGet/Go/Composer/RubyGems/Cargo currently support inventory and sync; their CVE evaluation is explicitly **unevaluated**. Syft is optional: guided mode can download a pinned, verified version and run it after your approval. No Syft runtime dependency is bundled. Manual import remains available.
+Accepts CycloneDX JSON 1.4–1.7 for Maven, npm, PyPI, NuGet, Go, Composer, RubyGems and Cargo. The normalized file supports local upload, API check and source sync. Java checks preserve full Maven coordinates and Maven version ordering. NuGet/.NET libraries and Go modules support API CVE checks against typed package advisories with ecosystem-specific version comparison. [NuGet and Go walkthrough](docs/how-to.md#nuget-go). Composer/RubyGems/Cargo remain inventory/sync only and explicitly **unevaluated**. Syft is optional: guided mode can download a pinned, verified version and run it after your approval. No Syft runtime dependency is bundled. Manual import remains available.
 
 Follow the complete verified-installation and Java workflow: [English](docs/how-to.md#syft) · [Română](docs/how-to.ro.md#syft). Unknown identities/variants or missing versions make the import partial; partial snapshots cannot sync. This is selected-file coverage, not proof of deployment completeness.
 

@@ -182,7 +182,7 @@ func (s *session) collect() (inventory.Result, string, string, bool, string, err
 					return result, kind, target, syft, resume, errors.New("managed Syft supports Linux amd64/arm64; use import for an externally generated SBOM")
 				}
 				if kind == "other" {
-					fmt.Fprintln(s.out, "NuGet, Go, Composer, RubyGems and Cargo can be inventoried/synced. Their CVE assessment is currently unevaluated.")
+					fmt.Fprintln(s.out, "NuGet/.NET libraries and Go modules support API CVE checks. Composer, RubyGems and Cargo support inventory/sync; their CVE assessment remains unevaluated.")
 				}
 				cache, e := producer.CachePath()
 				if e != nil {

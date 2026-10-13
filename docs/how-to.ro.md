@@ -4,7 +4,7 @@ Urmează traseul simplu: pregătești Linux, instalezi scannerul, alegi din meni
 
 [English](how-to.md) · [Română](how-to.ro.md)
 
-Release: `v0.11.0`
+Release: `v0.12.0`
 
 - [Începe aici: prima scanare în 4 pași](#start-here)
 - [Start: instalare simplificată, o singură dată](#quick-install)
@@ -24,6 +24,7 @@ Release: `v0.11.0`
 - [5. Alege ce colectezi · alternativă manuală](#scope)
 - [6. Colectează o aplicație · alternativă manuală](#applications)
 - [Colectare Syft fără interacțiune](#syft-automation)
+- [6b. Verificări .NET / NuGet și Go](#nuget-go)
 - [6b. Java și alte ecosisteme cu Syft opțional · alternativă manuală](#syft)
 - [7. Importă SBOM-ul local în Monitor](#upload)
 - [8. Creează și protejează un token de mașină](#credentials)
@@ -66,7 +67,7 @@ Descarcă și citește installerul oficial (în less, apasă q pentru a ieși), 
 
 ```sh
 curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fL \
-  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.11.0/install.sh \
+  https://github.com/awarelyeu/awarely-sbom-scanner/releases/download/v0.12.0/install.sh \
   -o awarely-install.sh
 # Review the installer before running it.
 less awarely-install.sh
@@ -131,7 +132,7 @@ Dacă noul scanner creează o problemă, revino la unicul binar anterior cu coma
 "$HOME/.local/bin/awarely-scan" update --rollback
 ```
 
-Instalările stabile primesc doar versiuni stabile. O instalare prerelease vede și prerelease-uri mai noi. Opțiuni avansate: update --version v0.11.0 alege un release publicat mai nou, exact; update --prerelease include explicit preview-uri; update --yes elimină confirmarea pentru automatizări controlate. Revenirea la o versiune mai veche se face prin rollback. update --help afișează opțiunile.
+Instalările stabile primesc doar versiuni stabile. O instalare prerelease vede și prerelease-uri mai noi. Opțiuni avansate: update --version v0.12.0 alege un release publicat mai nou, exact; update --prerelease include explicit preview-uri; update --yes elimină confirmarea pentru automatizări controlate. Revenirea la o versiune mai veche se face prin rollback. update --help afișează opțiunile.
 
 La o eroare de descărcare, verificare, permisiuni sau pornire, rezolvă cauza afișată și reîncearcă; nu ocoli verificarea. Codul de ieșire 7 indică o eroare de actualizare. Dacă rulează alt update, așteaptă. Dacă mesajul spune că binarul a fost înlocuit, dar scrierea directorului pe disc a eșuat, verifică version înainte de a reîncerca. Actualizarea cere un executabil real numit awarely-scan, într-un director deținut de utilizator, cu directoare părinte de încredere, fără drepturi de scriere pentru alți utilizatori; instalările prin link simbolic sunt refuzate.
 
@@ -146,7 +147,7 @@ La o eroare de descărcare, verificare, permisiuni sau pornire, rezolvă cauza a
 | 2. npm | /srv/demo-shop → 1 (native) / 2 (Syft) | Caută lockfile v2/v3 sau package.json; Node.js/npm nu este necesar pentru citire. Nu rulează npm install. |
 | 3. Python | /srv/demo-python → 1 (requirements.txt) / 2 (installed environment) | Modul 1 este parțial; modul 2 cere metadatele unei .venv existente și poate pregăti Syft. |
 | 4. Java | /srv/demo-java | Cere artefacte JAR/WAR/EAR existente; nu instalează Java/Maven și nu construiește proiectul. |
-| 5. Other ecosystems | /srv/my-app | Syft pentru NuGet/Go/Composer/RubyGems/Cargo. Inventar și sync disponibile; CVE neevaluat. |
+| 5. Other ecosystems | /srv/my-app | Syft pentru NuGet/Go/Composer/RubyGems/Cargo. NuGet și Go au verificare CVE; Composer/RubyGems/Cargo rămân neevaluate. |
 | 6. SBOM existent | /home/demo-user/awarely-results-EXAMPLE/inventory.cdx.json | Deschide un inventar Awarely salvat pentru Check/Sync; fără o nouă scanare. |
 
 Meniul are 3 etape: alegerea scanării, salvarea locală și alegerea acțiunii. Enter acceptă valoarea dintre [paranteze]. b revine la pasul anterior; q închide păstrând fișierele deja salvate. Culorile apar numai în terminal; mesajele rămân lizibile și fără culori. Pentru dezactivare: NO_COLOR=1 "$HOME/.local/bin/awarely-scan" guided.
@@ -382,7 +383,7 @@ for tool in curl tar sha256sum awk gh; do
 done
 gh attestation verify --help >/dev/null || { echo 'STOP: update GitHub CLI (step 2).' >&2; exit 1; }
 cd "$SCAN_WORK"
-SCAN_VERSION=v0.11.0
+SCAN_VERSION=v0.12.0
 case "$(uname -m)" in
   x86_64) SCAN_ARCH=amd64 ;;
   aarch64|arm64) SCAN_ARCH=arm64 ;;
@@ -668,6 +669,21 @@ Din v0.10.0, automatizările pot folosi aceeași versiune Syft verificată ca mo
 Opțiuni: npm, python, java și other. --allow-download permite explicit descărcarea versiunii Syft fixate dacă lipsește din cache; omite opțiunea pentru a cere un cache existent. Colectorul nu cere cont, gh sau Cosign și nu execută proiectul sau instalări de pachete. Folosește un nume nou pentru fișierul rezultat. Citește avertismentele de acoperire înainte de check sau sync.
 
 
+<a id="nuget-go"></a>
+
+## 6b. Verificări .NET / NuGet și Go
+
+Pentru biblioteci .NET/NuGet și module Go, alege 5 în modul guided, introdu directorul aplicației, aprobă Syft verificat și apoi alege 2 (Check). Credentialul se folosește la fel ca pentru Java/npm/Python. Scanerul nu are nevoie de SDK .NET sau compilator Go ca să inspecteze fișiere existente și nu execută restore sau build.
+
+1. Pregătește dependențele în procesul normal de build. Pentru .NET, execută restore/build și păstrează packages.lock.json, project.assets.json sau fișierul .deps.json publicat lângă aplicație. Pentru Go, păstrează go.mod/go.sum sau un executabil construit cu informații despre module.
+2. Rulează "$HOME/.local/bin/awarely-scan" guided, alege 5 și introdu directorul care conține aceste fișiere. Păstrează SBOM-ul local sau alege Check.
+3. Verifică numele pachetelor, versiunile, precizia și coverage.unevaluated. După actualizarea dependențelor în procesul tău de build, scanează din nou și compară raportul. În Jenkins folosește collector: other cu mode: check; restore/build se execută într-o etapă anterioară.
+
+Monitor verifică NuGet și Go în avizele pentru pachete deja colectate în catalogul său, în perioada de evaluare a aplicațiilor indicată în raport. Avizul trebuie să aibă ecosistemul corect și identitatea completă: la NuGet, numele nu ține cont de majuscule; la Go, calea modulului ține cont de majuscule, iar /v2 face parte din identitate. Un runtime .NET sau un pachet OS cu nume asemănător nu este tratat drept bibliotecă NuGet.
+
+NuGet include revizii numerice și prerelease-uri; Go include prerelease-uri SemVer și pseudo-versiuni. Versiunile necunoscute, build-urile Go dirty/development și intervalele de aviz neacceptate rămân neevaluate sau potriviri doar pe produs. Verificarea bibliotecii standard și a toolchain-ului Go nu este inclusă în acest check de module. O potrivire pe versiune nu dovedește că aplicația execută funcția vulnerabilă. Composer, RubyGems și Cargo păstrează doar inventar/sync.
+
+
 <a id="syft"></a>
 
 ## 6b. Java și alte ecosisteme cu Syft opțional · alternativă manuală
@@ -680,7 +696,8 @@ Syft este un instrument Anchore separat, Apache-2.0. În fluxul manual îl rulez
 | --- | --- | --- |
 | Java / Maven | Da | Versiuni Maven și coordonate complete |
 | npm, Python / PyPI | Da | Intervale comparabile; restul necesită revizuire |
-| .NET / NuGet, Go, PHP / Composer, RubyGems, Rust / Cargo | Da | Neevaluat în această versiune |
+| .NET / NuGet, Go | Da | Avize pentru ecosistemul exact și reguli specifice de versiune |
+| PHP / Composer, RubyGems, Rust / Cargo | Da | Neevaluat în această versiune |
 
 Parcurge întâi pașii 2–3 și păstrează aceeași sesiune Bash: SCAN_WORK și SCAN_BIN trebuie să indice instalarea reușită. Rulează în ordine cele trei blocuri de mai jos: A — Cosign, B — Syft, C — colectare Java. Descărcarea și verificarea necesită internet, dar nu necesită cont GitHub, token, sudo sau modificarea PATH.
 
@@ -993,6 +1010,8 @@ Sync citește revizia și folosește o cheie de idempotență. Reîncercările 
 | Credential file rejected | Verifică numele fișierului și chmod 600; nu lipi tokenul în terminal. Reintrodu calea. |
 | ECOSYSTEM_NOT_EVALUATED | Inventarul este disponibil, dar evaluarea CVE pentru acel ecosistem nu este implementată. |
 | Synchronization was not confirmed | Verifică inventarul sursei în aplicație înainte de reluare. Fișierul local este păstrat. |
+| ADVISORY_RANGE_NOT_EVALUATED | Aviz găsit pentru pachet, dar intervalul versiunilor afectate nu poate fi evaluat. Verifică potrivirea pe produs. |
+| PACKAGE_IDENTITY_NOT_EVALUATED | Identitatea nu este un pachet acceptat; de exemplu Go stdlib/toolchain, în locul unui modul. |
 
 | Simptom | Acțiune |
 | --- | --- |
@@ -1024,7 +1043,7 @@ Sync citește revizia și folosește o cheie de idempotență. Reîncercările 
 
 ## Integrarea Jenkins
 
-Integrarea Jenkins folosește același CLI pentru Linux, npm, Python, Java, celelalte ecosisteme Syft și inventare existente. Pluginul stabil 0.1.0 este distribuit ca HPI verificat pe GitHub; publicarea în Jenkins Update Center așteaptă aprobarea de hosting. Validează întâi configurația pe staging. Sunt incluse verificarea configurației, politica UNSTABLE/FAILURE și comparația cu build-ul anterior.
+Integrarea Jenkins folosește același CLI pentru Linux, npm, Python, Java, celelalte ecosisteme Syft și inventare existente. Pluginul stabil 0.2.0 este distribuit ca HPI verificat pe GitHub; publicarea în Jenkins Update Center așteaptă aprobarea de hosting. Validează întâi configurația pe staging. Sunt incluse verificarea configurației, politica UNSTABLE/FAILURE și comparația cu build-ul anterior.
 
 Fiecare scanare Pipeline/Freestyle afișează progresul, durata, acoperirea, locația rapoartelor și politica buildului. Activează Detailed logging în pasul de build sau detailedLogging: true în Pipeline pentru detalii suplimentare. Erorile previzibile de input și refuzurile API cunoscute explică soluția fără un stack trace Java.
 

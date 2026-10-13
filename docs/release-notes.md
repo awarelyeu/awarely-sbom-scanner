@@ -1,3 +1,9 @@
+# v0.12.0 — NuGet and Go CVE checks
+
+NuGet/.NET package libraries and Go modules can now be assessed through the Monitor API and the Jenkins integration. The service uses typed package advisories, exact ecosystem identities, NuGet version ordering and Go SemVer/pseudo-version ordering. Unknown versions or advisory syntax remain explicit coverage gaps; product-level findings never become version-confirmed policy failures. Go toolchain/stdlib assessment remains outside the module check.
+
+Guided option 5 and the English/Romanian guides explain how to prepare dependency files, check an inventory and rescan after remediation. The managed Syft version remains 1.54.1. No new credentials, build execution or installation permissions are introduced.
+
 # v0.11.0 — Clear progress and safe diagnostics
 
 Collection and API commands show progress, waiting messages, timings and bounded check summaries. Optional `--verbose` explains cache verification and tool isolation. A payload-free v1 diagnostic-code interface lets Jenkins show specific recovery guidance without forwarding raw output. Existing exit codes, JSON artifacts, consent, pin verification and API behavior are preserved. Syft remains 1.54.1.
