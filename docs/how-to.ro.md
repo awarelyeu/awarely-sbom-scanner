@@ -1043,12 +1043,12 @@ Sync citește revizia și folosește o cheie de idempotență. Reîncercările 
 
 ## Integrarea Jenkins
 
-Integrarea Jenkins folosește același CLI pentru Linux, npm, Python, Java, celelalte ecosisteme Syft și inventare existente. Pluginul stabil 0.2.0 este distribuit ca HPI verificat pe GitHub; publicarea în Jenkins Update Center așteaptă aprobarea de hosting. Validează întâi configurația pe staging. Sunt incluse verificarea configurației, politica UNSTABLE/FAILURE și comparația cu build-ul anterior.
+Integrarea Jenkins folosește același CLI pentru Linux, npm, Python, Java, biblioteci .NET/NuGet, module Go, celelalte ecosisteme Syft și inventare existente. Pluginul stabil 0.2.0 este distribuit ca HPI verificat pe GitHub; publicarea în Jenkins Update Center așteaptă aprobarea de hosting. Validează întâi configurația pe staging. Sunt incluse verificarea configurației, politica UNSTABLE/FAILURE și comparația cu build-ul anterior.
 
 Fiecare scanare Pipeline/Freestyle afișează progresul, durata, acoperirea, locația rapoartelor și politica buildului. Activează Detailed logging în pasul de build sau detailedLogging: true în Pipeline pentru detalii suplimentare. Erorile previzibile de input și refuzurile API cunoscute explică soluția fără un stack trace Java.
 
 1. Administratorul instalează HPI-ul verificat și dependențele din ghidul Jenkins. Ai nevoie de Jenkins 2.580.1 sau mai nou, Java compatibil (testat cu JDK 21) și un agent Linux amd64/arm64 fără root.
-2. Începe cu un job care are deja aplicația în workspace. Adaugă pasul Awarely Scan, alege tipul aplicației, calea relativă și Save local inventory only. Pentru Java sau un mediu Python instalat, construiește aplicația sau instalează dependențele înainte.
+2. Începe cu un job care are deja aplicația în workspace. Adaugă pasul Awarely Scan, alege tipul aplicației, calea relativă și Save local inventory only. Construiește artefactele Java, instalează dependențele mediului Python sau pregătește proiectele .NET și Go prin restore/build într-un pas anterior, după cerințele intrării alese. Scanerul nu execută aceste comenzi ale proiectului.
 3. Într-un job de staging fără deployment, bifează Validate configuration only (preflightOnly: true). Citește consola, corectează căile/aprobările, apoi debifează și rulează scanarea reală. Preflight nu scanează, nu descarcă și nu contactează Monitor; nu oprește ceilalți pași din job. Conexiunea, drepturile tokenului și pregătirea Syft se verifică la operațiunea reală.
 4. După build, deschide Awarely Scan și Artifacts. Vei găsi inventarul CycloneDX. Nu este nevoie de cont Monitor pentru acest pas local.
 5. Pentru Check, creează în Setări > Active > Awarely Scan CLI o credențială Check only și încarc-o în Jenkins ca Secret file. Administratorul aprobă exact jobul, agentul și destinația API. Selectează credențiala în pasul Awarely Scan.
