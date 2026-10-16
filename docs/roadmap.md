@@ -8,9 +8,9 @@
 - Scoped expiring credentials and MFA management.
 - Synthetic end-to-end tests on Linux amd64 and arm64.
 
-## Jenkins preview
+## Jenkins integration
 
-The [Jenkins plugin](https://github.com/awarelyeu/awarely-scan-plugin) uses the same CLI for Linux, npm, Python, Java, other managed-Syft inputs and existing SBOMs. It provides local, check and source-scoped sync actions, Jenkins Secret file credentials, bounded reports and configurable build policies. Preview releases remain separate from stable CLI releases. Untrusted pull-request jobs cannot use plugin API credentials or inventory the agent host.
+The [Jenkins plugin](https://github.com/jenkinsci/awarely-scan-plugin) uses the same CLI for Linux, npm, Python, Java, other managed-Syft inputs and existing SBOMs. It provides local, check and source-scoped sync actions, Jenkins Secret file credentials, bounded reports and configurable build policies. Plugin releases have a separate version cycle from CLI releases. Untrusted pull-request jobs cannot use plugin API credentials or inventory the agent host.
 
 ## Future coverage
 

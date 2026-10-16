@@ -1348,7 +1348,7 @@
       "blocks": [
         {
           "type": "paragraph",
-          "text": "The Jenkins integration uses the same CLI for Linux, npm, Python, Java, .NET/NuGet libraries, Go modules, other Syft ecosystems and existing inventories. Stable plugin 0.2.0 is distributed as a verified HPI on GitHub; Jenkins Update Center publication is pending hosting approval. Validate your setup on staging first. Configuration preflight, selectable UNSTABLE/FAILURE policies and comparisons with the previous build are included."
+          "text": "The Jenkins integration uses the same CLI for Linux, npm, Python, Java, .NET/NuGet libraries, Go modules, other Syft ecosystems and existing inventories. Its official repository is jenkinsci/awarely-scan-plugin. Use Jenkins Plugin Manager for Jenkins-hosted releases; historical GitHub HPI downloads and their original verification instructions remain available. Validate your setup on staging first. Configuration preflight, selectable UNSTABLE/FAILURE policies and comparisons with the previous build are included."
         },
         {
           "type": "paragraph",
@@ -1357,7 +1357,7 @@
         {
           "type": "list",
           "items": [
-            "The administrator installs the verified HPI and dependencies from the Jenkins walkthrough. You need Jenkins 2.580.1 or newer, a compatible Java runtime (tested with JDK 21), and a non-root Linux amd64/arm64 agent.",
+            "The administrator opens Manage Jenkins > Plugins > Available plugins, searches for Awarely Scan and installs it with its dependencies. If it has not appeared yet, refresh the Update Center metadata and follow the linked Jenkins walkthrough. You need Jenkins 2.580.1 or newer, a compatible Java runtime (tested with JDK 21), and a non-root Linux amd64/arm64 agent.",
             "Start with a job that already has the application in its workspace. Add Awarely Scan, select its collector and relative path, and choose Save local inventory only. Build Java artifacts, install Python environment dependencies, or restore/build .NET and Go projects in an earlier step as needed for the selected input. The scanner does not run these project commands.",
             "In a staging job without deployment steps, enable Validate configuration only (preflightOnly: true). Read the console, correct missing paths/approvals, then disable it and run the real scan. Preflight makes no scan, download or Monitor request; it does not disable other job steps. Network/token scope and Syft preparation remain checks for the real operation.",
             "After the build, open Awarely Scan and Artifacts to find the CycloneDX inventory. No Monitor account is needed for this local step.",
@@ -1383,11 +1383,11 @@
           "links": [
             {
               "label": "Jenkins: complete walkthrough",
-              "href": "https://github.com/awarelyeu/awarely-scan-plugin/blob/main/docs/how-to.md"
+              "href": "https://github.com/jenkinsci/awarely-scan-plugin/blob/main/docs/how-to.md"
             },
             {
-              "label": "Stable plugin download and verification",
-              "href": "https://github.com/awarelyeu/awarely-scan-plugin/blob/main/docs/releases.md"
+              "label": "Plugin releases and historical verification",
+              "href": "https://github.com/jenkinsci/awarely-scan-plugin/blob/main/docs/releases.md"
             }
           ]
         }

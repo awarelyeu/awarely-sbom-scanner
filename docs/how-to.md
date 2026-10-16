@@ -1043,11 +1043,11 @@ Sync reads a revision and uses an idempotency key. Bounded transport/503 retries
 
 ## Jenkins integration
 
-The Jenkins integration uses the same CLI for Linux, npm, Python, Java, .NET/NuGet libraries, Go modules, other Syft ecosystems and existing inventories. Stable plugin 0.2.0 is distributed as a verified HPI on GitHub; Jenkins Update Center publication is pending hosting approval. Validate your setup on staging first. Configuration preflight, selectable UNSTABLE/FAILURE policies and comparisons with the previous build are included.
+The Jenkins integration uses the same CLI for Linux, npm, Python, Java, .NET/NuGet libraries, Go modules, other Syft ecosystems and existing inventories. Its official repository is jenkinsci/awarely-scan-plugin. Use Jenkins Plugin Manager for Jenkins-hosted releases; historical GitHub HPI downloads and their original verification instructions remain available. Validate your setup on staging first. Configuration preflight, selectable UNSTABLE/FAILURE policies and comparisons with the previous build are included.
 
 Every Pipeline/Freestyle scan shows progress, elapsed time, coverage, report locations and the configured build policy. Enable Detailed logging in the build step, or detailedLogging: true in Pipeline, for safe extra details. Expected input errors and known API refusals explain the corrective action without a Java stack trace.
 
-1. The administrator installs the verified HPI and dependencies from the Jenkins walkthrough. You need Jenkins 2.580.1 or newer, a compatible Java runtime (tested with JDK 21), and a non-root Linux amd64/arm64 agent.
+1. The administrator opens Manage Jenkins > Plugins > Available plugins, searches for Awarely Scan and installs it with its dependencies. If it has not appeared yet, refresh the Update Center metadata and follow the linked Jenkins walkthrough. You need Jenkins 2.580.1 or newer, a compatible Java runtime (tested with JDK 21), and a non-root Linux amd64/arm64 agent.
 2. Start with a job that already has the application in its workspace. Add Awarely Scan, select its collector and relative path, and choose Save local inventory only. Build Java artifacts, install Python environment dependencies, or restore/build .NET and Go projects in an earlier step as needed for the selected input. The scanner does not run these project commands.
 3. In a staging job without deployment steps, enable Validate configuration only (preflightOnly: true). Read the console, correct missing paths/approvals, then disable it and run the real scan. Preflight makes no scan, download or Monitor request; it does not disable other job steps. Network/token scope and Syft preparation remain checks for the real operation.
 4. After the build, open Awarely Scan and Artifacts to find the CycloneDX inventory. No Monitor account is needed for this local step.
@@ -1066,5 +1066,5 @@ Replace the path and credential ID with your own values. FAILURE stops normal ex
 
 The build’s Awarely Scan page compares retained complete inventories from the same job and scan configuration. Complete, evaluated checks also show component matches newly observed/no longer observed. Catalog/date changes are disclosed; disappearance is not proof of remediation. Missing, incomplete or incompatible evidence shows why comparison is unavailable. Current findings still determine the build policy.
 
-- [Jenkins: complete walkthrough](https://github.com/awarelyeu/awarely-scan-plugin/blob/main/docs/how-to.md)
-- [Stable plugin download and verification](https://github.com/awarelyeu/awarely-scan-plugin/blob/main/docs/releases.md)
+- [Jenkins: complete walkthrough](https://github.com/jenkinsci/awarely-scan-plugin/blob/main/docs/how-to.md)
+- [Plugin releases and historical verification](https://github.com/jenkinsci/awarely-scan-plugin/blob/main/docs/releases.md)
